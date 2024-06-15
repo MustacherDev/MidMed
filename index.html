@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0>
+    <title>MidMed</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000; /* Black background color */
+        }
+
+
+        .content {
+            /* Add your content styles here */
+            padding: 0px;
+            background-color: #f0f0f0;
+        }
+
+        @font-face {
+            font-family: 'Fixedsys';
+            font-style: normal;
+            font-weight: normal;
+            font-smooth: never;
+            src: local('Fixedsys Excelsior 3.01'), url('FSEX300.woff') format('woff');
+        }
+
+        .curtain {
+         flex-grow: 1;
+         height: 105vh;
+         background-size: cover;
+         position: absolute; /* Overlap the canvas */
+         top: -2%;
+         bottom: 0; /* Stretch curtains vertically */
+         width: 10%; /* Adjust width for desired overlap */
+       }
+
+       .curtain-left {
+         left: 0;
+         background-image: url('Sprites/black curtain.png'); /* Left curtain image */
+       }
+
+       .curtain-right {
+         right: 0;
+         background-image: url('Sprites/black curtain.png'); /* Right curtain image */
+       }
+
+        canvas {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            border: 0px solid #000; /* Optional: Add a border for better visibility */
+        }
+    </style>
+
+    <div class="container">
+    <canvas id="Canvas" width="1280px" height="720px"></canvas>
+    <div class="curtain curtain-left"></div>
+    <div class="curtain curtain-right"></div>
+
+    </div>
+
+
+    <script src="canvas.js"></script>
+    <script src="helper.js"></script>
+    <script src="helperMath.js"></script>
+    <script src="helperObj.js"></script>
+    <script src="input.js"></script>
+    <script src="color.js"></script>
+    <script src="gui.js"></script>
+    <script src="particles.js"></script>
+    <script src="sprite.js"></script>
+    <script src="data.js"></script>
+    <script src="objects.js"></script>
+    <script src="nameList.js"></script>
+    <script src="losango.js"></script>
+    <script src="script.js"></script>
+</head>
+  <body>
+
+  </body>
+</html>
