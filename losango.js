@@ -33,6 +33,10 @@ class Manager {
     this.startFrames = this.startFramesMax;
 
     this.winSoundId = 0;
+    this.winSoundCharging = false;
+
+    this.world = Physics();
+    this.worldEdgebounce;
   }
 
   initMinesweeper(firstId){
@@ -187,6 +191,20 @@ class Manager {
       this.losangos.push(new Losango(pos.x, pos.y, i));
       this.losangosGrid.push(i);
     }
+
+    this.worldEdgebounce = Physics.behavior('edge-collision-detection', {
+       aabb: Physics.aabb(0,0,roomWidth, roomHeight)
+       ,restitution: 0.2
+       ,cof: 0.8
+   });
+
+    this.world.add([
+       Physics.behavior('constant-acceleration')
+       ,Physics.behavior('body-impulse-response')
+       ,Physics.behavior('body-collision-detection')
+       ,Physics.behavior('sweep-prune')
+       ,this.worldEdgebounce
+   ]);
   }
 
   draw(ctx){
@@ -222,8 +240,44 @@ class Manager {
         }
         break;
     }
+
+    this.winSoundCharging = true;
+    if(winSounds[manager.winSoundId].paused){
+      this.winSoundCharging = false;
+    }
+
+    // for(var i = 0; i < this.losangos.length; i++){
+    //   this.losangos[i].boxCollider.x = this.losangos[i].x;
+    //   this.losangos[i].boxCollider.y = this.losangos[i].y;
+    //   this.losangos[i].boxCollider.updatePos();
+    //   this.losangos[i].boxCollider.hspd = this.losangos[i].hspd;
+    //   this.losangos[i].boxCollider.vspd = this.losangos[i].vspd;
+    // }
+    //
+    // for(var i = 0; i < this.losangos.length; i++){
+    //   if(this.losangos[i].attached || this.losangos[i].holded){
+    //     continue;
+    //   }
+    //   for(var j = i; j < this.losangos.length; j++){
+    //     if(this.losangos[j].attached || this.losangos[j].holded){
+    //       continue;
+    //     }
+    //
+    //     blockCollision(this.losangos[i].boxCollider, this.losangos[j].boxCollider);
+    //   }
+    //
+    //   this.losangos[i].vspd = this.losangos[i].boxCollider.vspd;
+    //   this.losangos[i].hspd = this.losangos[i].boxCollider.hspd;
+    //   this.losangos[i].y = this.losangos[i].boxCollider.y;
+    //   this.losangos[i].x = this.losangos[i].boxCollider.x;
+    // }
+
+    this.world.step();
   }
 
+  deattachLosango(id){
+
+  }
 }
 
 var manager = new Manager();
@@ -261,6 +315,10 @@ class Losango {
 
     this.boxWid = (this.width + manager.losWid)/4;
     this.boxHei = (this.height + manager.losHei)/4;
+
+    this.boxCollider = new Block(this.x, this.y, this.boxWid*2, this.boxHei*2);
+    this.boxCollider.centerX = this.boxWid;
+    this.boxCollider.centerY = this.boxHei;
 
     this.prevX = 0;
     this.prevY = 0;
@@ -315,7 +373,7 @@ class Losango {
   }
 
   boundingboxToPos(){
-    return Vector(this.boundingBox.x + this.boundingBox.width/2, this.boundingBox.y + this.boundingBox.height/2);
+    return new Vector(this.boundingBox.x + this.boundingBox.width/2, this.boundingBox.y + this.boundingBox.height/2);
   }
 
   draw(ctx){
@@ -334,7 +392,7 @@ class Losango {
       tempColor = this.backColor.copy();
     }
 
-    if(this.hovered){
+    if(this.hovered || (manager.winSoundCharging && this.id == NAME.VICTORIA)){
       tempColor = new Color(Math.floor(tempColor.r*0.75), Math.floor(tempColor.g*0.75), Math.floor(tempColor.b*0.75));
     }
 
@@ -391,14 +449,12 @@ class Losango {
 
 
     //this.boundingBox.show();
+    //this.boxCollider.strokeBounds();
   }
 
 
 
   effect(){
-
-
-
     if(this.minesweeper){
 
       if(!this.locked){
@@ -436,10 +492,14 @@ class Losango {
     } else if(this.id == NAME.LUIS){
       manager.initMinesweeper(this.id);
     } else if(this.id == NAME.JOAS){
-      addObject(new Bitcoin(roomWidth/2, -100, 30), OBJECT.BITCOIN);
+      var coinX = randInt(0, roomWidth);
+      var coinY = -100;
+      addObject(new Bitcoin(coinX, coinY, randInt(25, 40)), OBJECT.BITCOIN);
     } else if(this.id == NAME.VICTORIA){
       if(winSounds[manager.winSoundId].paused){
-        manager.winSoundId = randInt(0, WINSND.TOTAL);
+        sounds[SND.POP].play();
+        var newWinSound = randInt(0, WINSND.TOTAL);
+        manager.winSoundId = (newWinSound == manager.winSoundId) ? (newWinSound+1)%WINSND.TOTAL : newWinSound;
         winSounds[manager.winSoundId].play();
       }
     } else if(this.id == NAME.CAIO){
@@ -452,10 +512,15 @@ class Losango {
     }
   }
 
-  flip(flipAmount = 2){
+  startFlipping(){
     sounds[SND.PAGEFLIP].pause();
     sounds[SND.PAGEFLIP].currentTime = 0;
     sounds[SND.PAGEFLIP].play();
+    this.flipping = true;
+  }
+
+  flip(flipAmount = 2){
+    this.startFlipping();
     this.flipping = true;
     this.flipAmount = flipAmount;
     this.flipTargetPhase = this.flipPhase + this.flipAmount * Math.PI;
@@ -528,7 +593,7 @@ class Losango {
 
         this.getHold();
 
-        this.vspd += 0.2;
+        this.vspd += 0.1;
 
         // Physiscs
         if (this.boundingBox.x + this.boundingBox.width > roomWidth) {
@@ -548,15 +613,13 @@ class Losango {
         }
 
 
-        this.boundingboxToPos();
+        var newPos = this.boundingboxToPos();
+        this.x = newPos.x;
+        this.y = newPos.y;
       } else {
         this.updateHold();
       }
-
-
-
     }
-
 
     this.prevX = this.x;
     this.prevY = this.y;
@@ -633,6 +696,8 @@ class Losango {
 
     this.xScl = Math.cos(this.flipPhase);
 
+
+
     // Packet processing
     if(!this.flipping){
       if(this.updateList.length > 0){
@@ -640,7 +705,7 @@ class Losango {
           this.updateList[0].waitTime--;
         } else {
           this.updatePacket = this.updateList.shift();
-          this.flipping = true;
+          this.startFlipping();
           this.flipAmount = (this.isFront == this.updatePacket.isFront) ? 2 : 1;
           this.flipTargetPhase = this.flipPhase + Math.PI * this.flipAmount;
         }
