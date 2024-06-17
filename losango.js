@@ -13,6 +13,7 @@ class Manager {
 
     this.losangos = [];
     this.losangosGrid = [];
+    this.losangosPhy = [];
 
     this.minesweeperGrid = [];
     this.exposingMinesweeper = false;
@@ -170,7 +171,7 @@ class Manager {
 
   fall(){
     for(var i = 0; i < this.losangos.length; i++){
-      this.losangos[i].attached = false;
+      this.deattachLosango(i);
     }
   }
 
@@ -190,6 +191,7 @@ class Manager {
       var pos = this.getPosGrid(i);
       this.losangos.push(new Losango(pos.x, pos.y, i));
       this.losangosGrid.push(i);
+      this.losangosPhy.push(null);
     }
 
     this.worldEdgebounce = Physics.behavior('edge-collision-detection', {
@@ -276,7 +278,28 @@ class Manager {
   }
 
   deattachLosango(id){
+    const los = this.losangos[id];
 
+    this.losangosPhy[id] = Physics.body('rectangle', {
+            width: los.width
+            ,height: los.height
+            ,x: los.x
+            ,y: los.y
+            ,vx: los.hspd
+            ,vy: los.vspd
+            ,cof: 0.99
+            ,restitution: 0.99
+        });
+    this.losangosPhy[id].state.angular.pos = deg2rad(45);
+    this.world.add(this.losangosPhy[id]);
+
+    this.losangos[id].attached = false;
+  }
+
+  attachLosango(id){
+    if(this.losangosPhy[id] != null){
+      this.world.remove(this.losangosPhy[id]);
+    }
   }
 }
 
@@ -361,7 +384,7 @@ class Losango {
   }
 
   isInside(x, y){
-    if(pointInRect(x, y, this.x - this.boxWid, this.y - this.boxHei, this.x + this.boxWid, this.y + this.boxHei)){
+    if(pointInRect(x, y, this.x - this.boundingBox.width/2, this.y - this.boundingBox.height/2, this.x + this.boundingBox.width/2, this.y + this.boundingBox.height/2)){
       return true;
     }
     return false;
@@ -448,7 +471,7 @@ class Losango {
     ctx.restore(); // Restore the original state
 
 
-    //this.boundingBox.show();
+    
     //this.boxCollider.strokeBounds();
   }
 
@@ -555,6 +578,11 @@ class Losango {
       this.y = input.mouseY - this.holdY;
 
       if(!input.mouseState[0][0]){
+
+
+        manager.losangosPhy[this.id].state.pos.x = this.x;
+        manager.losangosPhy[this.id].state.pos.y = this.y;
+
         this.holded = false;
         this.hspd = this.x - this.prevX;
         this.vspd = this.y - this.prevY;
@@ -593,29 +621,36 @@ class Losango {
 
         this.getHold();
 
-        this.vspd += 0.1;
+        // this.vspd += 0.1;
 
-        // Physiscs
-        if (this.boundingBox.x + this.boundingBox.width > roomWidth) {
-            this.boundingBox.x = roomWidth - this.boundingBox.width;
-            this.hspd *= -0.5;
-        } else if (this.boundingBox.x < 0) {
-            this.boundingBox.x = 0;
-            this.hspd *= -0.5;
-        }
+        var posPhy = manager.losangosPhy[this.id].state.pos;
+        this.x = posPhy.x;
+        this.y = posPhy.y;
 
-        if (this.boundingBox.y + this.boundingBox.height > roomHeight) {
-            this.boundingBox.y = roomHeight - this.boundingBox.height;
-            this.vspd *= -0.5;
-        } else  if (this.boundingBox.y < 0) {
-            this.boundingBox.y = 0;
-            this.vspd *= -0.5;
-        }
+        this.angle = manager.losangosPhy[this.id].state.angular.pos;
+
+        //
+        // // Physiscs
+        // if (this.boundingBox.x + this.boundingBox.width > roomWidth) {
+        //     this.boundingBox.x = roomWidth - this.boundingBox.width;
+        //     this.hspd *= -0.5;
+        // } else if (this.boundingBox.x < 0) {
+        //     this.boundingBox.x = 0;
+        //     this.hspd *= -0.5;
+        // }
+        //
+        // if (this.boundingBox.y + this.boundingBox.height > roomHeight) {
+        //     this.boundingBox.y = roomHeight - this.boundingBox.height;
+        //     this.vspd *= -0.5;
+        // } else  if (this.boundingBox.y < 0) {
+        //     this.boundingBox.y = 0;
+        //     this.vspd *= -0.5;
+        // }
 
 
-        var newPos = this.boundingboxToPos();
-        this.x = newPos.x;
-        this.y = newPos.y;
+        //var newPos = this.boundingboxToPos();
+      //  this.x = newPos.x;
+        //this.y = newPos.y;
       } else {
         this.updateHold();
       }

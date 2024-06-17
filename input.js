@@ -103,6 +103,8 @@ function Input() {
     this.mouseState = [];
     this.mouseX = 0;
     this.mouseY = 0;
+    this.mouseCanvasX = 0;
+    this.mouseCanvasY = 0;
 
     this.touchX = 0;
     this.touchY = 0;
@@ -146,8 +148,10 @@ var input = new Input();
 input.init();
 
 canvas.addEventListener("mousemove", function (event) {
-    input.mouseX = event.offsetX;
-    input.mouseY = event.offsetY;
+    input.mouseCanvasX = event.offsetX;
+    input.mouseCanvasY = event.offsetY;
+    input.mouseX = (input.mouseCanvasX - canvasOffsetX)/canvasSclX;
+    input.mouseY = (input.mouseCanvasY - canvasOffsetY)/canvasSclY;
 });
 
 canvas.addEventListener("mousedown", function (event) {
