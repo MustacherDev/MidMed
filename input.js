@@ -150,8 +150,8 @@ input.init();
 canvas.addEventListener("mousemove", function (event) {
     input.mouseCanvasX = event.offsetX;
     input.mouseCanvasY = event.offsetY;
-    input.mouseX = (input.mouseCanvasX - canvasOffsetX)/canvasSclX;
-    input.mouseY = (input.mouseCanvasY - canvasOffsetY)/canvasSclY;
+    input.mouseX = -canvasOffsetX+(input.mouseCanvasX)/canvasSclX;
+    input.mouseY = -canvasOffsetY+(input.mouseCanvasY)/canvasSclY;
 });
 
 canvas.addEventListener("mousedown", function (event) {
