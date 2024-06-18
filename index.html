@@ -53,11 +53,15 @@
             top: 0px;
             left: 0px;
             border: 0px solid #000; /* Optional: Add a border for better visibility */
+            -webkit-tap-highlight-color: transparent;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
     </style>
 
     <div class="container">
-    <canvas id="Canvas" width="1280px" height="720px"></canvas>
+    <canvas id="Canvas"></canvas>
     <div class="curtain curtain-left"></div>
     <div class="curtain curtain-right"></div>
 
@@ -76,6 +80,7 @@
     <script src="data.js"></script>
     <script src="objects.js"></script>
     <script src="nameList.js"></script>
+    <script src="manager.js"></script>
     <script src="losango.js"></script>
     <script src="script.js"></script>
 </head>

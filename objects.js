@@ -326,8 +326,8 @@ function Ball(x, y, radius, sprite) {
     this.prevX = 0;
     this.prevY = 0;
 
-    this.hspdMax = 40;
-    this.vspdMax = 40;
+    this.hspdMax = 20;
+    this.vspdMax = 20;
 
     this.angDamp = 0.99;
     this.linDamp = 0.999;
@@ -336,7 +336,7 @@ function Ball(x, y, radius, sprite) {
     this.hLoss = 0.9;
 
     this.gravity = 0.1;
-    this.floorY = roomHeight - 20;
+    this.floorY = roomHeight;
 
     this.onGround = false;
 
