@@ -13,8 +13,16 @@ var winSounds = [];
 const SND = Object.freeze(new Enum(
     "HIT",
     "PAGEFLIP",
+    "PAGESLIP",
     "FALL",
     "POP",
+    "COINFALL",
+    "COINNOISE",
+    "COINNOISE2",
+    "COINHIT",
+    "COINHIT2",
+    "EXPLOSION",
+    "WHISTLE",
     "TOTAL"
 ));
 
@@ -36,8 +44,16 @@ const WINSND = Object.freeze(new Enum(
 const sndPaths = [
   "Hit.mp3",
   "pageFlip.mp3",
+  "pageSlip.mp3",
   "FALL.mp3",
-  "Pop.mp3"
+  "Pop.mp3",
+  "coins/coinFall.mp3",
+  "coins/coinCollision1.mp3",
+  "coins/coinCollision2.mp3",
+  "coins/coinHitB1.mp3",
+  "coins/coinHitB2.mp3",
+  "Explosion.wav",
+  "whistle.mp3"
 ];
 
 const winSndPaths = [
@@ -61,6 +77,17 @@ for(var i = 0 ; i < sndPaths.length; i++){
 }
 
 sounds[SND.HIT].volume = 0.5;
+sounds[SND.PAGEFLIP].volume = 0.8;
+sounds[SND.EXPLOSION].volume = 0.4;
+
+
+function playSound(soundId){
+  if(sounds[soundId].paused || sounds[soundId].currentTime > 0){
+    sounds[soundId].pause();
+    sounds[soundId].currentTime = 0;
+    sounds[soundId].play();
+  }
+}
 
 for(var i = 0 ; i < winSndPaths.length; i++){
   winSounds.push(new Audio("Sounds/Win/" + winSndPaths[i]));

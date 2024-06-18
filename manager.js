@@ -75,6 +75,7 @@ class Minesweeper {
     if(this.grid[cell] == -1){
       this.gameover = true;
       this.exposeAll();
+      return -1;
     } else if(this.grid[cell] == 0){
       var col = cell%this.cols;
       var row = Math.floor(cell/this.cols);
@@ -87,6 +88,7 @@ class Minesweeper {
         }
       }
     }
+    return 0;
   }
 
   exposeAll(){
@@ -151,6 +153,12 @@ class Minesweeper {
 //   }
 // }
 
+
+
+
+
+
+
 class Manager {
   constructor(){
     this.losWid = 120;
@@ -169,6 +177,7 @@ class Manager {
     this.locked = false;
 
     this.holding = false;
+    this.holdingContent = null;
 
     this.mode = 0;
 
@@ -177,6 +186,8 @@ class Manager {
     this.sunAmount = 0;
     this.bitCoinAmount = 0;
     this.moneyAmount = 0;
+
+    this.mouseGrid = -1;
 
     this.startFramesMax = 100;
     this.startFrames = this.startFramesMax;
@@ -218,7 +229,9 @@ class Manager {
   }
 
   exposeMinesweeper(cell){
-    this.minesweeper.expose(cell);
+    if(this.minesweeper.expose(cell) == -1){
+      playSound(SND.EXPLOSION);
+    }
   }
 
   endMinesweeper(){
@@ -246,7 +259,9 @@ class Manager {
 
   fall(){
     for(var i = 0; i < this.losangos.length; i++){
-      this.deattachLosango(i);
+      if(this.losangos[i].attached){
+        this.deattachLosango(i);
+      }
     }
   }
 
@@ -256,6 +271,19 @@ class Manager {
     var ix = ind%this.cols;
     var iy = Math.floor(ind/this.cols);
     return new Vector(this.losWid*ix + initX, this.losHei*iy + initY);
+  }
+
+  getMouseGrid(){
+    var initX = (roomWidth/2) - (this.cols*this.losWid)/2;
+    var initY = this.losHei/2;
+
+    if(pointInRect(input.mouseX, input.mouseY, initX, initY, initX+this.cols*this.losWid, initY+this.rows*this.losHei)){
+      var col = Math.floor((input.mouseX - initX)/this.losWid);
+      var row = Math.floor((input.mouseY - initY)/this.losHei);
+
+      return col + row*this.cols;
+    }
+    return -1;
   }
 
 
@@ -289,6 +317,28 @@ class Manager {
   }
 
   draw(ctx){
+    var initX = (roomWidth/2) - (this.cols*this.losWid)/2;
+    var initY = this.losHei/2;
+
+    this.mouseGrid = this.getMouseGrid();
+    // if(mouseGrid != -1){
+    //   ctx.strokeStyle = "rgb(255, 0, 0)";
+    // } else {
+    //   ctx.strokeStyle = "rgb(255, 255, 255)";
+    // }
+    // ctx.strokeRect(initX, initY, this.cols*this.losWid, this.rows*this.losHei);
+
+    if(this.mouseGrid != -1 && this.holding && this.holdingContent == 1){
+      var selectedPos = this.getPosGrid(this.mouseGrid);
+      var selectedWid = this.losWid;
+      var selectedHei = this.losHei;
+      ctx.save();
+      ctx.translate(selectedPos.x, selectedPos.y);
+      ctx.rotate(deg2rad(45));
+      ctx.strokeStyle = "rgb(255, 255, 255)";
+      ctx.strokeRect(-selectedWid/2, -selectedHei/2, selectedWid, selectedHei);
+      ctx.restore();
+    }
 
     for(let i = 0; i < this.losangos.length; i++){
         var pos = this.getPosGrid(i);
@@ -297,6 +347,13 @@ class Manager {
 
     for(let i = 0; i < this.losangos.length; i++){
       this.losangos[i].draw(ctx);
+    }
+
+    if(isMobile){
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = "rgb(255, 255, 255)";
+      ctx.fillText("MOBILE Version", 30, 10);
     }
   }
 
@@ -345,8 +402,8 @@ class Manager {
             ,height: los.height
             ,x: los.x
             ,y: los.y
-            ,vx: los.hspd
-            ,vy: los.vspd
+            ,vx: los.hspd + randRange(-0.1, 0.1)
+            ,vy: los.vspd + randRange(-0.1, 0.1)
             ,cof: 0.99
             ,restitution: 0.99
         });
@@ -360,6 +417,9 @@ class Manager {
     if(this.losangosPhy[id] != null){
       this.world.remove(this.losangosPhy[id]);
     }
+
+    this.losangos[id].attached = true;
+    this.losangosGrid[id] = this.mouseGrid;
   }
 }
 

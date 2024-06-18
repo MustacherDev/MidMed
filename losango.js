@@ -111,12 +111,16 @@ class Losango {
 
     ctx.fillStyle = 'rgb(200, 200, 200)';
 
+
     var perc = this.linePerc;
 
-    ctx.fillRect(-this.width / (2+2*perc), -this.height / (2-2*perc), this.width*(1-perc), 2);
-    ctx.fillRect(-this.width / (2+2*perc), +this.height / (2-2*perc) -2, this.width*(1-perc), 2);
-    ctx.fillRect(-this.width / (2-2*perc), -this.height / (2+2*perc), 2, this.height*(1-perc));
-    ctx.fillRect(+this.width / (2-2*perc)-2, -this.height / (2+2*perc), 2, this.height*(1-perc));
+
+    if(this.attached){
+      ctx.fillRect(-this.width / (2+2*perc), -this.height / (2-2*perc), this.width*(1-perc), 2);
+      ctx.fillRect(-this.width / (2+2*perc), +this.height / (2-2*perc) -2, this.width*(1-perc), 2);
+      ctx.fillRect(-this.width / (2-2*perc), -this.height / (2+2*perc), 2, this.height*(1-perc));
+      ctx.fillRect(+this.width / (2-2*perc)-2, -this.height / (2+2*perc), 2, this.height*(1-perc));
+    }
 
     if(this.isFront){
       ctx.rotate(-this.angle); // Rotate the canvas context
@@ -210,14 +214,14 @@ class Losango {
       addObject(new Bitcoin(coinX, coinY, randInt(25, 40)), OBJECT.BITCOIN);
     } else if(this.id == NAME.VICTORIA){
       if(winSounds[manager.winSoundId].paused){
-        sounds[SND.POP].play();
+        playSound(SND.POP);
         var newWinSound = randInt(0, WINSND.TOTAL);
         manager.winSoundId = (newWinSound == manager.winSoundId) ? (newWinSound+1)%WINSND.TOTAL : newWinSound;
         winSounds[manager.winSoundId].play();
       }
     } else if(this.id == NAME.CAIO){
       if(this.useAltName){
-        sounds[SND.FALL].play();
+        playSound(SND.FALL);
       }
       manager.fall();
     } else{
@@ -226,9 +230,7 @@ class Losango {
   }
 
   startFlipping(){
-    sounds[SND.PAGEFLIP].pause();
-    sounds[SND.PAGEFLIP].currentTime = 0;
-    sounds[SND.PAGEFLIP].play();
+    playSound(SND.PAGESLIP);
     this.flipping = true;
   }
 
@@ -253,6 +255,7 @@ class Losango {
   getHold(){
     if(this.hovered && !this.holded && input.mouseState[0][1] && manager.holding == false){
       manager.holding = true;
+      manager.holdingContent = 1;
       this.holded = true;
       this.holdX = input.mouseX - this.x;
       this.holdY = input.mouseY - this.y;
@@ -276,6 +279,10 @@ class Losango {
         this.holded = false;
         this.hspd = this.x - this.prevX;
         this.vspd = this.y - this.prevY;
+
+        if(manager.mouseGrid != -1){
+          manager.attachLosango(this.id);
+        }
       }
     }
   }
@@ -295,7 +302,7 @@ class Losango {
     if(this.attached){
       var targetPos = manager.getPosGrid(manager.losangosGrid[this.id]);
 
-      if(Math.abs(targetPos.x - this.x) + Math.abs(targetPos.y - this.y) < 50){
+      if(Math.abs(targetPos.x - this.x) + Math.abs(targetPos.y - this.y) < 5){
         this.x = targetPos.x;
         this.y = targetPos.y;
       } else {
@@ -318,29 +325,6 @@ class Losango {
         this.y = posPhy.y;
 
         this.angle = manager.losangosPhy[this.id].state.angular.pos;
-
-        //
-        // // Physiscs
-        // if (this.boundingBox.x + this.boundingBox.width > roomWidth) {
-        //     this.boundingBox.x = roomWidth - this.boundingBox.width;
-        //     this.hspd *= -0.5;
-        // } else if (this.boundingBox.x < 0) {
-        //     this.boundingBox.x = 0;
-        //     this.hspd *= -0.5;
-        // }
-        //
-        // if (this.boundingBox.y + this.boundingBox.height > roomHeight) {
-        //     this.boundingBox.y = roomHeight - this.boundingBox.height;
-        //     this.vspd *= -0.5;
-        // } else  if (this.boundingBox.y < 0) {
-        //     this.boundingBox.y = 0;
-        //     this.vspd *= -0.5;
-        // }
-
-
-        //var newPos = this.boundingboxToPos();
-      //  this.x = newPos.x;
-        //this.y = newPos.y;
       } else {
         this.updateHold();
       }

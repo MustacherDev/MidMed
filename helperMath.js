@@ -62,6 +62,10 @@ function randInt(min, max) {
     return Math.floor(Math.random() * (max - min)) + min;
 }
 
+function randRange(min, max){
+  return (Math.random() * (max - min)) + min;
+}
+
 function distance(dx, dy) {
     return Math.sqrt((dx * dx) + (dy * dy));
 }
@@ -72,6 +76,10 @@ function sqrDist(dx, dy) {
 
 function manhattanDist(dx, dy){
   return dx + dy;
+}
+
+function chance(val){
+  return (Math.random() > val);
 }
 
 function pointInRect(x, y, x1, y1, x2, y2) {

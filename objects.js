@@ -363,6 +363,7 @@ function Ball(x, y, radius, sprite) {
     this.updateHold = function(){
       if(this.holded){
         manager.holding = true;
+        manager.holdingContent = 2;
         this.x = input.mouseX - this.holdX;
         this.y = input.mouseY - this.holdY;
 
@@ -400,6 +401,10 @@ function Ball(x, y, radius, sprite) {
 
     }
 
+    this.collisionAction = function(isHorizontal, velocity){
+
+    }
+
     this.update = function () {
 
         this.parameterStep();
@@ -416,31 +421,36 @@ function Ball(x, y, radius, sprite) {
             this.tick++;
 
             if (this.x + this.r > roomWidth) {
-                this.x = roomWidth - this.r;
-                this.angSpd += this.vspd / 40;
-                this.hspd *= -this.hLoss;
+              this.collisionAction(true, this.hspd);
 
+              this.x = roomWidth - this.r;
+              this.angSpd += this.vspd / 40;
+              this.hspd *= -this.hLoss;
             } else if (this.x - this.r < 0) {
-                this.x = this.r;
+              this.collisionAction(true, this.hspd);
 
-                this.angSpd += this.vspd / 40;
-
-                this.hspd *= -this.hLoss;
+              this.x = this.r;
+              this.angSpd += this.vspd / 40;
+              this.hspd *= -this.hLoss;
             }
 
 
             if (this.y + this.r > roomHeight + 200) {
-                this.vspd = -15;
-                this.angSpd = -0.25 + Math.random()*0.5;
+              this.collisionAction(false, this.vspd);
+
+              this.vspd = -15;
+              this.angSpd = -0.25 + Math.random()*0.5;
             }
 
             if (this.y + this.r > this.floorY) {
-                this.y = this.floorY - this.r;
-                if (Math.abs(this.vspd) > this.gravity * 3) {
-                    this.angSpd += this.hspd / 40;
-                }
-                this.vspd *= -this.vLoss;
-                this.hspd *= this.linDamp;
+              if (Math.abs(this.vspd) > Math.abs(this.gravity * 3)) {
+                this.collisionAction(false, this.vspd);
+                this.angSpd += this.hspd / 40;
+              }
+
+              this.y = this.floorY - this.r;
+              this.vspd *= -this.vLoss;
+              this.hspd *= this.linDamp;
             }
         }
 
@@ -463,6 +473,18 @@ function Bitcoin(x, y, radius) {
   this.xScl = (2*radius)/this.sprite.width;
   this.yScl = (2*radius)/this.sprite.height;
   this.hovered = false;
+
+  this.collisionAction = function(isHorizontal, velocity){
+    var spd =  Math.abs(velocity);
+    if(spd > 2){
+      if(spd > 5){
+        playSound(SND.COINHIT);
+      } else {
+        playSound(SND.COINHIT2);
+      }
+    }
+  }
+
 }
 
 

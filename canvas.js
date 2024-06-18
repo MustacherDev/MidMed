@@ -9,6 +9,9 @@ var canvasOffsetX = 0;
 var canvasOffsetY = 0;
 
 function resizeCanvas(){
+
+
+
   canvas.width  = window.innerWidth;
   canvas.height = window.innerHeight;
 
@@ -29,6 +32,11 @@ function resizeCanvas(){
 
   canvasOffsetX = (canvas.width -(roomWidth*canvasSclX))/2;
   canvasOffsetY = (canvas.height -(roomHeight*canvasSclY))/2;
+
+  const curtainsDiv = document.querySelectorAll(".curtain");
+  for(var i = 0; i < curtainsDiv.length; i++){
+    curtainsDiv[i].style.width = (2+(Math.floor(100*canvasOffsetX/canvas.width)))+"%";
+  }
 
   // Anti-alising deactivator
   ctx.webkitImageSmoothingEnabled = false;

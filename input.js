@@ -148,13 +148,15 @@ var input = new Input();
 input.init();
 
 canvas.addEventListener("mousemove", function (event) {
-    input.mouseCanvasX = event.offsetX;
-    input.mouseCanvasY = event.offsetY;
-    input.mouseX = (input.mouseCanvasX -canvasOffsetX)/canvasSclX;
-    input.mouseY = (input.mouseCanvasY -canvasOffsetY)/canvasSclY;
+  if(isMobile) return;
+  input.mouseCanvasX = event.offsetX;
+  input.mouseCanvasY = event.offsetY;
+  input.mouseX = (input.mouseCanvasX -canvasOffsetX)/canvasSclX;
+  input.mouseY = (input.mouseCanvasY -canvasOffsetY)/canvasSclY;
 });
 
 canvas.addEventListener("mousedown", function (event) {
+  if(isMobile) return;
   if(!input.mouseState[event.button][0]){
     input.mouseState[event.button][0] = true;
     input.mouseState[event.button][1] = true;
@@ -162,6 +164,7 @@ canvas.addEventListener("mousedown", function (event) {
 });
 
 canvas.addEventListener("mouseup", function (event) {
+  if(isMobile) return;
   if(input.mouseState[event.button][0]){
     input.mouseState[event.button][0] = false;
     input.mouseState[event.button][2] = true;
@@ -172,21 +175,44 @@ canvas.addEventListener('touchstart', handleTouchStart, false);
 canvas.addEventListener('touchmove', handleTouchMove, false);
 canvas.addEventListener('touchend', handleTouchEnd, false);
 
+
 function handleTouchStart(event) {
-    event.preventDefault();
-    // Get the coordinates of the touch event
-    input.touchX = event.touches[0].clientX;
-    input.touchY = event.touches[0].clientY;
+  event.preventDefault();
+  // Get the coordinates of the touch event
+  input.touchX = event.touches[0].clientX;
+  input.touchY = event.touches[0].clientY;
 
-    input.touchState[0] = true;
-    input.touchState[1] = true;
+  input.touchState[0] = true;
+  input.touchState[1] = true;
 
-    if(isMobile){
-       input.mouseState[0][0] = true;
-       input.mouseState[0][1] = true;
-    }
-
+  if (isMobile) {
+    setTimeout(function() {
+     input.mouseState[0][0] = true; // Simulate mouse down
+     input.mouseState[0][1] = true;
+   }, 5); //
+    input.mouseState[0][2] = false; // Ensure clean click (down -> up)
+    input.mouseX = (input.touchX - canvasOffsetX) / canvasSclX;
+    input.mouseY = (input.touchY - canvasOffsetY) / canvasSclY;
+  }
 }
+
+
+function handleTouchEnd(event) {
+  event.preventDefault();
+  // Reset touch coordinates
+  input.touchX = 0;
+  input.touchY = 0;
+
+  input.touchState[0] = false;
+  input.touchState[2] = true;
+
+  if (isMobile) {
+    input.mouseState[0][0] = false; // Simulate mouse up
+    input.mouseState[0][2] = true;
+  }
+}
+
+
 
 function handleTouchMove(event) {
     // Prevent default touch behavior (e.g., scrolling)
@@ -202,21 +228,37 @@ function handleTouchMove(event) {
     }
 }
 
-function handleTouchEnd(event) {
 
-    event.preventDefault();
-    // Reset touch coordinates
-    input.touchX = 0;
-    input.touchY = 0;
-
-    input.touchState[0] = false;
-    input.touchState[2] = true;
-
-    if(isMobile){
-       input.mouseState[0][0] = false;
-       input.mouseState[0][2] = true;
-    }
-}
+// function handleTouchStart(event) {
+//     event.preventDefault();
+//     // Get the coordinates of the touch event
+//     input.touchX = event.touches[0].clientX;
+//     input.touchY = event.touches[0].clientY;
+//
+//     input.touchState[0] = true;
+//     input.touchState[1] = true;
+//
+//     if(isMobile){
+//        input.mouseState[0][0] = true;
+//        input.mouseState[0][1] = true;
+//     }
+//
+// }
+// function handleTouchEnd(event) {
+//
+//     event.preventDefault();
+//     // Reset touch coordinates
+//     input.touchX = 0;
+//     input.touchY = 0;
+//
+//     input.touchState[0] = false;
+//     input.touchState[2] = true;
+//
+//     if(isMobile){
+//        input.mouseState[0][0] = false;
+//        input.mouseState[0][2] = true;
+//     }
+// }
 
 
 document.addEventListener('keydown', function (event) {
