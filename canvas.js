@@ -8,9 +8,24 @@ var canvasSclY = 1;
 var canvasOffsetX = 0;
 var canvasOffsetY = 0;
 
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+
+
+const curtainsDiv = document.querySelectorAll(".curtain");
+
+for (const curtainDiv of curtainsDiv) {
+  curtainDiv.addEventListener("touchend", function handleTouchEndCurtain(event) {
+    event.preventDefault();
+  }, false);
+}
+
 function resizeCanvas(){
 
-
+  if(isMobile){
+    roomWidth = 1450;
+    roomHeight = 720;
+  }
 
   canvas.width  = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -33,7 +48,7 @@ function resizeCanvas(){
   canvasOffsetX = (canvas.width -(roomWidth*canvasSclX))/2;
   canvasOffsetY = (canvas.height -(roomHeight*canvasSclY))/2;
 
-  const curtainsDiv = document.querySelectorAll(".curtain");
+
   for(var i = 0; i < curtainsDiv.length; i++){
     curtainsDiv[i].style.width = (2+(Math.floor(100*canvasOffsetX/canvas.width)))+"%";
   }
@@ -57,7 +72,6 @@ window.addEventListener('resize', resizeCanvas);
 
 
 
-const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 
 canvas.addEventListener('contextmenu', preventContextMenu);

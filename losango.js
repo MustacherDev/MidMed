@@ -172,9 +172,6 @@ class Losango {
 
 
   effect(rightClick){
-
-
-
     if(this.minesweeper){
       if(rightClick){
         manager.flagMinesweeper(this.id);
@@ -209,9 +206,12 @@ class Losango {
     } else if(this.id == NAME.LUIS){
       manager.initMinesweeper(this.id);
     } else if(this.id == NAME.JOAS){
-      var coinX = randInt(0, roomWidth);
-      var coinY = -100;
-      addObject(new Bitcoin(coinX, coinY, randInt(25, 40)), OBJECT.BITCOIN);
+      if(chance(0.2)){
+        var coinX = randInt(0, roomWidth);
+        var coinY = -100;
+        addObject(new Bitcoin(coinX, coinY, randInt(25, 40)), OBJECT.BITCOIN);
+        playSound(SND.COINNOISE);
+      }
     } else if(this.id == NAME.VICTORIA){
       if(winSounds[manager.winSoundId].paused){
         playSound(SND.POP);
@@ -224,7 +224,9 @@ class Losango {
         playSound(SND.FALL);
       }
       manager.fall();
-    } else{
+    } else if (this.id == NAME.ALICE){
+      manager.sortGrid();
+    } else {
       this.flip();
     }
   }
@@ -271,18 +273,24 @@ class Losango {
       this.y = input.mouseY - this.holdY;
 
       if(!input.mouseState[0][0]){
-
-
         manager.losangosPhy[this.id].state.pos.x = this.x;
         manager.losangosPhy[this.id].state.pos.y = this.y;
 
         this.holded = false;
-        this.hspd = this.x - this.prevX;
-        this.vspd = this.y - this.prevY;
 
-        if(manager.mouseGrid != -1){
-          manager.attachLosango(this.id);
+        let totalXDiff = 0;
+        let totalYDiff = 0;
+
+        for (const mousePos of manager.prevMousePos) {
+          totalXDiff += (this.x + this.holdX) - mousePos.x;
+          totalYDiff += (this.y + this.holdY) - mousePos.y;
         }
+
+        var throwForce = 1;
+        this.hspd = (totalXDiff / manager.prevMousePos.length) * throwForce;
+        this.vspd = (totalYDiff / manager.prevMousePos.length) * throwForce;
+
+        manager.attachLosangoMouse(this.id);
       }
     }
   }
@@ -307,9 +315,13 @@ class Losango {
         this.y = targetPos.y;
       } else {
         var pos = new Vector(this.x, this.y);
+        var dist = targetPos.sub(pos).mag();
         var dir = targetPos.sub(pos).unit();
-        this.hspd = dir.x;
-        this.vspd = dir.y;
+
+        var spd = Math.max((dist*dist)/100000, 0.1);
+
+        this.hspd += dir.x*spd;
+        this.vspd += dir.y*spd;
       }
     } else {
 
@@ -324,11 +336,18 @@ class Losango {
         this.x = posPhy.x;
         this.y = posPhy.y;
 
-        this.angle = manager.losangosPhy[this.id].state.angular.pos;
+        this.angle = (manager.losangosPhy[this.id].state.angular.pos)%(Math.PI*2);
       } else {
+        manager.losangosPhy[this.id].state.pos.x = this.x;
+        manager.losangosPhy[this.id].state.pos.y = this.y;
         this.updateHold();
       }
     }
+
+    this.hspd = clamp(this.hspd, -20, 20);
+    this.vspd = clamp(this.vspd, -20, 20);
+    this.hspd *= 0.98;
+    this.vspd *= 0.98;
 
     this.prevX = this.x;
     this.prevY = this.y;

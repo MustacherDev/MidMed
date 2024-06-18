@@ -103,6 +103,7 @@ function Input() {
     this.mouseState = [];
     this.mouseX = 0;
     this.mouseY = 0;
+
     this.mouseCanvasX = 0;
     this.mouseCanvasY = 0;
 

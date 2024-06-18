@@ -79,7 +79,7 @@ function manhattanDist(dx, dy){
 }
 
 function chance(val){
-  return (Math.random() > val);
+  return (Math.random() < val);
 }
 
 function pointInRect(x, y, x1, y1, x2, y2) {

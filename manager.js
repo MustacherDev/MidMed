@@ -163,8 +163,19 @@ class Manager {
   constructor(){
     this.losWid = 120;
     this.losHei = 120;
+
+    this.verticalSpace = this.losHei;
+
+    if(isMobile){
+      this.losWid = 140;
+      this.losHei = 140;
+      this.verticalSpace = this.losHei/2;
+    }
+
     this.cols = Math.floor(roomWidth/this.losWid);
     this.rows = 5;
+
+
 
     this.losangos = [];
     this.losangosGrid = [];
@@ -188,6 +199,8 @@ class Manager {
     this.moneyAmount = 0;
 
     this.mouseGrid = -1;
+    this.mouseGridTime = 25;
+    this.mouseGridTimer = 0;
 
     this.startFramesMax = 100;
     this.startFrames = this.startFramesMax;
@@ -197,6 +210,8 @@ class Manager {
 
     this.world = Physics();
     this.worldEdgebounce;
+
+    this.prevMousePos = [];
   }
 
   initMinesweeper(firstId){
@@ -265,21 +280,44 @@ class Manager {
     }
   }
 
+  sortGrid(){
+    playSound(SND.WHISTLE);
+
+    for(var i = 0; i < this.losangos.length; i++){
+      if(!this.losangos[i].attached){
+        this.attachLosango(i, i);
+      } else {
+        this.losangosGrid[i] = i;
+      }
+
+      var updatePacket = new UpdateLosango([
+        new PropertyObject("rotating", true),
+        new PropertyObject("isTilted", false)]);
+
+      this.losangos[i].updateList.push(updatePacket);
+      updatePacket.isFront = true;
+
+    }
+  }
+
   getPosGrid(ind){
     var initX = this.losWid/2 + (roomWidth/2) - (this.cols*this.losWid)/2;
-    var initY = this.losHei;
+    var initY = this.verticalSpace;
     var ix = ind%this.cols;
     var iy = Math.floor(ind/this.cols);
     return new Vector(this.losWid*ix + initX, this.losHei*iy + initY);
   }
 
   getMouseGrid(){
-    var initX = (roomWidth/2) - (this.cols*this.losWid)/2;
-    var initY = this.losHei/2;
 
-    if(pointInRect(input.mouseX, input.mouseY, initX, initY, initX+this.cols*this.losWid, initY+this.rows*this.losHei)){
-      var col = Math.floor((input.mouseX - initX)/this.losWid);
-      var row = Math.floor((input.mouseY - initY)/this.losHei);
+    var initPos = this.getPosGrid(0);
+
+    var cornerX = initPos.x - this.losWid/2;
+    var cornerY = initPos.y - this.losHei/2;
+
+    if(pointInRect(input.mouseX, input.mouseY, cornerX, cornerY, cornerX+this.cols*this.losWid, cornerY+this.rows*this.losHei)){
+      var col = Math.floor((input.mouseX - cornerX)/this.losWid);
+      var row = Math.floor((input.mouseY - cornerY)/this.losHei);
 
       return col + row*this.cols;
     }
@@ -292,8 +330,6 @@ class Manager {
   // }
 
   init(){
-    var initX = this.losWid/2 + (roomWidth/2) - (this.cols*this.losWid)/2;
-    var initY = this.losHei;
     for(let i = 0; i < NAME.TOTAL; i++){
       var pos = this.getPosGrid(i);
       this.losangos.push(new Losango(pos.x, pos.y, i));
@@ -317,16 +353,6 @@ class Manager {
   }
 
   draw(ctx){
-    var initX = (roomWidth/2) - (this.cols*this.losWid)/2;
-    var initY = this.losHei/2;
-
-    this.mouseGrid = this.getMouseGrid();
-    // if(mouseGrid != -1){
-    //   ctx.strokeStyle = "rgb(255, 0, 0)";
-    // } else {
-    //   ctx.strokeStyle = "rgb(255, 255, 255)";
-    // }
-    // ctx.strokeRect(initX, initY, this.cols*this.losWid, this.rows*this.losHei);
 
     if(this.mouseGrid != -1 && this.holding && this.holdingContent == 1){
       var selectedPos = this.getPosGrid(this.mouseGrid);
@@ -335,7 +361,12 @@ class Manager {
       ctx.save();
       ctx.translate(selectedPos.x, selectedPos.y);
       ctx.rotate(deg2rad(45));
-      ctx.strokeStyle = "rgb(255, 255, 255)";
+      if(this.mouseGridTimer > this.mouseGridTime){
+        ctx.strokeStyle = "rgb(50, 255, 50)";
+        ctx.strokeRect(-selectedWid/1.8, -selectedHei/1.8, selectedWid*1.125, selectedHei*1.125);
+      } else {
+        ctx.strokeStyle = "rgb(255, 255, 255)";
+      }
       ctx.strokeRect(-selectedWid/2, -selectedHei/2, selectedWid, selectedHei);
       ctx.restore();
     }
@@ -360,8 +391,21 @@ class Manager {
   update(input){
     this.holding = false;
 
+    var newMouseGrid = this.getMouseGrid();
+
     for(let i = 0; i < this.losangos.length; i++){
       this.losangos[i].update(input);
+    }
+
+    this.mouseGridTimer++;
+
+    if(!this.holding){
+      this.mouseGridTimer = 0;
+    }
+
+    if(this.mouseGrid != newMouseGrid){
+      this.mouseGrid = newMouseGrid;
+      this.mouseGridTimer = 0;
     }
 
     switch(this.mode){
@@ -392,6 +436,12 @@ class Manager {
     }
 
     this.world.step();
+
+
+    this.prevMousePos.push(new Vector(input.mouseX, input.mouseY));
+    if(this.prevMousePos.length > 5){
+      this.prevMousePos.shift();
+    }
   }
 
   deattachLosango(id){
@@ -413,13 +463,18 @@ class Manager {
     this.losangos[id].attached = false;
   }
 
-  attachLosango(id){
+  attachLosango(id, gridCell){
     if(this.losangosPhy[id] != null){
       this.world.remove(this.losangosPhy[id]);
     }
 
     this.losangos[id].attached = true;
-    this.losangosGrid[id] = this.mouseGrid;
+    this.losangosGrid[id] = gridCell;
+  }
+
+  attachLosangoMouse(id){
+    if(this.mouseGrid == -1 || this.mouseGridTimer <= this.mouseGridTime) return;
+    this.attachLosango(id, this.mouseGrid);
   }
 }
 
