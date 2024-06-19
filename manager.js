@@ -369,6 +369,10 @@ class Manager {
     this.hdmiScreen.glitch();
   }
 
+  collectSun(){
+    this.sunAmount += 25;
+  }
+
 
 
   getPosGrid(ind){

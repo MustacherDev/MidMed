@@ -228,6 +228,13 @@ class Losango {
         addObject(new Bitcoin(coinX, coinY, randInt(25, 40)), OBJECT.BITCOIN);
         playSound(SND.COINNOISE);
       }
+    }else if(this.id == NAME.NATHALIA){
+      if(chance(0.2)){
+        var sunX = randInt(0, roomWidth);
+        var sunY = -100;
+        addObject(new Sun(sunX, sunY), OBJECT.SUN);
+        //playSound(SND.COINNOISE);
+      }
     } else if(this.id == NAME.VICTORIA){
       if(winSounds[manager.winSoundId].paused){
         playSound(SND.POP);

@@ -540,6 +540,50 @@ function Bitcoin(x, y, radius) {
       }
     }
   }
+}
+
+function Sun(x, y){
+  GameObject.call(this,x,y,sprites[SPR.SUN]);
+  this.vspd = 2;
+  this.width = 100;
+  this.height = 100;
+  this.xScl = this.width/this.sprite.width;
+  this.yScl = this.height/this.sprite.height;
+  this.phase = 0;
+  this.hovered = false;
+  this.collected = false;
+  this.boundingBox = new BoundingBox(this.x, this.y, this.width, this.height);
+
+  this.update = function(){
+    this.y += this.vspd;
+
+    this.phase += 0.02;
+
+    this.ang = Math.sin(this.phase)*deg2rad(45);
+
+    if(this.y + this.height/2 >= roomHeight){
+      this.vspd = 0;
+    }
+
+    this.boundingBox.x = this.x - this.width/2;
+    this.boundingBox.y = this.y - this.height/2;
+
+    this.hovered = false;
+    if(this.boundingBox.isPointInside(input.mouseX, input.mouseY)){
+      this.hovered = true;
+    }
+
+    if(this.hovered){
+      if(input.mouseState[0][1]){
+        this.active = false;
+        manager.collectSun();
+      }
+    }
+  }
+
+  this.show = function(){
+    this.sprite.drawRot(this.x, this.y, 0, this.xScl, this.xScl, this.ang, true);
+  }
 
 }
 

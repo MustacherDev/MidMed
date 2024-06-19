@@ -8,6 +8,7 @@ const OBJECT = Object.freeze(new Enum(
     "BLOCK",
     "BALL",
     "BITCOIN",
+    "SUN",
     "TOTAL"
 ));
 
