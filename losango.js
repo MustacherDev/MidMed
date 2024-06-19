@@ -11,6 +11,9 @@ class Losango {
     this.xScl = 1;
     this.yScl = 1;
 
+    this.xSclMult = 1;
+    this.ySclMult = 1;
+
     this.hspd = 0;
     this.vspd = 0;
 
@@ -57,6 +60,12 @@ class Losango {
     this.useAltName = false;
     this.minesweeper = false;
 
+    this.sneezing = false;
+    this.sneezeTries = 0;
+    this.sneezePauseTime = 0;
+    this.sneezeWait = 0;
+    this.sneezeTimer = 0;
+
     this.updatePacket = null;
     this.updateList = [];
 
@@ -85,7 +94,7 @@ class Losango {
 
     ctx.save(); // Save the current state
     ctx.translate(this.x, this.y); // Move to the center of the rectangle
-    ctx.scale(this.xScl, this.yScl); // Scale the x-axis
+    ctx.scale(this.xScl*this.xSclMult, this.yScl*this.ySclMult); // Scale the x-axis
     ctx.rotate(this.angle); // Rotate the canvas context
 
 
@@ -194,6 +203,13 @@ class Losango {
 
 
     if(this.id == NAME.WILLISTON){
+      if(chance(0.2)){
+        this.sneezing = true;
+        return;
+      }
+
+      if(this.sneezing) return;
+
       manager.altNames = !manager.altNames;
       for(var i = 0; i < manager.losangos.length; i++){
           var id = manager.losangos[i].id;
@@ -226,6 +242,8 @@ class Losango {
       manager.fall();
     } else if (this.id == NAME.ALICE){
       manager.sortGrid();
+    } else if (this.id == NAME.JP){
+      manager.glitch();
     } else {
       this.flip();
     }
@@ -387,6 +405,44 @@ class Losango {
         this.flip(1);
       }
     }
+
+    // SNEEZING
+    if(this.sneezing){
+      if(this.sneezeWait > 0){
+        this.sneezeWait--;
+
+        this.sneezeTimer--;
+
+        if(this.sneezeWait <= 0){
+          this.sneezeTries++;
+          this.sneezePauseTime = this.sneezeTimer + randInt(20, 50)*this.sneezeTries;
+        }
+      } else {
+        this.sneezeTimer+=2;
+
+        if(this.sneezeTimer > this.sneezePauseTime){
+          this.sneezeWait = randInt(20, 50);
+        }
+
+        if(this.sneezeTimer > 200){
+          playSound(SND.SNEEZE);
+          manager.explosionImpulse(this.x, this.y, 100);
+          this.sneezing = false;
+          this.sneezeTries = 0;
+          this.sneezePauseTime = 0;
+          this.sneezeWait = 0;
+        }
+      }
+    } else {
+      if(this.sneezeTimer > 0){
+        this.sneezeTimer *= 0.9;
+      }
+    }
+
+
+
+    this.xSclMult = 1 + (this.sneezeTimer/200)*0.4;
+    this.ySclMult = 1 + (this.sneezeTimer/200)*0.4;
 
 
     // FLIPPING

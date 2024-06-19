@@ -141,17 +141,55 @@ class Minesweeper {
   }
 }
 
-// class HDMIScreen(){
-//   constructor(){
-//     this.whiteBars = [];
-//     this.glitchLevel = 0;
-//     this.glitchMax = 100;
-//   }
-//
-//   glitch(){
-//
-//   }
-// }
+class HDMIScreen{
+  constructor(){
+    this.whiteBars = [];
+    this.glitchLevel = 0;
+    this.glitchMax = 100;
+    this.hdmi = false;
+    this.barTick = 0;
+  }
+
+  glitch(){
+    this.glitchLevel += 20;
+    if(chance(this.glitchLevel/this.glitchMax)){
+      var barNum = 1 + randInt(1, 3);
+      for(var i = 0; i < barNum; i++){
+        if(this.whiteBars.length > 5) break;
+        var barY = randInt(0, roomHeight);
+        var barHei = randInt(10, 200);
+        this.whiteBars.push(new Vector(barY, barHei));
+      }
+    }
+  }
+
+  update(){
+    if(this.glitchLevel > 0){
+      this.glitchLevel--;
+    }
+
+    if(this.glitchLevel >= this.glitchMax){
+      this.hdmi = true;
+    }
+
+    this.barTick++;
+    if(this.barTick > 5){
+      this.barTick = 0;
+
+      if(this.whiteBars.length > 0){
+        this.whiteBars.shift();
+      }
+    }
+  }
+
+  draw(ctx){
+    ctx.fillStyle = "rgb(255,255,255)";
+
+    for(var i = 0; i < this.whiteBars.length;i++){
+      ctx.fillRect(0,this.whiteBars[i].x, roomWidth, this.whiteBars[i].y);
+    }
+  }
+}
 
 
 
@@ -177,12 +215,15 @@ class Manager {
 
 
 
+
     this.losangos = [];
     this.losangosGrid = [];
     this.losangosPhy = [];
 
     this.minesweeper = new Minesweeper();
     this.endingMinesweeper = false;
+
+    this.hdmiScreen = new HDMIScreen();
 
 
     this.locked = false;
@@ -198,6 +239,8 @@ class Manager {
     this.bitCoinAmount = 0;
     this.moneyAmount = 0;
 
+    this.quietTimer = 0;
+
     this.mouseGrid = -1;
     this.mouseGridTime = 25;
     this.mouseGridTimer = 0;
@@ -212,6 +255,13 @@ class Manager {
     this.worldEdgebounce;
 
     this.prevMousePos = [];
+    this.prevMouseLength = 5;
+    if(isMobile){
+      this.prevMouseLength = 20;
+    }
+
+
+    this.particles = [];
   }
 
   initMinesweeper(firstId){
@@ -300,6 +350,27 @@ class Manager {
     }
   }
 
+  explosionImpulse(x, y, amp){
+    var pos = new Vector(x, y);
+    for(var i = 0 ; i < this.losangos.length; i++){
+      var diff = new Vector(this.losangos[i].x, this.losangos[i].y);
+      diff = diff.sub(pos);
+      var dist = Math.max(diff.mag(), 1);
+      var dir = diff.unit();
+
+      this.losangos[i].x += amp*10*dir.x/dist;
+      this.losangos[i].y += amp*10*dir.y/dist;
+      this.losangos[i].hspd += 10*amp*dir.x/dist;
+      this.losangos[i].vspd += 10*amp*dir.y/dist;
+    }
+  }
+
+  glitch(){
+    this.hdmiScreen.glitch();
+  }
+
+
+
   getPosGrid(ind){
     var initX = this.losWid/2 + (roomWidth/2) - (this.cols*this.losWid)/2;
     var initY = this.verticalSpace;
@@ -323,11 +394,6 @@ class Manager {
     }
     return -1;
   }
-
-
-  // glitch(){
-  //
-  // }
 
   init(){
     for(let i = 0; i < NAME.TOTAL; i++){
@@ -380,6 +446,44 @@ class Manager {
       this.losangos[i].draw(ctx);
     }
 
+    // DRAWING PARTICLES
+    for (var i = 0; i < this.particles.length; i++) {
+        if (this.particles[i].active) {
+            this.particles[i].show();
+        }
+    }
+
+    this.hdmiScreen.draw(ctx);
+
+    if(this.hdmiScreen.hdmi){
+      ctx.fillStyle = "rgb(0,0,255)";
+      ctx.fillRect(0,0,roomWidth, roomHeight);
+
+      ctx.fillStyle = "rgb(0,0,230)";
+      for(var i = 0; i < 100; i++){
+        ctx.fillRect(0, i*8, roomWidth, 2);
+      }
+
+      var barWid = roomWidth/2;
+      var barHei = 120;
+
+      var barX = roomWidth/2 - barWid/2;
+      var barY = roomHeight/2 - barHei/2;
+
+      ctx.fillStyle = "rgb(255,255,255)";
+      ctx.fillRect(barX-2, barY-2, barWid+4, barHei+4);
+      ctx.fillStyle = "rgb(0,0,0)";
+      ctx.fillRect(barX, barY, barWid, barHei);
+
+      ctx.fillStyle = "rgb(255,255,255)";
+      var noSignalText = (this.altNames) ? "No Signal" : "Sem Sinal";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = '40px Arial';
+      ctx.fillText(noSignalText, roomWidth/2, roomHeight/2);
+    }
+
+
     if(isMobile){
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
@@ -428,6 +532,9 @@ class Manager {
           }
         }
         break;
+
+      case 2:
+
     }
 
     this.winSoundCharging = true;
@@ -435,12 +542,42 @@ class Manager {
       this.winSoundCharging = false;
     }
 
+    this.hdmiScreen.update();
+    if(this.hdmiScreen.hdmi){
+      this.mode = 2;
+    }
+
     this.world.step();
 
 
     this.prevMousePos.push(new Vector(input.mouseX, input.mouseY));
-    if(this.prevMousePos.length > 5){
+
+    if(this.prevMousePos.length > this.prevMouseLength){
       this.prevMousePos.shift();
+    }
+
+    // UPDATING PARTICLES
+    for (var i = 0; i < this.particles.length; i++) {
+        if (this.particles[i].active) {
+            this.particles[i].update();
+        } else {
+          this.particles.splice(i, 1);
+          i--;
+        }
+    }
+
+    // SLEEP
+    if(this.quietTimer > 1050){
+      this.quietTimer -= 50;
+
+      var sleepX = this.losangos[NAME.ISRAEL].x;
+      var sleepY = this.losangos[NAME.ISRAEL].y;
+
+      this.particles.push(new SleepText(sleepX, sleepY));
+    }
+
+    if(this.mode == 0){
+      this.quietTimer++;
     }
   }
 

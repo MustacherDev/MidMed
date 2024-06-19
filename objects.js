@@ -121,15 +121,20 @@ GameObject.prototype.update = function () {
 function TextObject(x, y, text) {
     this.x = x;
     this.y = y;
+    this.hspd = 0;
+    this.vspd = 0;
+    this.scl = 2;
     this.text = text;
     this.active = true;
-    this.timer = 40;
+
+    this.maxLife = 150;
+    this.life = this.maxLife;
 
     this.update = function () {
         this.y -= 1;
-        this.timer--;
+        this.life--;
 
-        if (this.timer == 0) {
+        if (this.life <= 0) {
             this.active = false;
         }
     }
@@ -143,6 +148,47 @@ function TextObject(x, y, text) {
         ctx.fillStyle = "rgb(255, 255, 255)";
         ctx.fillText(this.text, this.x, this.y);
     }
+}
+
+function SleepText(x, y){
+  TextObject.call(this, x, y, "Z");
+  this.amp = 10;
+  this.phase = 0;
+
+  this.vspd = -1;
+  this.hspd = 0.5;
+
+  this.update = function(){
+    this.phase += 0.05;
+    this.y += this.vspd;
+    this.x += this.hspd;
+
+    this.life--;
+
+    if (this.life <= 0) {
+        this.active = false;
+    }
+  }
+
+  this.show = function () {
+    ctx.font = "48px Fixedsys";
+
+    var ratio = (this.life/this.maxLife);
+    var animX = this.x + this.amp*Math.sin(this.phase);
+    var animY = this.y + this.amp*Math.sin(this.phase);
+
+    var scl = this.scl * (1-ratio);
+    var alpha = ratio;
+
+    ctx.save();
+    ctx.translate(animX, animY);
+    ctx.scale(scl, scl);
+    ctx.fillStyle = "rgba(0,0,0,"+ alpha +")";
+    ctx.fillText(this.text, 2, 2);
+    ctx.fillStyle = "rgba(255, 255, 255, " + alpha + ")";
+    ctx.fillText(this.text, 0, 0);
+    ctx.restore();
+  }
 }
 
 
@@ -369,8 +415,18 @@ function Ball(x, y, radius, sprite) {
 
         if(!input.mouseState[0][0]){
           this.holded = false;
-          this.hspd = this.x - this.prevX;
-          this.vspd = this.y - this.prevY;
+
+          let totalXDiff = 0;
+          let totalYDiff = 0;
+
+          for (const mousePos of manager.prevMousePos) {
+            totalXDiff += (this.x + this.holdX) - mousePos.x;
+            totalYDiff += (this.y + this.holdY) - mousePos.y;
+          }
+
+          var throwForce = 1;
+          this.hspd = (totalXDiff / manager.prevMousePos.length) * throwForce;
+          this.vspd = (totalYDiff / manager.prevMousePos.length) * throwForce;
         }
       }
     }
