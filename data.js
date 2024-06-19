@@ -55,7 +55,7 @@ const sndPaths = [
   "coins/coinHitB2.mp3",
   "Explosion.wav",
   "whistle.mp3",
-  "sneeze.mp3"
+  "Sneeze.mp3"
 ];
 
 const winSndPaths = [

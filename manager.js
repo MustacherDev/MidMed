@@ -148,6 +148,13 @@ class HDMIScreen{
     this.glitchMax = 100;
     this.hdmi = false;
     this.barTick = 0;
+
+
+    this.reconnectTime = 500;
+    this.reconnectTimer = 0;
+    this.reconnectLag = 0;
+    this.reconnectLagTimer = 0;
+    this.reconnectStatus = 0;
   }
 
   glitch(){
@@ -164,6 +171,7 @@ class HDMIScreen{
   }
 
   update(){
+
     if(this.glitchLevel > 0){
       this.glitchLevel--;
     }
@@ -180,6 +188,31 @@ class HDMIScreen{
         this.whiteBars.shift();
       }
     }
+
+    if(this.hdmi){
+      if(this.reconnectTimer > this.reconnectTime){
+        this.hdmi = false;
+        this.reconnectTimer = 0;
+      } else {
+
+        if(this.reconnectLag <= 0){
+
+          this.reconnectStatus = Math.floor((this.reconnectTimer/this.reconnectTime)*100)/100;
+
+          if(this.reconnectLagTimer <= 0){
+            this.reconnectLag = Math.min(randInt(0, 80), (this.reconnectTime - this.reconnectTimer) - 20);
+          } else {
+            this.reconnectLagTimer--;
+          }
+        } else {
+          this.reconnectLag--;
+          if(this.reconnectLag <= 0){
+            this.reconnectLagTimer = randInt(10, 200);
+          }
+        }
+        this.reconnectTimer++;
+      }
+    }
   }
 
   draw(ctx){
@@ -188,6 +221,117 @@ class HDMIScreen{
     for(var i = 0; i < this.whiteBars.length;i++){
       ctx.fillRect(0,this.whiteBars[i].x, roomWidth, this.whiteBars[i].y);
     }
+
+    if(this.hdmi){
+      ctx.fillStyle = "rgb(0,0,255)";
+      ctx.fillRect(0,0,roomWidth, roomHeight);
+
+      ctx.fillStyle = "rgb(0,0,230)";
+      for(var i = 0; i < 100; i++){
+        ctx.fillRect(0, i*8, roomWidth, 2);
+      }
+
+      var barWid = roomWidth/2;
+      var barHei = 120;
+
+      var barX = roomWidth/2 - barWid/2;
+      var barY = roomHeight/2 - barHei/2;
+
+      ctx.fillStyle = "rgb(255,255,255)";
+      ctx.fillRect(barX-2, barY-2, barWid+4, barHei+4);
+      ctx.fillStyle = "rgb(0,0,0)";
+      ctx.fillRect(barX, barY, barWid, barHei);
+
+      ctx.fillStyle = "rgb(255,255,255)";
+      var noSignalText = (manager.altNames) ? "No signal." : "Sem sinal.";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = '40px Arial';
+      ctx.fillText(noSignalText, roomWidth/2, roomHeight/2);
+
+      ctx.fillStyle = "rgb(0,0,0)";
+      ctx.fillRect(40, roomHeight - 40, roomWidth - 60, 20);
+      ctx.fillStyle = "rgb(255,255,255)";
+      ctx.fillRect(40, roomHeight - 40, (roomWidth - 60)*this.reconnectStatus, 20);
+    }
+  }
+}
+
+
+class SunDisplay{
+  constructor(){
+    this.x = 0;
+    this.y = 0;
+    this.yOff = 0;
+    this.width = 100;
+    this.height = 40;
+    this.sun = 0;
+
+    this.state = 0;
+
+    this.inTime = 25;
+    this.stayTime = 200;
+    this.outTime = 25;
+
+    this.timer = 0;
+  }
+
+  updateSun(){
+    if(this.state == 0){
+      this.state = 1;
+      this.timer = 0;
+    } else if (this.state == 2){
+      this.timer = 0;
+    } else if (this.state == 3){
+      this.state = 1;
+      this.timer = (1-(this.timer/this.outTime))*this.inTime;
+    }
+  }
+
+  update(){
+      switch(this.state){
+        // HIDDEN
+        case 0:
+          this.yOff = 0;
+          break;
+
+        // ENTERING
+        case 1:
+          this.timer++;
+          this.yOff = this.height*(this.timer/this.inTime);
+          if(this.timer > this.inTime){
+            this.timer = 0;
+            this.state = 2;
+          }
+          break;
+
+        // STAYING
+        case 2:
+          this.timer++;
+          this.yOff = this.height;
+          if(this.timer > this.stayTime){
+            this.timer = 0;
+            this.state = 3;
+          }
+          break;
+
+        // LEAVING
+        case 3:
+          this.timer++;
+          this.yOff = this.height*(1-(this.timer/this.outTime));
+          if(this.timer > this.outTime){
+            this.timer = 0;
+            this.state = 0;
+          }
+          break;
+      }
+  }
+
+  draw(ctx){
+    ctx.fillStyle = "rgb(255,255,255)";
+    ctx.fillRect(this.x, this.y + this.yOff, this.width, this.height);
+    ctx.fillStyle = "rgb(0,0,0)";
+    ctx.fillRect(this.x, this.y + this.yOff, this.width, this.height);
   }
 }
 
@@ -238,6 +382,8 @@ class Manager {
     this.sunAmount = 0;
     this.bitCoinAmount = 0;
     this.moneyAmount = 0;
+
+    this.sunDisplay = new SunDisplay();
 
     this.quietTimer = 0;
 
@@ -371,6 +517,8 @@ class Manager {
 
   collectSun(){
     this.sunAmount += 25;
+    this.sunDisplay.sun = this.sunAmount;
+    this.sunDisplay.updateSun();
   }
 
 
@@ -443,7 +591,7 @@ class Manager {
 
     for(let i = 0; i < this.losangos.length; i++){
         var pos = this.getPosGrid(i);
-        sprites[SPR.PIN].draw(pos.x, pos.y, 0, 4);
+        sprites[SPR.PIN].draw(pos.x -4, pos.y -4, 0, 4);
     }
 
     for(let i = 0; i < this.losangos.length; i++){
@@ -457,36 +605,10 @@ class Manager {
         }
     }
 
+
     this.hdmiScreen.draw(ctx);
 
-    if(this.hdmiScreen.hdmi){
-      ctx.fillStyle = "rgb(0,0,255)";
-      ctx.fillRect(0,0,roomWidth, roomHeight);
-
-      ctx.fillStyle = "rgb(0,0,230)";
-      for(var i = 0; i < 100; i++){
-        ctx.fillRect(0, i*8, roomWidth, 2);
-      }
-
-      var barWid = roomWidth/2;
-      var barHei = 120;
-
-      var barX = roomWidth/2 - barWid/2;
-      var barY = roomHeight/2 - barHei/2;
-
-      ctx.fillStyle = "rgb(255,255,255)";
-      ctx.fillRect(barX-2, barY-2, barWid+4, barHei+4);
-      ctx.fillStyle = "rgb(0,0,0)";
-      ctx.fillRect(barX, barY, barWid, barHei);
-
-      ctx.fillStyle = "rgb(255,255,255)";
-      var noSignalText = (this.altNames) ? "No Signal" : "Sem Sinal";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.font = '40px Arial';
-      ctx.fillText(noSignalText, roomWidth/2, roomHeight/2);
-    }
-
+    this.sunDisplay.draw(ctx);
 
     if(isMobile){
       ctx.textAlign = "left";
@@ -494,6 +616,14 @@ class Manager {
       ctx.fillStyle = "rgb(255, 255, 255)";
       ctx.fillText("MOBILE Version", 30, 10);
     }
+  }
+
+  winSoundReady(){
+    // VICTORY SOUND COOLDOWN
+    if(winSounds[manager.winSoundId].paused){
+      return true;
+    }
+    return false;
   }
 
   update(input){
@@ -538,13 +668,12 @@ class Manager {
         break;
 
       case 2:
+        if(!this.hdmiScreen.hdmi) this.mode = 0;
+        break;
 
     }
 
-    this.winSoundCharging = true;
-    if(winSounds[manager.winSoundId].paused){
-      this.winSoundCharging = false;
-    }
+
 
     this.hdmiScreen.update();
     if(this.hdmiScreen.hdmi){
@@ -554,6 +683,7 @@ class Manager {
     this.world.step();
 
 
+    // MOUSE PREVIOUS POSITIONS
     this.prevMousePos.push(new Vector(input.mouseX, input.mouseY));
 
     if(this.prevMousePos.length > this.prevMouseLength){
@@ -571,7 +701,7 @@ class Manager {
     }
 
     // SLEEP
-    if(this.quietTimer > 1050){
+    if(this.quietTimer > 2050){
       this.quietTimer -= 50;
 
       var sleepX = this.losangos[NAME.ISRAEL].x;
@@ -583,6 +713,8 @@ class Manager {
     if(this.mode == 0){
       this.quietTimer++;
     }
+
+    this.sunDisplay.update();
   }
 
   deattachLosango(id){

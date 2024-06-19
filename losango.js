@@ -106,7 +106,7 @@ class Losango {
       tempColor = this.backColor.copy();
     }
 
-    if(this.hovered || (manager.winSoundCharging && this.id == NAME.VICTORIA)){
+    if(this.hovered || (manager.winSoundReady() && this.id == NAME.VICTORIA)){
       tempColor = new Color(Math.floor(tempColor.r*0.75), Math.floor(tempColor.g*0.75), Math.floor(tempColor.b*0.75));
     }
 
@@ -236,7 +236,7 @@ class Losango {
         //playSound(SND.COINNOISE);
       }
     } else if(this.id == NAME.VICTORIA){
-      if(winSounds[manager.winSoundId].paused){
+      if(manager.winSoundReady()){
         playSound(SND.POP);
         var newWinSound = randInt(0, WINSND.TOTAL);
         manager.winSoundId = (newWinSound == manager.winSoundId) ? (newWinSound+1)%WINSND.TOTAL : newWinSound;
@@ -327,7 +327,7 @@ class Losango {
 
     this.frames++;
 
-    if(this.isInside(input.mouseX, input.mouseY)){
+    if(this.isInside(input.mouseX, input.mouseY) && manager.mode != 2){
       this.hovered = true;
       canvas.style.cursor = 'pointer';
     }
