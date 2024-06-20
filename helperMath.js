@@ -82,6 +82,18 @@ function chance(val){
   return (Math.random() < val);
 }
 
+function tweenIn(percentage){
+  return percentage*percentage;
+}
+
+function tweenOut(percentage){
+  return 1 - (1-percentage)*(1-percentage);
+}
+
+function tweenInOut(percentage){
+  return -(Math.cos(Math.PI * percentage) - 1) / 2;
+}
+
 function pointInRect(x, y, x1, y1, x2, y2) {
     if (x > x1 && x < x2 && y > y1 && y < y2) {
         return true;

@@ -70,8 +70,23 @@ function resizeCanvas(){
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
+var isFullScreen = false;
+function openFullscreen() {
+  if(isFullScreen) return;
+  if(!isMobile) return;
 
-
+  let elem = document.documentElement;
+  isFullScreen = true;
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.mozRequestFullScreen) { /* Firefox */
+    elem.mozRequestFullScreen();
+  } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) { /* IE/Edge */
+    elem.msRequestFullscreen();
+  }
+}
 
 
 canvas.addEventListener('contextmenu', preventContextMenu);

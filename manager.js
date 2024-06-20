@@ -260,18 +260,17 @@ class HDMIScreen{
 
 class SunDisplay{
   constructor(){
-    this.x = 0;
-    this.y = 0;
+    this.x = 40;
+    this.y = -200;
     this.yOff = 0;
-    this.width = 100;
-    this.height = 40;
+    this.height = 200;
     this.sun = 0;
 
     this.state = 0;
 
-    this.inTime = 25;
-    this.stayTime = 200;
-    this.outTime = 25;
+    this.inTime = 50;
+    this.stayTime = 400;
+    this.outTime = 50;
 
     this.timer = 0;
   }
@@ -298,7 +297,7 @@ class SunDisplay{
         // ENTERING
         case 1:
           this.timer++;
-          this.yOff = this.height*(this.timer/this.inTime);
+          this.yOff = 0.9*this.height*tweenOut(this.timer/this.inTime);
           if(this.timer > this.inTime){
             this.timer = 0;
             this.state = 2;
@@ -308,7 +307,7 @@ class SunDisplay{
         // STAYING
         case 2:
           this.timer++;
-          this.yOff = this.height;
+          this.yOff = 0.9*this.height;
           if(this.timer > this.stayTime){
             this.timer = 0;
             this.state = 3;
@@ -318,7 +317,7 @@ class SunDisplay{
         // LEAVING
         case 3:
           this.timer++;
-          this.yOff = this.height*(1-(this.timer/this.outTime));
+          this.yOff = 0.9*this.height*tweenOut(1-(this.timer/this.outTime));
           if(this.timer > this.outTime){
             this.timer = 0;
             this.state = 0;
@@ -328,10 +327,21 @@ class SunDisplay{
   }
 
   draw(ctx){
+
+    var scl = this.height/sprites[SPR.SUNDISPLAY].height
+    var wid = sprites[SPR.SUNDISPLAY].width*scl;
+    sprites[SPR.SUNDISPLAY].drawSimple(this.x, this.y + this.yOff, 0, scl);
+    sprites[SPR.SUN].drawRot(this.x + wid/2, this.y + this.yOff + wid/2, 0, 1, 1, 0, true);
     ctx.fillStyle = "rgb(255,255,255)";
-    ctx.fillRect(this.x, this.y + this.yOff, this.width, this.height);
-    ctx.fillStyle = "rgb(0,0,0)";
-    ctx.fillRect(this.x, this.y + this.yOff, this.width, this.height);
+    ctx.font = "48px Fixedsys";
+    ctx.fontAlign = "center";
+    ctx.fontBaseline = "middle";
+    ctx.fillText(this.sun, this.x + wid/2, this.y + this.yOff + this.height*0.8);
+
+
+    // ctx.fillRect(this.x, this.y + this.yOff, this.width, this.height);
+    // ctx.fillStyle = "rgb(0,0,0)";
+    // ctx.fillRect(this.x, this.y + this.yOff, this.width, this.height);
   }
 }
 
@@ -601,7 +611,7 @@ class Manager {
     // DRAWING PARTICLES
     for (var i = 0; i < this.particles.length; i++) {
         if (this.particles[i].active) {
-            this.particles[i].show();
+            this.particles[i].draw();
         }
     }
 
@@ -614,6 +624,7 @@ class Manager {
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
       ctx.fillStyle = "rgb(255, 255, 255)";
+      ctx.font = '14px Arial';
       ctx.fillText("MOBILE Version", 30, 10);
     }
   }

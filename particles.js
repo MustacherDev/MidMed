@@ -39,7 +39,7 @@ function Particle(x, y, life){
     ctx.closePath();
   }
 
-  this.update = function(dt){
+  this.update = function(dt = 1){
 
     if(this.life > 0){
 
@@ -60,6 +60,7 @@ function Particle(x, y, life){
       this.color.a += this.colorSpd.a*dt;
 
       this.radius += this.radiusSpd*dt;
+      this.radius = Math.max(0, this.radius);
 
       this.angle += this.angleSpd*dt;
 
@@ -67,4 +68,23 @@ function Particle(x, y, life){
       this.active = false;
     }
   }
+}
+
+
+
+function particleSun(x, y, life){
+  var part = new Particle(x, y, life);
+  part.radius = randInt(2, 5);
+  part.color = new Color(randInt(200, 255), randInt(200, 255), 0, 1);
+  part.colorSpd = new Color(0,0,0, -1/life);
+  part.radiusSpd = -part.radius/life;
+  return part;
+}
+
+function placesInRect(num, x, y, wid, hei){
+  var list = [];
+  for(var i = 0; i < num; i++){
+    list.push(new Vector(x + randRange(0, wid), y + randRange(0, hei)));
+  }
+  return list;
 }

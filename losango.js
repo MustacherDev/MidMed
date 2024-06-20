@@ -131,10 +131,16 @@ class Losango {
       ctx.fillRect(+this.width / (2-2*perc)-2, -this.height / (2+2*perc), 2, this.height*(1-perc));
     }
 
+    var gridIndex = manager.losangosGrid[this.id];
+
     if(this.isFront){
       ctx.rotate(-this.angle); // Rotate the canvas context
 
-      ctx.font = '14px Arial';
+      if(isMobile){
+        ctx.font = '18px Arial';
+      } else {
+        ctx.font = '14px Arial';
+      }
       ctx.fillStyle = 'black';
       ctx.textAlign = 'center';
       if(this.useAltName){
@@ -144,7 +150,7 @@ class Losango {
       }
 
       if(this.minesweeper){
-          if(manager.minesweeper.gridFlag[this.id]){
+          if(manager.minesweeper.gridFlag[gridIndex]){
               sprites[SPR.NUMBERS].draw(0,0,10,this.boxWid/16, this.boxHei/16, true);
           }
       }
@@ -155,12 +161,12 @@ class Losango {
         ctx.rotate(-this.angle); // Rotate the canvas context
         ctx.scale(-1, 1); // Scale the x-axis
 
-        if(manager.minesweeper.grid[this.id] == -1){
+        if(manager.minesweeper.grid[gridIndex] == -1){
           sprites[SPR.BOMB].draw(0,0,0,this.boxWid/16, this.boxHei/16, true);
-        } else if (manager.minesweeper.grid[this.id] == 0){
+        } else if (manager.minesweeper.grid[gridIndex] == 0){
 
         } else {
-          sprites[SPR.NUMBERS].draw(0,0,manager.minesweeper.grid[this.id],this.boxWid/16, this.boxHei/16, true);
+          sprites[SPR.NUMBERS].draw(0,0,manager.minesweeper.grid[gridIndex],this.boxWid/16, this.boxHei/16, true);
           // ctx.fillStyle = manager.minesweeperNumColor[manager.minesweeperGrid[this.id]];
           // ctx.textAlign = 'center';
           // ctx.fillText(manager.minesweeperGrid[this.id], 0, 0);
@@ -183,7 +189,7 @@ class Losango {
   effect(rightClick){
     if(this.minesweeper){
       if(rightClick){
-        manager.flagMinesweeper(this.id);
+        manager.flagMinesweeper(manager.losangosGrid[this.id]);
         return;
       }
 
@@ -192,7 +198,7 @@ class Losango {
         this.flip(1);
         this.locked = true;
         //this.open = true;
-        manager.exposeMinesweeper(this.id);
+        manager.exposeMinesweeper(manager.losangosGrid[this.id]);
       }
 
       if(this.id == NAME.LUIS){
@@ -220,7 +226,7 @@ class Losango {
           }
       }
     } else if(this.id == NAME.LUIS){
-      manager.initMinesweeper(this.id);
+      manager.initMinesweeper(manager.losangosGrid[this.id]);
     } else if(this.id == NAME.JOAS){
       if(chance(0.2)){
         var coinX = randInt(0, roomWidth);

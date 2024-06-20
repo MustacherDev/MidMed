@@ -105,6 +105,7 @@ const SPR = Object.freeze(new Enum(
     "NUMBERS",
     "PIN",
     "SUN",
+    "SUNDISPLAY",
     "TOTAL"
 ));
 
@@ -112,7 +113,8 @@ var imgPaths = [  "bombSprite.png",
   "BitCoin.png",
   "Numeros.png",
   "pin.png",
-  "sun.png"
+  "sun.png",
+  "sunDisplay.png"
 ];
 
 var need2Load = imgPaths.length;

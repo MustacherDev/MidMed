@@ -139,7 +139,7 @@ function TextObject(x, y, text) {
         }
     }
 
-    this.show = function () {
+    this.draw = function () {
         ctx.font = "20px Fixedsys";
 
         let hue = Math.random() * 360;
@@ -170,7 +170,7 @@ function SleepText(x, y){
     }
   }
 
-  this.show = function () {
+  this.draw = function () {
     ctx.font = "48px Fixedsys";
 
     var ratio = (this.life/this.maxLife);
@@ -576,6 +576,13 @@ function Sun(x, y){
     if(this.hovered){
       if(input.mouseState[0][1]){
         this.active = false;
+        var partNum = randInt(8, 12);
+        var partPlaces = placesInRect(partNum, this.x - this.width/2, this.y- this.height/2, this.width, this.height);
+        for(var i = 0; i < partPlaces.length; i++){
+          manager.particles.push(particleSun(partPlaces[i].x, partPlaces[i].y, randInt(100 , 200)));
+        }
+
+        playSound(SND.POP);
         manager.collectSun();
       }
     }
