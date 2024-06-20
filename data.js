@@ -114,7 +114,7 @@ var imgPaths = [  "bombSprite.png",
   "Numeros.png",
   "pin.png",
   "sun.png",
-  "sunDisplay.png"
+  "SunDisplay.png"
 ];
 
 var need2Load = imgPaths.length;

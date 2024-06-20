@@ -411,9 +411,9 @@ class Manager {
     this.worldEdgebounce;
 
     this.prevMousePos = [];
-    this.prevMouseLength = 5;
+    this.prevMouseLength = 2;
     if(isMobile){
-      this.prevMouseLength = 20;
+      this.prevMouseLength = 5;
     }
 
 

@@ -106,7 +106,7 @@ class Losango {
       tempColor = this.backColor.copy();
     }
 
-    if(this.hovered || (manager.winSoundReady() && this.id == NAME.VICTORIA)){
+    if(this.hovered || (!manager.winSoundReady() && this.id == NAME.VICTORIA)){
       tempColor = new Color(Math.floor(tempColor.r*0.75), Math.floor(tempColor.g*0.75), Math.floor(tempColor.b*0.75));
     }
 
