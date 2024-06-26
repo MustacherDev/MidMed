@@ -91,4 +91,9 @@ class Color {
     copy(){
       return new Color(this.r, this.g, this.b, this.a);
     }
+
+
+    mult(val){
+      return new Color(this.r*val, this.g*val, this.b*val, this.a);
+    }
 }

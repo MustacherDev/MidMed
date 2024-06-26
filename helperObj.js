@@ -9,6 +9,7 @@ const OBJECT = Object.freeze(new Enum(
     "BALL",
     "BITCOIN",
     "SUN",
+    "ROCK",
     "TOTAL"
 ));
 
@@ -60,11 +61,12 @@ function drawList(type) {
     for (var i = 0; i < _len; i++) {
         if (objectLists[type][i].active) {
             objectLists[type][i].show();
-        } else {
-            objectLists[type].splice(i, 1);
-            i--;
-            _len--;
         }
+        // } else {
+        //     objectLists[type].splice(i, 1);
+        //     i--;
+        //     _len--;
+        // }
     }
 }
 

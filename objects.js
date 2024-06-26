@@ -22,8 +22,8 @@ function BoundingBox(x, y, width, height) {
 
     this.show = function () {
         // Draw the rectangle border
-        ctx.strokeStyle = "red";
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgb(255, 0, 0)";
+        //ctx.lineWidth = 2;
         ctx.strokeRect(this.x, this.y, this.width, this.height);
     };
 }
@@ -103,6 +103,10 @@ function GameObject(x, y, sprite) {
     this.yScl = 1;
 
     this.active = true;
+
+    this.pushDrawList = function () {
+      addList(this, OBJECT.DRAW);
+    }
 }
 
 GameObject.prototype.show = function () {
@@ -114,6 +118,7 @@ GameObject.prototype.update = function () {
     this.y += this.vspd;
     this.ang += this.angSpd;
 };
+
 
 
 
@@ -137,6 +142,10 @@ function TextObject(x, y, text) {
         if (this.life <= 0) {
             this.active = false;
         }
+    }
+
+    this.show = function(){
+      this.draw();
     }
 
     this.draw = function () {
@@ -354,15 +363,17 @@ function WallCollider(x1, y1, x2, y2) {
 
 
 
-
-
-function Ball(x, y, radius, sprite) {
-    Block.call(this, x, y, radius * 2, radius * 2);
+function Box(x, y, width, height, sprite) {
+    Block.call(this, x, y, width, height);
     GameObject.call(this, x, y, sprite);
 
-    this.r = radius;
+    this.width = width;
+    this.height = height;
 
-    this.boundingBox = new BoundingBox(this.x, this.y, this.r*2, this.r*2);
+    this.xOffset = 0;
+    this.yOffset = 0;
+
+    this.boundingBox = new BoundingBox(this.x  -this.xOffset, this.y -this.yOffset, this.width, this.height);
 
     this.hovered = false;
     this.holded = false;
@@ -390,9 +401,8 @@ function Ball(x, y, radius, sprite) {
 
     this.show = function () {
         //this.strokeBounds();
-        this.sprite.drawRot(this.x, this.y, 0, this.xScl, this.xScl, this.ang, true);
-
-        //this.boundingBox.show();
+        this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, this.ang, this.xOffset/this.xScl, this.yOffset/this.yScl);
+        //this.sprite.drawFix(this.x, this.y, 0, this.xScl, this.xScl, this.ang, this.xOffset, this.yOffset, 0, 0);
     }
 
     this.getHold = function(){
@@ -452,8 +462,8 @@ function Ball(x, y, radius, sprite) {
       this.y += this.vspd;
       this.ang += this.angSpd;
 
-      this.boundingBox.x = this.x  - (this.boundingBox.width / 2);
-      this.boundingBox.y = this.y  - (this.boundingBox.height/ 2);
+      this.boundingBox.x = this.x - this.xOffset;
+      this.boundingBox.y = this.y - this.yOffset;
 
     }
 
@@ -476,41 +486,34 @@ function Ball(x, y, radius, sprite) {
         if (!this.holded) {
             this.tick++;
 
-            if (this.x + this.r > roomWidth) {
+            if (this.x - this.xOffset + this.width> roomWidth) {
               this.collisionAction(true, this.hspd);
 
-              this.x = roomWidth - this.r;
+              this.x = roomWidth - this.width + this.xOffset;
               this.angSpd += this.vspd / 40;
               this.hspd *= -this.hLoss;
-            } else if (this.x - this.r < 0) {
+            } else if (this.x - this.xOffset < 0) {
               this.collisionAction(true, this.hspd);
 
-              this.x = this.r;
+              this.x = this.xOffset;
               this.angSpd += this.vspd / 40;
               this.hspd *= -this.hLoss;
             }
 
 
-            if (this.y + this.r > roomHeight + 200) {
-              this.collisionAction(false, this.vspd);
-
-              this.vspd = -15;
-              this.angSpd = -0.25 + Math.random()*0.5;
-            }
-
-            if (this.y + this.r > this.floorY) {
+            if (this.y - this.yOffset + this.height  > this.floorY) {
               if (Math.abs(this.vspd) > Math.abs(this.gravity * 3)) {
                 this.collisionAction(false, this.vspd);
                 this.angSpd += this.hspd / 40;
               }
 
-              this.y = this.floorY - this.r;
+              this.y = this.floorY -this.height + this.yOffset;
               this.vspd *= -this.vLoss;
               this.hspd *= this.linDamp;
             }
         }
 
-        if(this.y + this.r + 1 > this.floorY){
+        if(this.y -this.yOffset + this.height + 1 > this.floorY){
           this.onGround = true;
         } else {
           this.onGround = false;
@@ -521,13 +524,27 @@ function Ball(x, y, radius, sprite) {
         }
 
         this.updateHold();
+
+        this.pushDrawList();
     }
+}
+
+
+function Ball(x, y, radius, sprite) {
+    Box.call(this, x, y, radius*2, radius*2, sprite);
+
+    this.xOffset = radius;
+    this.yOffset = radius;
+
+    this.r = radius;
 }
 
 function Bitcoin(x, y, radius) {
   Ball.call(this, x, y, radius, sprites[SPR.BITCOIN]);
   this.xScl = (2*radius)/this.sprite.width;
   this.yScl = (2*radius)/this.sprite.height;
+  this.xOffset = radius;
+  this.yOffset = radius;
   this.hovered = false;
 
   this.collisionAction = function(isHorizontal, velocity){
@@ -539,6 +556,26 @@ function Bitcoin(x, y, radius) {
         playSound(SND.COINHIT2);
       }
     }
+  }
+}
+
+function Rock(x, y, width, height) {
+  Box.call(this, x, y, width, height, sprites[SPR.ROCK]);
+  this.xScl = (width)/this.sprite.width;
+  this.yScl = (height)/this.sprite.height;
+  this.xOffset = this.width/2;
+  this.yOffset = this.height/2;
+  this.hovered = false;
+  this.hLoss = 0;
+  this.vLoss = 0;
+
+  this.collisionAction = function(isHorizontal, velocity){
+    var spd =  Math.abs(velocity);
+
+    if(spd > 5){
+      playSound(SND.HIT);
+    }
+
   }
 }
 
@@ -586,6 +623,9 @@ function Sun(x, y){
         manager.collectSun();
       }
     }
+
+    this.pushDrawList();
+    //pushDrawList
   }
 
   this.show = function(){

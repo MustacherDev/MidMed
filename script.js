@@ -20,14 +20,26 @@ function stateMenu(){
   ctx.fillRect(0,0,roomWidth, roomHeight);
 
   manager.update(input);
-  manager.draw(ctx);
 
   updateList(OBJECT.GAMEOBJECT);
+
+  manager.draw(ctx);
+
+
+  sortDepth();
   drawList(OBJECT.DRAW);
 
-  if(manager.startFrames > 0){
-    manager.startFrames--;
-    ctx.fillStyle = "rgba(0,0,0," + (manager.startFrames/manager.startFramesMax) + ")";
+
+  manager.drawGUI();
+
+  objectLists[OBJECT.DRAW] = [];
+
+
+
+
+
+  if(!manager.fadeInAlarm.paused){
+    ctx.fillStyle = "rgba(0,0,0," + (1 - manager.fadeInAlarm.percentage()) + ")";
     ctx.fillRect(0,0,roomWidth, roomHeight);
   }
 

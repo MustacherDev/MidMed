@@ -47,29 +47,7 @@ class Sprite {
 
     /// Draw sprite with separe scaling and centralizing option
   draw(x, y, img, xscl, yscl, centerTransform) {
-      // Image X and Y based on img number
-      var imgx = (img % this.imgNumX);
-      var imgy = (Math.floor(img / this.imgNumX) % this.imgNumY);
-
-
-      // Centralizing Transformations
-      let centerTrnsf = centerTransform || false;
-
-      let offx = this.xoffset;
-      let offy = this.yoffset;
-      if (centerTrnsf) {
-          offx = this.width / 2;
-          offy = this.height / 2;
-      }
-
-      // Actual Transformations
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.scale(xscl, yscl);
-
-      ctx.drawImage(this.img, imgx * this.width, imgy * this.height, this.width, this.height, -offx, -offy, this.width, this.height);
-
-      ctx.restore();
+      this.drawRot(x, y, img, xscl, yscl, 0, centerTransform);
   }
 
     /// Draw sprite with rotation
@@ -83,20 +61,13 @@ class Sprite {
 
       let offx = this.xoffset;
       let offy = this.yoffset;
+
       if (centerTrnsf) {
           offx = this.width / 2;
           offy = this.height / 2;
       }
 
-      // Actual Transformations
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.scale(xscl, yscl);
-      ctx.rotate(ang);
-
-      ctx.drawImage(this.img, imgx * this.width, imgy * this.height, this.width, this.height, -offx, -offy, this.width, this.height);
-
-      ctx.restore();
+      this.drawInternal(ctx, imgx, imgy, x, y, offx, offy, xscl, yscl, ang);
   }
 
   /// Draw sprite with rotation and offset
@@ -126,16 +97,30 @@ class Sprite {
       ctx.restore();
   }
 
-  applyTransformations(ctx, imgX, imgY, transX, transY, sclX, sclY, ang, offX, offY){
+  drawExt(x, y, img, xscl, yscl, ang, sprOffsetX, sprOffsetY){
+    var imgx = img % this.imgNumX;
+    var imgy = Math.floor(img / this.imgNumX) % this.imgNumY;
+    this.drawInternal(ctx, imgx, imgy, x, y, sprOffsetX, sprOffsetY, xscl, yscl, ang);
+  }
+
+  drawInternal(ctx, sourceImgX, sourceImgY, spriteX, spriteY, spriteOffsetX, spriteOffsetY, scaleX, scaleY, angle){
+    // Source Img X and Y refers to the specific sprite in a spritesheet
+
+    // The spriteOffset X and Y will be scaled with scale X and Y
+
+    // Translations
+    // Before scaling  : Base X and Y coords                (spriteX, spriteY)
+    // Before rotating : I don't know why i would need this
+    // Before drawing  : Sprite Rotation Center X, Y        (spriteOffsetX, spriteOffsetY)
+
+
     ctx.save();
-    ctx.translate(transX, transY);
-    ctx.scale(sclX, sclY);
+    ctx.translate(spriteX, spriteY);
+    ctx.scale(scaleX, scaleY);
 
-    if (ang != 0) {
-        ctx.rotate(ang);
-    }
+    ctx.rotate(angle);
 
-    ctx.drawImage(this.img, imgX * this.width, imgY * this.height, this.width, this.height, offX, offY, this.width, this.height);
+    ctx.drawImage(this.img, sourceImgX * this.width, sourceImgY * this.height, this.width, this.height,-spriteOffsetX, -spriteOffsetY, this.width, this.height);
 
     ctx.restore();
   }
