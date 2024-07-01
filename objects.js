@@ -443,24 +443,25 @@ function Box(x, y, width, height, sprite) {
 
 
 
-    this.parameterStep = function(){
+    this.parameterStep = function(dt){
       // Gravity
-      this.vspd += this.gravity;
+      this.vspd += this.gravity*dt;
 
-      this.hspd *= this.linDamp;
-      this.vspd *= this.linDamp;
+      this.hspd *= Math.pow(this.linDamp, dt);
+      this.vspd *= Math.pow(this.linDamp, dt);
 
       this.hspd = clamp(this.hspd, -this.hspdMax, this.hspdMax);
       this.vspd = clamp(this.vspd, -this.vspdMax, this.vspdMax);
       this.angSpd = clamp(this.angSpd, -0.5, 0.5);
 
-      this.angSpd *= this.angDamp;
+      this.angSpd *= Math.pow(this.angDamp, dt);
 
       this.prevX = this.x;
       this.prevY = this.y;
-      this.x += this.hspd;
-      this.y += this.vspd;
-      this.ang += this.angSpd;
+
+      this.x += this.hspd*dt;
+      this.y += this.vspd*dt;
+      this.ang += this.angSpd*dt;
 
       this.boundingBox.x = this.x - this.xOffset;
       this.boundingBox.y = this.y - this.yOffset;
@@ -471,9 +472,9 @@ function Box(x, y, width, height, sprite) {
 
     }
 
-    this.update = function () {
+    this.updateBox = function (dt) {
 
-        this.parameterStep();
+        this.parameterStep(dt);
 
         this.hovered = false;
         if(this.boundingBox.isPointInside(input.mouseX, input.mouseY)){
@@ -527,6 +528,10 @@ function Box(x, y, width, height, sprite) {
 
         this.pushDrawList();
     }
+
+    this.update = function(dt = 1){
+      this.updateBox(dt);
+    }
 }
 
 
@@ -576,6 +581,9 @@ function Rock(x, y, width, height) {
       playSound(SND.HIT);
     }
 
+    if(!isHorizontal){
+      manager.rockHit(spd);
+    }
   }
 }
 
@@ -589,17 +597,24 @@ function Sun(x, y){
   this.phase = 0;
   this.hovered = false;
   this.collected = false;
+  this.life = 1000;
   this.boundingBox = new BoundingBox(this.x, this.y, this.width, this.height);
 
-  this.update = function(){
-    this.y += this.vspd;
+  this.update = function(dt = 1){
+    this.y += this.vspd*dt;
 
-    this.phase += 0.02;
+    this.phase += 0.02*dt;
 
     this.ang = Math.sin(this.phase)*deg2rad(45);
 
     if(this.y + this.height/2 >= roomHeight){
       this.vspd = 0;
+    }
+
+    this.life -= dt;
+
+    if(this.life <= 0){
+      this.active = false;
     }
 
     this.boundingBox.x = this.x - this.width/2;
@@ -631,32 +646,39 @@ function Sun(x, y){
   this.show = function(){
     this.sprite.drawRot(this.x, this.y, 0, this.xScl, this.xScl, this.ang, true);
   }
-
 }
 
 
-function Dust(x, y) {
-    GameObject.call(this, x, y, sprites[SPR.BOMB]);
-    this.life = randInt(100, 400);
+function Dart(x, y, ang){
+  Box.call(this, x, y, 30, 30, sprites[SPR.DART]);
 
-    this.xScl = randInt(4, 10);
-    this.yScl = this.xScl;
+  this.xOffset = this.sprite.width/2;
+  this.yOffset = this.sprite.height/4;
+  this.xScl = 30/this.sprite.width;
+  this.yScl = this.xScl;
 
-    this.hspd = randInt(-1, 2);
-    this.vspd = randInt(-1, 2);
+  this.hLoss = 0.4;
+  this.vLoss = 0.4;
 
-    this.update = function () {
-        if (this.life > 0) {
-            this.life--;
-        } else {
-            this.active = false;
-        }
+  this.update = function(dt = 1){
+    this.updateBox(dt);
 
-        this.x += this.hspd;
-        this.y += this.vspd;
+    if(this.hspd != 0 || this.vspd != 0){
+      var spdVec = new Vector(this.hspd, this.vspd);
+      var targetAng = normalizeAngle(spdVec.angle()+Math.PI/2);
 
+      var diffAng = targetAng - normalizeAngle(this.ang);
+      var turnSpd = 0.1;
+
+      if (Math.abs(diffAng) > Math.PI) {
+          var diffSign = sign(diffAng);
+          this.angSpd = (diffSign * Math.PI - diffAng) * turnSpd;
+      }
+      else {
+          this.angSpd = (diffAng)*turnSpd;
+      }
 
     }
-}
+  }
 
-Dust.prototype = Object.create(GameObject.prototype);
+}

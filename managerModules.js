@@ -106,7 +106,7 @@ class Minesweeper {
     this.gridFlag[cell] = !this.gridFlag[cell];
   }
 
-  update(){
+  update(dt){
 
     var allExposed = true;
     var allExposedBombs = true;
@@ -122,7 +122,7 @@ class Minesweeper {
       if(this.gridOpenTiming[i] == -1) continue;
 
       if(this.gridOpenTiming[i] > 0){
-        this.gridOpenTiming[i]--;
+        this.gridOpenTiming[i] -= dt;
       } else {
         this.gridOpenTiming[i] = -1;
         this.gridOpen[i] = true;
@@ -170,17 +170,17 @@ class HDMIScreen{
     }
   }
 
-  update(){
+  update(dt){
 
     if(this.glitchLevel > 0){
-      this.glitchLevel--;
+      this.glitchLevel -= dt;
     }
 
     if(this.glitchLevel >= this.glitchMax){
       this.hdmi = true;
     }
 
-    this.barTick++;
+    this.barTick += dt;
     if(this.barTick > 5){
       this.barTick = 0;
 
@@ -202,15 +202,15 @@ class HDMIScreen{
           if(this.reconnectLagTimer <= 0){
             this.reconnectLag = Math.min(randInt(0, 80), (this.reconnectTime - this.reconnectTimer) - 20);
           } else {
-            this.reconnectLagTimer--;
+            this.reconnectLagTimer -= dt;
           }
         } else {
-          this.reconnectLag--;
+          this.reconnectLag -= dt;
           if(this.reconnectLag <= 0){
             this.reconnectLagTimer = randInt(10, 200);
           }
         }
-        this.reconnectTimer++;
+        this.reconnectTimer += dt;
       }
     }
   }
@@ -287,7 +287,7 @@ class SunDisplay{
     }
   }
 
-  update(){
+  update(dt){
       switch(this.state){
         // HIDDEN
         case 0:
@@ -296,7 +296,7 @@ class SunDisplay{
 
         // ENTERING
         case 1:
-          this.timer++;
+          this.timer+=dt;
           this.yOff = 0.9*this.height*tweenOut(this.timer/this.inTime);
           if(this.timer > this.inTime){
             this.timer = 0;
@@ -306,7 +306,7 @@ class SunDisplay{
 
         // STAYING
         case 2:
-          this.timer++;
+          this.timer+= dt;
           this.yOff = 0.9*this.height;
           if(this.timer > this.stayTime){
             this.timer = 0;
@@ -316,7 +316,7 @@ class SunDisplay{
 
         // LEAVING
         case 3:
-          this.timer++;
+          this.timer+= dt;
           this.yOff = 0.9*this.height*tweenOut(1-(this.timer/this.outTime));
           if(this.timer > this.outTime){
             this.timer = 0;
@@ -349,19 +349,19 @@ class Spotlight{
   constructor(){
     this.x = 0;
     this.y = 0;
-    this.width  = 1000;
-    this.height = 1000;
+    this.width  = 2000;
+    this.height = 2000;
 
     this.active = false;
 
     this.spd = 0;
   }
 
-  update(){
+  update(dt){
     if(!this.active) return;
 
-    this.width -= this.spd;
-    this.height -= this.spd;
+    this.width -= this.spd*dt;
+    this.height -= this.spd*dt;
   }
 
   draw(ctx){

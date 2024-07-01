@@ -63,6 +63,8 @@ class Manager {
     this.animAlarm = new Alarm(0, 250);
     this.animWaitAlarm =  new Alarm(0, 2000);
 
+    this.bwoopRealTimeAlarm = new RealTimeAlarm(new Date());
+
 
     this.winSoundId = 0;
     this.winSoundCharging = false;
@@ -108,16 +110,16 @@ class Manager {
   }
 
 
-  update(input){
+  update(dt = 1){
     this.holding = false;
 
     var newMouseGrid = this.getMouseGrid();
 
     for(let i = 0; i < this.losangos.length; i++){
-      this.losangos[i].update(input);
+      this.losangos[i].update(dt);
     }
 
-    this.mouseGridAlarm.update();
+    this.mouseGridAlarm.update(dt);
 
     if(!this.holding){
       this.mouseGridAlarm.restart();
@@ -131,8 +133,8 @@ class Manager {
     switch(this.mode){
       case 0:
 
-        this.animWaitAlarm.update();
-        this.animAlarm.update();
+        this.animWaitAlarm.update(dt);
+        this.animAlarm.update(dt);
 
         if(this.animWaitAlarm.finished){
           this.animWaitAlarm.stop();
@@ -172,7 +174,7 @@ class Manager {
 
       // MINESWEEPER
       case 1:
-        this.minesweeper.update();
+        this.minesweeper.update(dt);
         if(this.minesweeper.finished){
           if(!this.endingMinesweeper){
             if(!this.minesweeper.gameover){
@@ -194,15 +196,23 @@ class Manager {
 
 
 
-    this.spotlight.update();
+    if(this.bwoopRealTimeAlarm.check()){
+      this.bwoopRealTimeAlarm.active = false;
+      this.spotlight.active = true;
+      playSound(SND.SMWBWOOP);
+    }
+
+    this.spotlight.update(dt);
     if(this.spotlight.active){
-      if(this.spotlight.width <= 0){
+      if(this.spotlight.width <= -1000){
         this.fadeInAlarm.start();
+        this.spotlight.width = 2000;
+        this.spotlight.height = 2000;
         this.spotlight.active = false;
       }
     }
 
-    this.fadeInAlarm.update();
+    this.fadeInAlarm.update(dt);
     if(this.fadeInAlarm.finished){
       this.fadeInAlarm.stop();
     }
@@ -210,7 +220,7 @@ class Manager {
     //this.spotlight.x = input.mouseX;
     //this.spotlight.y = input.mouseY;
 
-    this.hdmiScreen.update();
+    this.hdmiScreen.update(dt);
     if(this.hdmiScreen.hdmi){
       this.mode = 2;
     }
@@ -228,7 +238,7 @@ class Manager {
     // UPDATING PARTICLES
     for (var i = 0; i < this.particles.length; i++) {
         if (this.particles[i].active) {
-            this.particles[i].update();
+            this.particles[i].update(dt);
         } else {
           this.particles.splice(i, 1);
           i--;
@@ -237,14 +247,14 @@ class Manager {
 
     // SLEEP
     if(this.mode == 0){
-      this.quietAlarm.update(1);
+      this.quietAlarm.update(dt);
     } else {
       this.quietAlarm.update(0);
     }
 
     if(this.quietAlarm.finished){
       this.sleeping = true;
-      this.sleepParticleAlarm.update();
+      this.sleepParticleAlarm.update(dt);
     }
 
     if(this.sleepParticleAlarm.finished){
@@ -257,7 +267,7 @@ class Manager {
     }
 
 
-    this.sunDisplay.update();
+    this.sunDisplay.update(dt);
 
 
 
@@ -395,6 +405,33 @@ class Manager {
     for(var i = 0; i < this.losangos.length; i++){
       if(this.losangos[i].attached){
         this.deattachLosango(i);
+      }
+    }
+  }
+
+  rockHit(spd){
+    if(spd > 5){
+
+      for(var i = 0 ; i < this.losangos.length; i++){
+        var dir = new Vector(0,0);
+        var amp = spd*randRange(0, 0.2);
+        dir.setAngle(deg2rad(randRange(0, 360)));
+
+        this.losangos[i].attachCooldownAlarm.start();
+        this.losangos[i].hspd += 4*amp*dir.x;
+        this.losangos[i].vspd += 4*amp*dir.y;
+      }
+
+      for(var i = 0; i < objectLists[OBJECT.BITCOIN].length; i++){
+        if(objectLists[OBJECT.BITCOIN][i].onGround){
+          objectLists[OBJECT.BITCOIN][i].vspd += -spd/2;
+        }
+      }
+
+      for(var i = 0; i < objectLists[OBJECT.DART].length; i++){
+        if(objectLists[OBJECT.DART][i].onGround){
+          objectLists[OBJECT.DART][i].vspd += -spd/2;
+        }
       }
     }
   }

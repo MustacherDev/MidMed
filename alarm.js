@@ -54,6 +54,23 @@ class Alarm {
   }
 }
 
+class RealTimeAlarm{
+  constructor(endDate){
+    this.time = endDate;
+    this.active = false;
+  }
+
+  check(){
+    if(this.active){
+      var now = new Date();
+      if(now.getTime() >= this.time.getTime()){
+        return true;
+      }
+    }
+
+    return false;
+  }
+}
 
 
 function zeroPad(number, targetLength) {

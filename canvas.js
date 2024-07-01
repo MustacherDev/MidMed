@@ -7,6 +7,9 @@ var canvasSclX = 1;
 var canvasSclY = 1;
 var canvasOffsetX = 0;
 var canvasOffsetY = 0;
+var pageFocused = true;
+var pageFocusChange = false;
+var pageUnfocusedStart = new Date();
 
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
@@ -93,3 +96,21 @@ canvas.addEventListener('contextmenu', preventContextMenu);
 function preventContextMenu(event) {
   event.preventDefault();
 }
+
+function checkPageFocus() {
+  const visibilityState = document.visibilityState;
+  if (visibilityState === "visible") {
+    pageFocused = true;
+    pageFocusChange = true;
+  } else {
+    pageFocused = false;
+    pageFocusChange = true;
+    pageUnfocusedStart =  new Date();
+  }
+}
+
+// Check on initial load
+checkPageFocus();
+
+// Listen for visibility changes
+window.addEventListener("visibilitychange", checkPageFocus);

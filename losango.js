@@ -85,6 +85,8 @@ class Losango {
 
     this.attached = true;
     this.inPlace = true;
+    this.attachCooldownAlarm = new Alarm(0, 200);
+
     this.locked = false;
     this.open = false;
 
@@ -181,16 +183,22 @@ class Losango {
 
 
         manager.winSoundId = (newWinSound == manager.winSoundId) ? (newWinSound+1)%WINSND.TOTAL : newWinSound;
-
+        //manager.winSoundId = WINSND.SMW;
         winSounds[manager.winSoundId].play();
 
         if(manager.winSoundId == WINSND.SMW){
           manager.spotlight.x = partPos.x;
           manager.spotlight.y = partPos.y;
-          manager.spotlight.width = 1000;
-          manager.spotlight.height = 1000;
-          manager.spotlight.spd = 1;
-          manager.spotlight.active = true;
+          manager.spotlight.width = 1500;
+          manager.spotlight.height = 1500;
+
+          var now = new Date();
+          manager.bwoopRealTimeAlarm.time = new Date(now.getTime() + 1000 + 1000*winSounds[manager.winSoundId].duration);
+          manager.bwoopRealTimeAlarm.active = true;
+
+
+          manager.spotlight.spd = manager.spotlight.width/((sounds[SND.SMWBWOOP].duration - 0.2)*FRAMERATE);
+          manager.spotlight.active = false;
         }
       }
     } else if(this.id == NAME.CAIO){
@@ -218,6 +226,17 @@ class Losango {
           playSound(SND.POP);
         }
       }
+    } else if (this.id == NAME.DANILO){
+      var pos = manager.getPosGrid(this.getGridId());
+      var ang = Math.random()*Math.PI*2;
+      var spd = randRange(5, 10);
+      var dart = new Dart(pos.x, pos.y, ang);
+      dart.hspd = Math.cos(ang)*spd;
+      dart.vspd = Math.sin(ang)*spd;
+      dart.depth = 10;
+
+      addObject(dart, OBJECT.DART);
+
     } else {
       this.flip();
     }
@@ -225,7 +244,7 @@ class Losango {
 
 
 
-  update(input){
+  update(dt = 1){
     this.hovered = false;
     this.inPlace = false;
 
@@ -243,10 +262,14 @@ class Losango {
     if(this.attached){
       var targetPos = manager.getPosGrid(manager.losangosGrid[this.id]);
 
+      this.attachCooldownAlarm.update(dt);
+
       if(Math.abs(targetPos.x - this.x) + Math.abs(targetPos.y - this.y) < 5){
-        this.x = targetPos.x;
-        this.y = targetPos.y;
-        this.inPlace = true;
+        if(this.attachCooldownAlarm.finished){
+          this.x = targetPos.x;
+          this.y = targetPos.y;
+          this.inPlace = true;
+        }
       } else {
         var pos = new Vector(this.x, this.y);
         var dist = targetPos.sub(pos).mag();
@@ -254,8 +277,8 @@ class Losango {
 
         var spd = Math.max((dist*dist)/100000, 0.1);
 
-        this.hspd += dir.x*spd;
-        this.vspd += dir.y*spd;
+        this.hspd += dir.x*spd*dt;
+        this.vspd += dir.y*spd*dt;
       }
     } else {
       if(!this.holded){
@@ -278,13 +301,14 @@ class Losango {
 
     this.hspd = clamp(this.hspd, -20, 20);
     this.vspd = clamp(this.vspd, -20, 20);
-    this.hspd *= 0.98;
-    this.vspd *= 0.98;
+    this.hspd *= Math.pow(0.98, dt);
+    this.vspd *= Math.pow(0.98, dt);
 
     this.prevX = this.x;
     this.prevY = this.y;
-    this.x += this.hspd;
-    this.y += this.vspd;
+
+    this.x += this.hspd*dt;
+    this.y += this.vspd*dt;
 
     this.updateBox();
 
@@ -331,16 +355,16 @@ class Losango {
     // SNEEZING
     if(this.sneezing){
       if(this.sneezeWait > 0){
-        this.sneezeWait--;
+        this.sneezeWait -= dt;
 
-        this.sneezeTimer--;
+        this.sneezeTimer -= dt;
 
         if(this.sneezeWait <= 0){
           this.sneezeTries++;
           this.sneezePauseTime = this.sneezeTimer + randInt(20, 50)*this.sneezeTries;
         }
       } else {
-        this.sneezeTimer+=2;
+        this.sneezeTimer+=2*dt;
 
         if(this.sneezeTimer > this.sneezePauseTime){
           this.sneezeWait = randInt(20, 50);
@@ -357,7 +381,7 @@ class Losango {
       }
     } else {
       if(this.sneezeTimer > 0){
-        this.sneezeTimer *= 0.9;
+        this.sneezeTimer *= Math.pow(0.9, dt);
       }
     }
 
@@ -369,8 +393,8 @@ class Losango {
 
 
 
-    this.popInAlarm.update();
-    this.popOutAlarm.update();
+    this.popInAlarm.update(dt);
+    this.popOutAlarm.update(dt);
 
     if(this.popInAlarm.finished){
       this.popInAlarm.stop();
@@ -395,7 +419,7 @@ class Losango {
 
     // FLIPPING
     if(this.flipping){
-      this.flipPhase += this.flipSpd;
+      this.flipPhase += this.flipSpd*dt;
 
 
       // We should update the object properties as soon as it changes front-back
@@ -426,14 +450,14 @@ class Losango {
     // Rotating/ Tilting
     if(this.rotating){
       if(this.isTilted){
-        this.angle -= this.rotateSpd;
+        this.angle -= this.rotateSpd*dt;
         if(this.angle <= 0){
           this.isTilted = false;
           this.rotating = false;
           this.angle = 0;
         }
       } else {
-        this.angle += this.rotateSpd;
+        this.angle += this.rotateSpd*dt;
         if(this.angle >= deg2rad(45)){
           this.isTilted = true;
           this.rotating = false;
@@ -450,7 +474,7 @@ class Losango {
     if(!this.flipping){
       if(this.updateList.length > 0){
         if(this.updateList[0].waitTime > 0){
-          this.updateList[0].waitTime--;
+          this.updateList[0].waitTime -= dt;
         } else {
           this.updatePacket = this.updateList.shift();
           this.startFlipping();

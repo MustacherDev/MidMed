@@ -10,6 +10,7 @@ const OBJECT = Object.freeze(new Enum(
     "BITCOIN",
     "SUN",
     "ROCK",
+    "DART",
     "TOTAL"
 ));
 
@@ -42,11 +43,11 @@ function checkUpLists() {
 }
 
 // Update all objects from the list
-function updateList(type) {
+function updateList(type, dt = 1) {
     var _len = objectLists[type].length;
     for (var i = 0; i < _len; i++) {
         if (objectLists[type][i].active) {
-            objectLists[type][i].update();
+            objectLists[type][i].update(dt);
         } else {
             objectLists[type].splice(i, 1);
             i--;

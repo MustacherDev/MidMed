@@ -52,6 +52,19 @@ const NAME = Object.freeze(new Enum(
     "TOTAL"
 ));
 
+
+class Person{
+  constructor(name, altName, extraName, bday){
+    this.name = name;
+    this.altName = altName;
+    this.extraName = extraName;
+    this.bdat = bdat;
+  }
+}
+
+
+
+
 function NameManager(){
   this.names = [
     ["ALICE", "ALICE"],
@@ -105,6 +118,11 @@ function NameManager(){
     ["BRUNELY","BRUNELY"],
     ["SHEILA", "SHEILA"],
   ];
+
+  // this.persons = [
+  //   new Person("ALICE", "ALL ICE", "NO PAÍS", "2024-0"),
+  //
+  // ];
 }
 
 var nameMan = new NameManager();

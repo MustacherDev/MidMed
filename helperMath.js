@@ -42,6 +42,15 @@ function Vector(x, y) {
     this.cross = function (v) {
         return this.x * v.y - this.y * v.x;
     }
+
+    this.angle = function(){
+      return Math.atan2(this.y, this.x);
+    }
+
+    this.setAngle = function(ang){
+      this.x = Math.cos(ang);
+      this.y = Math.sin(ang);
+    }
 }
 
 
@@ -121,4 +130,14 @@ function rad2deg(radians) {
 // Convert degrees to radians
 function deg2rad(degrees) {
   return degrees * (Math.PI / 180);
+}
+
+function normalizeAngle(ang) {
+  // Handle zero or negative angles
+  var angle = ang;
+  angle = angle % (2 * Math.PI); // Wrap to 0 to 2*PI range
+  if (angle < 0) {
+    angle += Math.PI * 2;
+  }
+  return angle;
 }

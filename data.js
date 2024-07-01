@@ -24,6 +24,7 @@ const SND = Object.freeze(new Enum(
     "EXPLOSION",
     "WHISTLE",
     "SNEEZE",
+    "SMWBWOOP",
     "TOTAL"
 ));
 
@@ -55,7 +56,8 @@ const sndPaths = [
   "coins/coinHitB2.mp3",
   "Explosion.wav",
   "whistle.mp3",
-  "Sneeze.mp3"
+  "Sneeze.mp3",
+  "SMW Bwoop.mp3"
 ];
 
 const winSndPaths = [
@@ -109,6 +111,8 @@ const SPR = Object.freeze(new Enum(
     "BIRTHDAY",
     "ROCK",
     "HOLE",
+    "CURTAIN",
+    "DART",
     "TOTAL"
 ));
 
@@ -120,7 +124,9 @@ var imgPaths = [  "bombSprite.png",
   "SunDisplay.png",
   "BirthdayHat.png",
   "rock.png",
-  "hole.png"
+  "hole.png",
+  "black curtain.png",
+  "dart.png"
 ];
 
 var need2Load = imgPaths.length;
