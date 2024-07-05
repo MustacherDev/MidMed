@@ -11,6 +11,7 @@ const OBJECT = Object.freeze(new Enum(
     "SUN",
     "ROCK",
     "DART",
+    "SCREEN",
     "TOTAL"
 ));
 

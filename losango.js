@@ -85,7 +85,7 @@ class Losango {
 
     this.attached = true;
     this.inPlace = true;
-    this.attachCooldownAlarm = new Alarm(0, 200);
+    this.attachCooldownAlarm = new Alarm(0, 300);
 
     this.locked = false;
     this.open = false;
@@ -246,7 +246,7 @@ class Losango {
 
   update(dt = 1){
     this.hovered = false;
-    this.inPlace = false;
+
 
     this.xSclMult = 1;
     this.ySclMult = 1;
@@ -265,12 +265,34 @@ class Losango {
       this.attachCooldownAlarm.update(dt);
 
       if(Math.abs(targetPos.x - this.x) + Math.abs(targetPos.y - this.y) < 5){
+
         if(this.attachCooldownAlarm.finished){
-          this.x = targetPos.x;
-          this.y = targetPos.y;
-          this.inPlace = true;
+          if(!this.inPlace){
+            this.hspd = 0;
+            this.vspd = 0;
+
+            var pos = new Vector(this.x, this.y);
+            var dist = targetPos.sub(pos).mag();
+            var dir = targetPos.sub(pos).unit();
+            if(dist < 1){
+              this.x = targetPos.x;
+              this.y = targetPos.y;
+              this.inPlace = true;
+
+              manager.particles.push(particleConfetti(this.x, this.y, 50));
+              manager.particles.push(particleConfetti(this.x, this.y, 50));
+              manager.particles.push(particleConfetti(this.x, this.y, 50));
+              manager.particles.push(particleConfetti(this.x, this.y, 50));
+
+
+            } else {
+              this.x += dir.x/10;
+              this.y += dir.y/10;
+            }
+          }
         }
       } else {
+        this.inPlace = false;
         var pos = new Vector(this.x, this.y);
         var dist = targetPos.sub(pos).mag();
         var dir = targetPos.sub(pos).unit();

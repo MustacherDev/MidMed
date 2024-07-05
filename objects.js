@@ -392,10 +392,21 @@ function Box(x, y, width, height, sprite) {
     this.vLoss = 0.8;
     this.hLoss = 0.9;
 
+    this.gravityOn = true;
     this.gravity = 0.1;
+
+    this.rotateOnCollision = true;
+
+    this.hacc = 0;
+    this.vacc = 0;
+
     this.floorY = roomHeight;
 
     this.onGround = false;
+
+    this.holdEvent = false;
+    this.throwEvent = false;
+
 
     this.tick = 0;
 
@@ -409,6 +420,7 @@ function Box(x, y, width, height, sprite) {
       if(this.hovered && !this.holded && input.mouseState[0][1] && manager.holding == false){
         manager.holding = true;
         this.holded = true;
+        this.holdEvent = true;
         this.holdX = input.mouseX - this.x;
         this.holdY = input.mouseY - this.y;
         this.hspd = 0;
@@ -425,6 +437,7 @@ function Box(x, y, width, height, sprite) {
 
         if(!input.mouseState[0][0]){
           this.holded = false;
+          this.throwEvent = true;
 
           let totalXDiff = 0;
           let totalYDiff = 0;
@@ -444,8 +457,17 @@ function Box(x, y, width, height, sprite) {
 
 
     this.parameterStep = function(dt){
-      // Gravity
-      this.vspd += this.gravity*dt;
+
+      this.hacc = 0;
+      this.vacc = 0;
+
+
+      if(this.gravityOn){
+        this.vacc += this.gravity;
+      }
+
+      this.hspd += this.hacc*dt;
+      this.vspd += this.vacc*dt;
 
       this.hspd *= Math.pow(this.linDamp, dt);
       this.vspd *= Math.pow(this.linDamp, dt);
@@ -491,13 +513,18 @@ function Box(x, y, width, height, sprite) {
               this.collisionAction(true, this.hspd);
 
               this.x = roomWidth - this.width + this.xOffset;
-              this.angSpd += this.vspd / 40;
+
+              if(this.rotateOnCollision){
+                this.angSpd += this.vspd / 40;
+              }
               this.hspd *= -this.hLoss;
             } else if (this.x - this.xOffset < 0) {
               this.collisionAction(true, this.hspd);
 
               this.x = this.xOffset;
-              this.angSpd += this.vspd / 40;
+              if(this.rotateOnCollision){
+                this.angSpd += this.vspd / 40;
+              }
               this.hspd *= -this.hLoss;
             }
 
@@ -505,7 +532,9 @@ function Box(x, y, width, height, sprite) {
             if (this.y - this.yOffset + this.height  > this.floorY) {
               if (Math.abs(this.vspd) > Math.abs(this.gravity * 3)) {
                 this.collisionAction(false, this.vspd);
-                this.angSpd += this.hspd / 40;
+                if(this.rotateOnCollision){
+                  this.angSpd += this.hspd / 40;
+                }
               }
 
               this.y = this.floorY -this.height + this.yOffset;
@@ -521,7 +550,9 @@ function Box(x, y, width, height, sprite) {
         }
 
         if(this.onGround){
-          this.angSpd = this.hspd/40;
+          if(this.rotateOnCollision){
+            this.angSpd = this.hspd/40;
+          }
         }
 
         this.updateHold();
@@ -552,6 +583,11 @@ function Bitcoin(x, y, radius) {
   this.yOffset = radius;
   this.hovered = false;
 
+  this.hLoss = 0.4;
+  this.vLoss = 0.4;
+
+  this.depth = objectsDepth.bitcoin;
+
   this.collisionAction = function(isHorizontal, velocity){
     var spd =  Math.abs(velocity);
     if(spd > 2){
@@ -573,6 +609,10 @@ function Rock(x, y, width, height) {
   this.hovered = false;
   this.hLoss = 0;
   this.vLoss = 0;
+
+  this.depth = objectsDepth.rock;
+
+  this.rotateOnCollision = false;
 
   this.collisionAction = function(isHorizontal, velocity){
     var spd =  Math.abs(velocity);
@@ -598,6 +638,9 @@ function Sun(x, y){
   this.hovered = false;
   this.collected = false;
   this.life = 1000;
+
+  this.depth = 1;
+
   this.boundingBox = new BoundingBox(this.x, this.y, this.width, this.height);
 
   this.update = function(dt = 1){
@@ -652,6 +695,9 @@ function Sun(x, y){
 function Dart(x, y, ang){
   Box.call(this, x, y, 30, 30, sprites[SPR.DART]);
 
+  this.boundingBox = new BoundingBox(this.x  -this.xOffset, this.y -this.yOffset + this.width, this.width, this.height);
+  this.boundingBoxBack = new BoundingBox(this.x  -this.xOffset, this.y -this.yOffset, this.width, this.height);
+
   this.xOffset = this.sprite.width/2;
   this.yOffset = this.sprite.height/4;
   this.xScl = 30/this.sprite.width;
@@ -660,25 +706,155 @@ function Dart(x, y, ang){
   this.hLoss = 0.4;
   this.vLoss = 0.4;
 
-  this.update = function(dt = 1){
-    this.updateBox(dt);
+  this.depth = objectsDepth.dart;
 
-    if(this.hspd != 0 || this.vspd != 0){
+  this.fixed = false;
+
+  this.update = function(dt = 1){
+
+    if(this.fixed){
+      this.hspd = 0;
+      this.vspd = 0;
+      this.angSpd = 0;
+      this.gravityOn = false;
+
+      this.updateBox(dt);
+    } else {
+      this.updateBox(dt);
+
+      this.boundingBoxBack.x = this.x - this.xOffset + this.width*Math.sin(-this.ang);
+      this.boundingBoxBack.y = this.y - this.yOffset + this.width*Math.cos(-this.ang);
+      // TUDO ERRADO TUDOOOO
+
+      if(this.hspd != 0 || this.vspd != 0){
+        var spdVec = new Vector(this.hspd, this.vspd);
+        var targetAng = normalizeAngle(spdVec.angle()+Math.PI/2);
+
+        var diffAng = targetAng - normalizeAngle(this.ang);
+        var turnSpd = 0.1;
+
+        if (Math.abs(diffAng) > Math.PI) {
+            var diffSign = sign(diffAng);
+            this.angSpd = (diffSign * Math.PI - diffAng) * turnSpd;
+        }
+        else {
+            this.angSpd = (diffAng)*turnSpd;
+        }
+
+      }
+    }
+
+    if(this.holdEvent){
+      this.holdEvent = false;
+      this.fixed = false;
+      this.gravityOn = true;
+    }
+  }
+
+  this.collisionAction = function(isHorizontal, velocity){
+    var spd =  Math.abs(velocity);
+
+    if(spd > 12){
+      playSound(SND.HIT);
+
       var spdVec = new Vector(this.hspd, this.vspd);
       var targetAng = normalizeAngle(spdVec.angle()+Math.PI/2);
-
       var diffAng = targetAng - normalizeAngle(this.ang);
-      var turnSpd = 0.1;
-
+      var alignment = 0;
       if (Math.abs(diffAng) > Math.PI) {
           var diffSign = sign(diffAng);
-          this.angSpd = (diffSign * Math.PI - diffAng) * turnSpd;
+          alignment = (diffSign * Math.PI - diffAng);
       }
       else {
-          this.angSpd = (diffAng)*turnSpd;
+          alignment = (diffAng);
       }
 
+      if(Math.abs(alignment) < Math.PI/16){
+        if(this.y > 0){
+          this.fixed = true;
+        }
+      }
     }
+
+
+  }
+
+  this.show = function(){
+      this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, this.ang, this.xOffset/this.xScl, this.yOffset/this.yScl);
+      //this.boundingBox.show();
+      //this.boundingBoxBack.show();
+  }
+
+}
+
+
+function BlockScreen(x, y, blocksX, blocksY){
+  Box.call(this, x, y, blocksX*manager.losWid, blocksY*manager.losHei, sprites[SPR.SCREENTILE]);
+
+  this.hTileNum = blocksX;
+  this.vTileNum = blocksY;
+
+  this.xOffset = 0;
+  this.yOffset = 0;
+  this.xScl = manager.losWid/this.sprite.width;
+  this.yScl = manager.losHei/this.sprite.height;
+
+  this.hLoss = 0.4;
+  this.vLoss = 0.4;
+
+  this.update = function(dt = 1){
+    this.updateBox(dt);
+  }
+
+  this.collisionAction = function(isHorizontal, velocity){
+
+  }
+
+  this.show = function(){
+      for(var i = 0; i < this.vTileNum; i++){
+        for(var j = 0; j < this.hTileNum; j++){
+          var xx = this.x + j*manager.losWid;
+          var yy = this.y + i*manager.losHei;
+          var img = 0;
+
+          // Image machine
+          if(i == 0){
+            if(j == 0){
+              img = 0;
+            } else if(j == this.hTileNum-1){
+              img = 2;
+            } else {
+              img = 1;
+            }
+          } else if (i == this.vTileNum-1) {
+            if(j == 0){
+              img = 6;
+            } else if(j == this.hTileNum-1){
+              img = 8;
+            } else {
+              img = 7;
+            }
+          } else {
+            if(j == 0){
+              img = 3;
+            } else if(j == this.hTileNum-1){
+              img = 5;
+            } else {
+              img = 4;
+            }
+          }
+
+          this.sprite.drawExt(xx, yy, img, this.xScl, this.yScl, 0, this.xOffset/this.xScl, this.yOffset/this.yScl);
+        }
+      }
+
+
+      sprites[SPR.SCREENTILESLOT].drawExt(this.x + manager.losWid, this.y, 0, this.xScl, this.yScl, 0, sprites[SPR.SCREENTILESLOT].width/2, sprites[SPR.SCREENTILESLOT].height);
+
+
+      //this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, this.ang, this.xOffset/this.xScl, this.yOffset/this.yScl);
+      //this.boundingBox.show();
+      //this.boundingBoxBack.show();
   }
 
 }

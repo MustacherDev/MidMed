@@ -66,7 +66,7 @@ var executingState = stateInit;
 
 var elapsedTime = 0;
 var thenTimeDate = new Date();
-const FRAMERATE = 45;
+const FRAMERATE = 60;
 
 function step() {
 

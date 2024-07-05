@@ -1,4 +1,13 @@
 
+const objectsDepth = {
+  losango: 0,
+  rock: 1,
+  bitcoin: 2,
+  sun: 3,
+  dart: 4
+}
+
+
 
 class Manager {
   constructor(){
@@ -66,6 +75,9 @@ class Manager {
     this.bwoopRealTimeAlarm = new RealTimeAlarm(new Date());
 
 
+
+
+
     this.winSoundId = 0;
     this.winSoundCharging = false;
     this.winSoundPool = [];
@@ -75,6 +87,7 @@ class Manager {
 
     this.prevMousePos = [];
     this.prevMouseLength = 2;
+
 
     if(isMobile){
       this.prevMouseLength = 5;
@@ -107,6 +120,11 @@ class Manager {
        ,Physics.behavior('sweep-prune')
        ,this.worldEdgebounce
    ]);
+
+   var screen = new BlockScreen(100, 100, 3, 4);
+   //addObject(screen, OBJECT.SCREEN);
+
+
   }
 
 
@@ -417,9 +435,9 @@ class Manager {
         var amp = spd*randRange(0, 0.2);
         dir.setAngle(deg2rad(randRange(0, 360)));
 
-        this.losangos[i].attachCooldownAlarm.start();
-        this.losangos[i].hspd += 4*amp*dir.x;
-        this.losangos[i].vspd += 4*amp*dir.y;
+        this.losangos[i].attachCooldownAlarm.start(randInt(-100, 50));
+        this.losangos[i].hspd += 1*amp*dir.x;
+        this.losangos[i].vspd += 1*amp*dir.y;
       }
 
       for(var i = 0; i < objectLists[OBJECT.BITCOIN].length; i++){

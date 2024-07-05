@@ -110,6 +110,25 @@ function particleConfetti(x, y, life){
   return part;
 }
 
+function particleLock(x, y, life){
+  var part = new Particle(x, y, life);
+  part.radius = randInt(5, 10);
+  part.color = Color.fromHSL(100, 100, 50);
+  part.colorSpd = new Color(0,0,0, -1/life);
+  part.radiusSpd = -part.radius/life;
+
+  var dir = randRange(0, deg2rad(360));
+  var dirVec = new Vector(Math.cos(dir), Math.sin(dir));
+  var spd = randRange(1, 5);
+
+  part.spd = dirVec.mult(spd);
+  part.acc = new Vector(0, 0);
+  part.damp = new Vector(0.01, 0.01);
+  part.depth = -2;
+
+  return part;
+}
+
 function placesInRect(num, x, y, wid, hei){
   var list = [];
   for(var i = 0; i < num; i++){

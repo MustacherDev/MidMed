@@ -4,6 +4,7 @@ class Alarm {
   constructor(start, end){
     this.timer = start;
     this.time = end;
+    this.timeInit = end;
     this.finished = false;
     this.paused = false;
     this.loop = false;
@@ -36,7 +37,8 @@ class Alarm {
     this.paused = true;
   }
 
-  start(){
+  start(extraTime = 0){
+    this.time = Math.max(this.timeInit + extraTime, 1);
     this.restart();
     this.paused = false;
   }

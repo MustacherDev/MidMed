@@ -113,6 +113,8 @@ const SPR = Object.freeze(new Enum(
     "HOLE",
     "CURTAIN",
     "DART",
+    "SCREENTILE",
+    "SCREENTILESLOT",
     "TOTAL"
 ));
 
@@ -126,7 +128,9 @@ var imgPaths = [  "bombSprite.png",
   "rock.png",
   "hole.png",
   "black curtain.png",
-  "dart.png"
+  "dart.png",
+  "screenTile.png",
+  "gameSlot.png"
 ];
 
 var need2Load = imgPaths.length;
@@ -147,6 +151,7 @@ function loadSprites() {
         }
 
         sprites[SPR.NUMBERS].setSubimg(16,16);
+        sprites[SPR.SCREENTILE].setSubimg(64, 64);
 
         spritesLoaded = true;
     }
