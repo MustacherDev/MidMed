@@ -82,7 +82,7 @@ function Particle(x, y, life){
 
 
 
-function particleSun(x, y, life){
+function particleSun(x, y){
   var part = new Particle(x, y, life);
   part.radius = randInt(2, 5);
   part.color = new Color(randInt(200, 255), randInt(200, 255), 0, 1);
@@ -91,7 +91,8 @@ function particleSun(x, y, life){
   return part;
 }
 
-function particleConfetti(x, y, life){
+function particleConfetti(x, y){
+  var life = 200;
   var part = new Particle(x, y, life);
   part.radius = randInt(5, 10);
   part.color = Color.fromHSL(randRange(0, 360), 100, 50);
@@ -110,21 +111,22 @@ function particleConfetti(x, y, life){
   return part;
 }
 
-function particleLock(x, y, life){
+function particleLock(x, y){
+  var life = 50 + randInt(0, 25);
   var part = new Particle(x, y, life);
-  part.radius = randInt(5, 10);
-  part.color = Color.fromHSL(100, 100, 50);
+  part.radius = randInt(15, 25);
+  part.color = Color.fromHSL(100, 0, 50);
   part.colorSpd = new Color(0,0,0, -1/life);
   part.radiusSpd = -part.radius/life;
 
   var dir = randRange(0, deg2rad(360));
   var dirVec = new Vector(Math.cos(dir), Math.sin(dir));
-  var spd = randRange(1, 5);
+  var spd = randRange(1, 2);
 
   part.spd = dirVec.mult(spd);
   part.acc = new Vector(0, 0);
   part.damp = new Vector(0.01, 0.01);
-  part.depth = -2;
+  part.depth = -20;
 
   return part;
 }
@@ -135,4 +137,13 @@ function placesInRect(num, x, y, wid, hei){
     list.push(new Vector(x + randRange(0, wid), y + randRange(0, hei)));
   }
   return list;
+}
+
+function createParticleWithPlaces(partCreateFunc, places){
+  var partList = [];
+  for(var i = 0; i < places.length; i++){
+    partList.push(partCreateFunc(places[i].x, places[i].y));
+  }
+
+  return partList;
 }

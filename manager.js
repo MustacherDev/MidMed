@@ -8,6 +8,16 @@ const objectsDepth = {
 }
 
 
+class GridObject{
+  constructor(gridIndex, object, wid, hei){
+    this.index = gridIndex;
+    this.object = object;
+    this.width = wid;
+    this.height = hei;
+    this.valid = true;
+  }
+}
+
 
 class Manager {
   constructor(){
@@ -26,7 +36,7 @@ class Manager {
     this.rows = 5;
 
 
-    // Contains the id of the losangos attached
+    // Contains the objects in each grid slot
     this.grid = [];
 
     this.losangos = [];
@@ -39,11 +49,15 @@ class Manager {
 
     this.hdmiScreen = new HDMIScreen();
 
+    this.screenMaking = false;
+    this.screenMakingProgress = 0;
+
 
     this.locked = false;
 
     this.holding = false;
     this.holdingContent = null;
+    this.holdingObject = null;
 
     this.mode = 0;
 
@@ -104,7 +118,7 @@ class Manager {
       this.losangosGrid.push(i);
       this.losangosPhy.push(null);
       this.losangosAnim.push(new LosangoAnimator());
-      this.grid.push([i]);
+      this.grid.push(new GridObject(i, this.losangos[i], 1, 1));
     }
 
     this.worldEdgebounce = Physics.behavior('edge-collision-detection', {
@@ -124,12 +138,22 @@ class Manager {
    var screen = new BlockScreen(100, 100, 3, 4);
    //addObject(screen, OBJECT.SCREEN);
 
+   var midmedlogo = new MedLogo(100, 100);
+   //addObject(midmedlogo, OBJECT.MIDMEDLOGO);
+
 
   }
 
 
   update(dt = 1){
-    this.holding = false;
+
+    if(this.holdingObject == null){
+      this.holding = false;
+    } else if(!this.holdingObject.holded){
+      this.holding = false;
+    } else if(!this.holdingObject.active){
+      this.holding = false;
+    }
 
     var newMouseGrid = this.getMouseGrid();
 
@@ -307,7 +331,7 @@ class Manager {
 
   draw(ctx){
 
-    if(this.mouseGrid != -1 && this.holding && this.holdingContent == 1){
+    if(this.mouseGrid != -1 && this.holding && this.holdingContent != null){
       var selectedPos = this.getPosGrid(this.mouseGrid);
       var selectedWid = this.losWid;
       var selectedHei = this.losHei;
@@ -330,6 +354,25 @@ class Manager {
       var pos = this.getPosGrid(i);
       sprites[SPR.PIN].drawExt(pos.x, pos.y, 0, 2, 2, 0, 4, 4);
     }
+
+    // for(let i = 0; i < this.losangosPhy.length; i++){
+    //   if(this.losangosPhy[i] == null) continue;
+
+    //   if(this.losangosPhy[i]._world == null) continue;
+
+    //   var posPhy = this.losangosPhy[i].state.pos;
+    //   var xx = posPhy.x;
+    //   var yy = posPhy.y;
+
+    //   var ang = (this.losangosPhy[i].state.angular.pos)%(Math.PI*2);
+
+    //   ctx.save();
+    //   ctx.translate(xx, yy);
+    //   ctx.rotate(ang);
+    //   ctx.strokeStyle = "rgb(255,255,100)";
+    //   ctx.strokeRect(-this.losWid/2,-this.losHei/2, this.losWid,this.losHei);
+    //   ctx.restore();
+    // }
   }
 
   drawGUI(){
@@ -420,10 +463,11 @@ class Manager {
 
 
   fall(){
+    console.log("FALLING");
     for(var i = 0; i < this.losangos.length; i++){
-      if(this.losangos[i].attached){
-        this.deattachLosango(i);
-      }
+      //if(this.losangos[i].attached){
+        this.deattachObject(i);
+      //}
     }
   }
 
@@ -457,15 +501,17 @@ class Manager {
   sortGrid(){
     playSound(SND.WHISTLE);
 
+    console.log("SORTING");
+
     for(var i = 0; i < this.losangos.length; i++){
-        if(this.losangos[i].attached){
-          this.deattachLosango(i);
-        }
+        //if(this.losangos[i].attached){
+          this.deattachObject(i);
+        //}
     }
 
     for(var i = 0; i < this.losangos.length; i++){
 
-      this.attachLosango(i, i);
+      this.attachObject(this.losangos[i], i);
 
 
       var updatePacket = new UpdateLosango([
@@ -493,6 +539,112 @@ class Manager {
     }
   }
 
+  metalize(x, y, wid, hei){
+    //if(this.screenMaking) return;
+
+    for(var i = 0; i < hei; i++){
+      for(var j = 0; j < wid; j++){
+
+        if(!this.checkValidGridPos(x+j, y+i)) continue;
+
+        var gridObj = this.grid[this.gridXY2Ind(x+j, y+i)];
+
+        if(gridObj.valid){
+          if(gridObj.object.type == OBJECT.LOSANGO){
+            var prop = new PropertyObject("screenMode", true);
+            var packet = new UpdateLosango([prop]);
+            packet.isFront = false;
+            packet.waitTime = (i + j)*10;
+            gridObj.object.updateList.push(packet);
+            if(!gridObj.object.isFullScale && !gridObj.object.scaling){
+              gridObj.object.scaling = true;
+            }
+
+            if(gridObj.object.isTilted && !gridObj.object.rotating){
+              gridObj.object.rotating = true;
+            }
+          }
+        }
+      }  
+    }
+    this.screenMaking = true;
+  }
+
+  screenize(startX, startY){
+
+    //console.log("screeninzing");
+    var hEnd = false;
+    var vEnd = false;
+    var hInd = 1;
+    var vInd = 1;
+    var pos = new Vector(startX-1, startY-1);
+    //console.log("Checking " + startX + ", " + startY);
+    if (this.checkValidGridPos(pos.x + hInd, pos.y + vInd)) {
+      //console.log("Started");
+      while (!hEnd || !vEnd) {
+        if (!hEnd) {
+          for (var i = 0; i < vInd; i++) {
+            var xx = pos.x + hInd + 1;
+            var yy = pos.y + i    + 1;
+            if(this.checkValidGridPos(xx, yy)){
+              var newInd = this.gridXY2Ind(xx, yy);
+              if (!this.grid[newInd].valid || this.grid[newInd].object.type != OBJECT.METALBLOCK) {
+                hEnd = true;
+                break;
+              }
+            } else {
+              hEnd = true;
+              break;
+            }
+          }
+          if (!hEnd) hInd++;
+        }
+    
+        if (!vEnd) {
+          for (var i = 0; i < hInd; i++) {
+            var xx = pos.x + i    + 1;
+            var yy = pos.y + vInd + 1;
+            if(this.checkValidGridPos(xx, yy)){
+              var newInd = this.gridXY2Ind(xx, yy);
+              if (!this.grid[newInd].valid || this.grid[newInd].object.type != OBJECT.METALBLOCK) {
+                vEnd = true;
+                break;
+              }
+            } else {
+              vEnd = true;
+              break;
+            }
+          }
+          if (!vEnd) vInd++;
+        }
+      }
+      //console.log("Results found " + hInd + ", " + vInd);
+      if (hInd >= 2 && vInd >= 2) {
+        for(var i = 0; i < vInd; i++){
+          for(var j = 0; j < hInd; j++){
+            var ind = this.gridXY2Ind(startX+j, startY+i);
+            this.grid[ind].object.active = false;
+            this.deattachObject(ind);
+          }
+        }
+        var ind = this.gridXY2Ind(startX, startY);
+        var screenPos = this.getPosGrid(ind);
+        var newScreen = new BlockScreen(screenPos.x - this.losWid/2, screenPos.y - this.losHei/2, hInd, vInd);
+        addObject(newScreen, OBJECT.SCREEN);
+        this.attachObject(newScreen, ind);
+
+        //screenPos.x -= this.losWid/2;
+        //screenPos.y -= this.losHei/2;
+
+        var partPlaces = placesInRect(50*(hInd+vInd), screenPos.x - this.losWid*0.75, screenPos.y - this.losHei*0.75,this.losWid*(hInd+0.5), this.losHei*(vInd+0.5));
+        var partList = createParticleWithPlaces(particleLock, partPlaces, 100);
+        this.addParticles(partList);
+
+        playSound(SND.POOF);
+      }
+    }
+  }
+
   glitch(){
     this.hdmiScreen.glitch();
   }
@@ -505,7 +657,7 @@ class Manager {
 
   winSoundReady(){
     // VICTORY SOUND COOLDOWN
-    if(winSounds[manager.winSoundId].paused){
+    if(winSounds[this.winSoundId].paused){
       return true;
     }
     return false;
@@ -547,8 +699,92 @@ class Manager {
 
 
 
+
+  gridInd2XY(ind){
+    var x = ind % this.cols;
+    var y = Math.floor(ind / this.cols);
+    return new Vector(x, y);
+  }
+
+  gridXY2Ind(x, y){
+    return x + y*this.cols;
+  }
+
+  checkValidGridPos(x, y){
+    if(x < 0) return false;
+    if(x >= this.cols) return false;
+    if(y < 0) return false;
+    if(y >= this.rows) return false;
+    return true;
+  }
+
+  checkValidGridArea(x, y, wid, hei){
+    if (x < 0 || y < 0) {
+      return false;
+    }
+
+    if (x + wid > this.cols || y + hei > this.rows) {
+      return false;
+    }
+
+    return true;
+  }
+
+
+  deattachObject(gridCell){
+    //console.log("DEATTACHING OBJECT on " + gridCell);
+    if(!this.grid[gridCell].valid) return;
+
+    //console.log(this.grid[gridCell]);
+    if(!this.grid[gridCell].object.attached) return;
+    
+    var wid = this.grid[gridCell].width;
+    var hei = this.grid[gridCell].height;
+    var ind = this.grid[gridCell].index;
+    var pos = this.gridInd2XY(ind);
+    var x = pos.x;
+    var y = pos.y;
+
+    //console.log("WH(" + wid + ", " + hei + ")");
+    //console.log("XY("+ x + ", " + y +")")
+
+    var obj = this.grid[gridCell].object;
+
+    for(var i = 0; i < hei; i++){
+      for(var j = 0; j < wid; j++){
+        var subInd = this.gridXY2Ind(x + j, y + i);
+
+        if(!this.grid[subInd].valid) continue;
+
+        if(this.grid[subInd].object == obj){
+          this.grid[subInd].valid = false;
+        }
+        
+      }
+    }
+
+    if(obj.type == OBJECT.LOSANGO){
+      this.deattachLosango(obj.id);
+    } else {
+      obj.attached = false;
+    }
+    obj.attachGridId = -1;
+
+  }
+
+  
   deattachLosango(id){
     const los = this.losangos[id];
+
+    if(this.losangosPhy[id] != null){
+      this.world.remove(this.losangosPhy[id]);
+      this.losangosPhy[id] = null;
+    }
+
+    if(los.inOtherplane){ 
+      this.losangos[id].attached = false;
+      return;
+    }
 
     this.losangosPhy[id] = Physics.body('rectangle', {
             width: los.width
@@ -562,54 +798,98 @@ class Manager {
         });
     this.losangosPhy[id].state.angular.pos = deg2rad(45);
     this.world.add(this.losangosPhy[id]);
-
-    findAndRemove(this.grid[this.losangosGrid[id]], id);
     this.losangos[id].attached = false;
+  }
+
+  attachObject(obj, gridCell){
+
+    if(obj.attached) return;
+
+    var wid = 1;
+    var hei = 1;
+
+    if(obj.type == OBJECT.SCREEN){
+      wid = obj.hTileNum;
+      hei = obj.vTileNum;
+      //console.log("SCREEN ATTACH");
+    } else if (obj.type == OBJECT.MIDMEDLOGO){
+      wid = 4;
+      hei = 2;
+    }
+
+    var pos = this.gridInd2XY(gridCell);
+    var x = pos.x;
+    var y = pos.y;
+
+    //console.log("ATTACHING " + obj + " on " + gridCell + " XY("+ x +", "+ y+")");
+
+    // CHECK IF THE OBJECT FITS INSIDE THE SCREEN
+    if(!this.checkValidGridArea(x, y, wid ,hei)) return false;
+
+
+
+    // DEATTACHING THE OBJECTS INSIDE THE AREA OF THE NEW ATTACHMENT
+    for(var i = 0; i < hei; i++){
+      for(var j = 0; j < wid; j++){
+        var subInd = this.gridXY2Ind(x + j, y + i);
+        //console.log("DEATTACHING on " + subInd + " TO ATTACH   XY(" + (x+j)+ "," + (y+i) + ")") ;
+        this.deattachObject(subInd);
+      }
+    }
+
+    var gridObj = new GridObject(gridCell, obj, wid, hei);
+
+    // FILLING EACH GRID SQUARE OF THE NEW OBJECT ATTACHMENT AREA
+    for(var i = 0; i < hei; i++){
+      for(var j = 0; j < wid; j++){
+        var subInd = this.gridXY2Ind(x + j, y + i);
+        this.grid[subInd] = gridObj;
+      }
+    }
+
+    if(obj.type == OBJECT.LOSANGO){
+      this.attachLosango(obj.id, gridCell);
+    } else {
+      obj.attached = true;
+    }
+
+    obj.attachGridId = gridCell;
+
+   
   }
 
   attachLosango(id, gridCell){
 
-    if(this.grid[gridCell].length > 0){
-      var copyGrid = [...this.grid[gridCell]];
-      for(var i = 0;  i < copyGrid.length; i++){
-        if(this.losangos[copyGrid[i]].attached){
-          this.deattachLosango(copyGrid[i]);
-        }
-      }
-    }
-
-
     if(this.losangosPhy[id] != null){
       this.world.remove(this.losangosPhy[id]);
+      this.losangosPhy[id] = null;
     }
 
     this.losangos[id].attached = true;
-
-
-    this.grid[gridCell].push(id);
-
-    //var temp = this.losangosGrid[id];
     this.losangosGrid[id] = gridCell;
-    //this.losangosGrid[gridCell] = temp;
   }
 
 
-
+  attachObjectMouse(obj){
+    if(this.mouseGrid == -1 || !this.mouseGridAlarm.finished) return;
+    //console.log("TRYING TO ATTACH WITH MOUSE " + obj.type);
+    this.attachObject(obj, this.mouseGrid);
+  }
 
 
   attachLosangoMouse(id){
     if(this.mouseGrid == -1 || !this.mouseGridAlarm.finished) return;
-    this.attachLosango(id, this.mouseGrid);
+    this.attachObject(this.losangos[id], this.mouseGrid);
   }
-}
 
-function findAndRemove(arr, value){
-  for(var i = 0; i < arr.length; i++){
-    if(arr[i] == value){
-      arr.splice(i, 1);
-      i--;
+
+
+  addParticles(partList){
+    for(var i = 0; i < partList.length; i++){
+      this.particles.push(partList[i]);
     }
   }
+
 }
 
 

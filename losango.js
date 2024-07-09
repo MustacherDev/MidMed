@@ -15,6 +15,8 @@ class Losango {
     this.angle = deg2rad(45);
     this.id = id;
 
+    this.type = OBJECT.LOSANGO;
+
     this.xScl = 1;
     this.yScl = 1;
 
@@ -45,10 +47,9 @@ class Losango {
 
     this.boundingBox = new BoundingBox(this.x - this.boxWid/2, this.y - this.boxHei/2, this.boxWid, this.boxHei);
 
-
+    this.flipping = false;
     this.flipPhase = 0;
     this.flipTargetPhase = 0;
-    this.flipping = false;
     this.flipSpd = 0.1;
     this.isFront = false;
     this.isHFlip = true;
@@ -56,6 +57,12 @@ class Losango {
     this.rotating = false;
     this.rotateSpd = 0.025;
     this.isTilted = true;
+
+    this.scaling = false;
+    this.isFullScale = false;
+    this.fullScale = manager.losWid/this.width;
+    this.scalingSpd = 0.01;
+    this.extraScale = 1;
 
     this.frames = 0;
 
@@ -80,10 +87,18 @@ class Losango {
     this.popOutAlarm = new Alarm(0, 200);
     this.popOutAlarm.paused = true;
 
+    this.screenMode = false;
+
+    this.inOtherplane = false;
+
+
+
     this.updatePacket = null;
     this.updateList = [];
 
     this.attached = true;
+    this.attachGridId = -1;
+
     this.inPlace = true;
     this.attachCooldownAlarm = new Alarm(0, 300);
 
@@ -177,7 +192,7 @@ class Losango {
         var partPos = manager.getPosGrid(this.getGridId());
 
         for(var i = 0; i < 50; i++){
-          manager.particles.push(particleConfetti(partPos.x, partPos.y, 200));
+          manager.particles.push(particleConfetti(partPos.x, partPos.y));
         }
 
 
@@ -222,7 +237,7 @@ class Losango {
     } else if(this.id == NAME.ISRAEL){
       if(manager.sleeping && manager.mode == 0){
         if(this.attached){
-          manager.deattachLosango(this.id);
+          manager.deattachObject(this.getGridId());
           playSound(SND.POP);
         }
       }
@@ -237,6 +252,70 @@ class Losango {
 
       addObject(dart, OBJECT.DART);
 
+    } else if (this.id == NAME.MARCELO){
+
+      var hEnd = false;
+      var vEnd = false;
+      var hInd = 1;
+      var vInd = 1;
+      var pos = manager.gridInd2XY(this.getGridId());
+      
+      if (manager.checkValidGridPos(pos.x + hInd, pos.y + vInd)) {
+        while (!hEnd || !vEnd) {
+
+          //console.log(" H/VIND (" + hInd + ", " + vInd + ")");
+          if (!hEnd) {
+            for (var i = 0; i < vInd; i++) {
+              var xx = pos.x + hInd + 1;
+              var yy = pos.y + i    + 1;
+              //console.log(" Sub HCheck H/V (" + (xx-pos.x) + ", " + (yy-pos.y) + ")");
+              if(manager.checkValidGridPos(xx, yy)){
+                var newInd = manager.gridXY2Ind(xx, yy);
+                if (!manager.grid[newInd].valid || manager.grid[newInd].object.type != OBJECT.LOSANGO) {
+                  //console.log("BLOCKED IN HCHECK " + newInd);
+                  //console.log(manager.grid[newInd].valid);
+                  hEnd = true;
+                  break;
+                }
+              } else {
+                //console.log("BLOCKED IN HCHECK " + xx + ", " + yy);
+                hEnd = true;
+                break;
+              }
+            }
+            if (!hEnd) hInd++;
+          }
+      
+          if (!vEnd) {
+            for (var i = 0; i < hInd; i++) {
+              var xx = pos.x + i    + 1;
+              var yy = pos.y + vInd + 1;
+              //console.log(" Sub VCheck H/V (" + (xx-pos.x) + ", " + (yy-pos.y) + ")");
+              if(manager.checkValidGridPos(xx, yy)){
+                var newInd = manager.gridXY2Ind(xx, yy);
+                if (!manager.grid[newInd].valid || manager.grid[newInd].object.type != OBJECT.LOSANGO) {
+                  //console.log("BLOCKED IN VCHECK " + newInd);
+                  //console.log(manager.grid[newInd].valid);
+                  vEnd = true;
+                  break;
+                }
+              } else {
+                //console.log("BLOCKED IN VCHECK " + xx + ", " + yy);
+                vEnd = true;
+                break;
+              }
+            }
+            if (!vEnd) vInd++;
+          }
+        }
+      
+        this.flip();
+        if (hInd >= 2 && vInd >= 2) {
+          manager.metalize(pos.x + 1, pos.y + 1, hInd, vInd);
+        }
+      } else {
+        this.flip();
+      }
     } else {
       this.flip();
     }
@@ -245,6 +324,9 @@ class Losango {
 
 
   update(dt = 1){
+
+    if(this.inOtherplane) return;
+
     this.hovered = false;
 
 
@@ -279,10 +361,10 @@ class Losango {
               this.y = targetPos.y;
               this.inPlace = true;
 
-              manager.particles.push(particleConfetti(this.x, this.y, 50));
-              manager.particles.push(particleConfetti(this.x, this.y, 50));
-              manager.particles.push(particleConfetti(this.x, this.y, 50));
-              manager.particles.push(particleConfetti(this.x, this.y, 50));
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
 
 
             } else {
@@ -488,7 +570,64 @@ class Losango {
       }
     }
 
+    // Full Scaling
+    if(this.scaling){
+      if(this.isFullScale){
+        this.extraScale -= this.scalingSpd*dt;
+        if(this.extraScale <= 1){
+          this.isFullScale = false;
+          this.scaling = false;
+          this.extraScale = 1;
+        }
+      } else {
+        this.extraScale += this.scalingSpd*dt;
+        if(this.extraScale >= this.fullScale){
+          this.isFullScale = true;
+          this.scaling = false;
+          this.extraScale = this.fullScale;
+        }
+      }
+    }
+
+    this.xSclMult *= this.extraScale;
+    this.ySclMult *= this.extraScale;
+
+
     this.xScl = Math.cos(this.flipPhase);
+
+
+    if(this.screenMode){
+      if(this.isTilted && !this.rotating){
+        this.rotating = true;
+      }
+
+      if(!this.isFullScale && !this.scaling){
+        this.scaling = true;
+      }
+
+      if(!this.flipping){
+        this.inOtherplane = true;
+
+
+        var metalBlock = new MetalBlock(this.x, this.y);
+
+        if(this.attached){
+          var gridId = manager.losangosGrid[this.id];  
+          manager.deattachObject(gridId);
+          manager.attachObject(metalBlock, gridId);
+        }
+        
+        var partPlaces = placesInRect(50, this.x - manager.losWid*0.75, this.y - manager.losHei*0.75, manager.losWid*1.5, manager.losHei*1.5);
+        var partList = createParticleWithPlaces(particleLock, partPlaces, 100);
+        manager.addParticles(partList);
+
+        addObject(metalBlock, OBJECT.METALBLOCK);
+
+        playSound(SND.POOF);
+
+        
+      }
+    }
 
 
 
@@ -509,6 +648,8 @@ class Losango {
 
 
   draw(ctx){
+
+    if(this.inOtherplane) return;
 
     var anim = manager.losangosAnim[this.getGridId()];
 
@@ -605,7 +746,8 @@ class Losango {
     getHold(){
       if(this.hovered && !this.holded && input.mouseState[0][1] && manager.holding == false){
         manager.holding = true;
-        manager.holdingContent = 1;
+        manager.holdingObject = this;
+        manager.holdingContent = OBJECT.LOSANGO;
         this.holded = true;
         this.holdX = input.mouseX - this.x;
         this.holdY = input.mouseY - this.y;
@@ -616,7 +758,7 @@ class Losango {
 
     updateHold(){
       if(this.holded){
-        manager.holding = true;
+        //manager.holding = true;
         this.x = input.mouseX - this.holdX;
         this.y = input.mouseY - this.holdY;
 
@@ -638,7 +780,7 @@ class Losango {
           this.hspd = (totalXDiff / manager.prevMousePos.length) * throwForce;
           this.vspd = (totalYDiff / manager.prevMousePos.length) * throwForce;
 
-          manager.attachLosangoMouse(this.id);
+          manager.attachObjectMouse(this);
         }
       }
     }

@@ -12,6 +12,9 @@ const OBJECT = Object.freeze(new Enum(
     "ROCK",
     "DART",
     "SCREEN",
+    "LOSANGO",
+    "METALBLOCK",
+    "MIDMEDLOGO",
     "TOTAL"
 ));
 

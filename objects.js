@@ -27,65 +27,7 @@ function BoundingBox(x, y, width, height) {
         ctx.strokeRect(this.x, this.y, this.width, this.height);
     };
 }
-// Block Collisions
-function aabbCollision(a, b) {
-    if (b.x2 - a.x1 > a.width + b.width || a.x2 - b.x1 > a.width + b.width) {
-        return false;
-    } else if (b.y2 - a.y1 > a.height + b.height || a.y2 - b.y1 > a.height + b.height) {
-        return false;
-    }
-    return true;
-}
 
-function blockCollision(a, b) {
-    if (aabbCollision(a, b)) {
-        var dx = a.x1 - b.x2;
-        var dx2 = a.x2 - b.x1;
-        var dy = a.y1 - b.y2;
-        var dy2 = a.y2 - b.y1;
-
-        if (Math.abs(dx2) < Math.abs(dx)) {
-            dx = dx2;
-        }
-
-        if (Math.abs(dy2) < Math.abs(dy)) {
-            dy = dy2;
-        }
-
-        var rest = a.weight / (a.weight + b.weight);
-        if (Math.abs(dx) < Math.abs(dy)) {
-            dx /= 2;
-            a.x -= (1 - rest) * dx;
-            b.x += rest * dx;
-
-            a.hspd = (a.hspd + b.hspd) * (1 - rest);
-            b.hspd = (a.hspd + b.hspd) * (rest);
-        } else {
-            dy /= 2;
-            a.y -= (1 - rest) * dy;
-            b.y += rest * dy;
-
-            a.vspd = (a.vspd + b.vspd) * (1 - rest);
-            b.vspd = (a.vspd + b.vspd) * (rest);
-        }
-    }
-}
-
-function collisions() {
-    var _len = objectLists[OBJECT.BLOCK].length;
-
-    for (var i = 0; i < _len; i++) {
-        objectLists[OBJECT.BLOCK][i].updatePos();
-    }
-
-    for (var i = 0; i < _len; i++) {
-        var blockA = objectLists[OBJECT.BLOCK][i];
-        for (var j = i + 1; j < _len; j++) {
-            var blockB = objectLists[OBJECT.BLOCK][j];
-            blockCollision(blockA, blockB);
-        }
-    }
-}
 
 
 // Base Object
@@ -101,6 +43,11 @@ function GameObject(x, y, sprite) {
     this.ang = 0;
     this.xScl = 1;
     this.yScl = 1;
+
+    this.type = OBJECT.GAMEOBJECT;
+
+    this.attached = false;
+    this.attachGridId = -1;
 
     this.active = true;
 
@@ -272,80 +219,6 @@ function Block(x, y, wid, hei) {
 
 
 
-function BallCollider(x, y, r, m) {
-    this.pos = new Vector(x, y);
-    this.r = r;
-    this.vel = new Vector(0, 0);
-    this.acc = new Vector(0, 0);
-
-    this.m = m;
-    if (this.m === 0) {
-        this.inv_m = 0;
-    } else {
-        this.inv_m = 1 / this.m;
-    }
-
-    this.dampening = 0.9;
-    this.elasticity = 1;
-    this.acceleration = 1;
-    this.player = false;
-
-    this.updatePos = function () {
-        this.vel = this.vel.add(this.acc).mult(this.dampening);
-        this.pos = this.pos.add(this.vel);
-    }
-
-    this.show = function () {
-        if (this.player) {
-            ctx.fillStyle = "rgb(200, 40, 0)";
-        } else {
-            if (this.inv_m == 0) {
-                ctx.fillStyle = "rgb(70, 60, 100)";
-            } else {
-                ctx.fillStyle = "rgb(100, 150, 0)";
-            }
-        }
-        ctx.lineWidth = 5;
-        ctx.strokeStyle = "rgb(220, 220, 220)";
-        ctx.beginPath();
-        ctx.arc(this.pos.x, this.pos.y, this.r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(this.pos.x, this.pos.y);
-        ctx.lineTo(this.pos.x + this.r, this.pos.y);
-        ctx.stroke();
-    }
-}
-
-
-
-
-function WallCollider(x1, y1, x2, y2) {
-    this.pos1 = new Vector(x1, y1);
-    this.pos2 = new Vector(x2, y2);
-
-    this.normal = this.pos2.sub(this.pos1).unit();
-    this.len = this.pos2.sub(this.pos1).mag();
-    this.r = 0;
-
-    this.elasticity = 1;
-
-    this.show = function () {
-        ctx.lineWidth = 5;
-        ctx.strokeStyle = "rgb(200, 200, 200)";
-        ctx.beginPath();
-        ctx.moveTo(this.pos1.x, this.pos1.y);
-        ctx.lineTo(this.pos2.x, this.pos2.y);
-        ctx.stroke();
-    }
-}
-
-
-
-
-
 
 
 
@@ -366,6 +239,8 @@ function WallCollider(x1, y1, x2, y2) {
 function Box(x, y, width, height, sprite) {
     Block.call(this, x, y, width, height);
     GameObject.call(this, x, y, sprite);
+
+    this.type = OBJECT.BLOCK;
 
     this.width = width;
     this.height = height;
@@ -419,6 +294,9 @@ function Box(x, y, width, height, sprite) {
     this.getHold = function(){
       if(this.hovered && !this.holded && input.mouseState[0][1] && manager.holding == false){
         manager.holding = true;
+        manager.holdingObject = this;
+        manager.holdingContent = this.type;
+
         this.holded = true;
         this.holdEvent = true;
         this.holdX = input.mouseX - this.x;
@@ -430,8 +308,7 @@ function Box(x, y, width, height, sprite) {
 
     this.updateHold = function(){
       if(this.holded){
-        manager.holding = true;
-        manager.holdingContent = 2;
+        
         this.x = input.mouseX - this.holdX;
         this.y = input.mouseY - this.holdY;
 
@@ -568,7 +445,7 @@ function Box(x, y, width, height, sprite) {
 
 function Ball(x, y, radius, sprite) {
     Box.call(this, x, y, radius*2, radius*2, sprite);
-
+    this.type = OBJECT.BALL;
     this.xOffset = radius;
     this.yOffset = radius;
 
@@ -577,6 +454,8 @@ function Ball(x, y, radius, sprite) {
 
 function Bitcoin(x, y, radius) {
   Ball.call(this, x, y, radius, sprites[SPR.BITCOIN]);
+  this.type = OBJECT.BITCOIN;
+
   this.xScl = (2*radius)/this.sprite.width;
   this.yScl = (2*radius)/this.sprite.height;
   this.xOffset = radius;
@@ -602,6 +481,9 @@ function Bitcoin(x, y, radius) {
 
 function Rock(x, y, width, height) {
   Box.call(this, x, y, width, height, sprites[SPR.ROCK]);
+  this.type = OBJECT.ROCK;
+
+
   this.xScl = (width)/this.sprite.width;
   this.yScl = (height)/this.sprite.height;
   this.xOffset = this.width/2;
@@ -629,6 +511,8 @@ function Rock(x, y, width, height) {
 
 function Sun(x, y){
   GameObject.call(this,x,y,sprites[SPR.SUN]);
+  this.type = OBJECT.SUN;
+
   this.vspd = 2;
   this.width = 100;
   this.height = 100;
@@ -694,6 +578,7 @@ function Sun(x, y){
 
 function Dart(x, y, ang){
   Box.call(this, x, y, 30, 30, sprites[SPR.DART]);
+  this.type = OBJECT.DART;
 
   this.boundingBox = new BoundingBox(this.x  -this.xOffset, this.y -this.yOffset + this.width, this.width, this.height);
   this.boundingBoxBack = new BoundingBox(this.x  -this.xOffset, this.y -this.yOffset, this.width, this.height);
@@ -787,9 +672,136 @@ function Dart(x, y, ang){
 
 }
 
+function MetalBlock(x, y){
+  Box.call(this, x, y, manager.losWid, manager.losHei, sprites[SPR.METALBLOCK]);
+  this.type = OBJECT.METALBLOCK;
+
+
+  this.xScl = manager.losWid/this.sprite.width;
+  this.yScl = manager.losHei/this.sprite.height;
+
+  this.xOffset = this.xScl*this.sprite.width/2;
+  this.yOffset = this.yScl*this.sprite.height/2;
+
+  this.hLoss = 0.4;
+  this.vLoss = 0.4;
+
+  this.inPlace = false;
+
+  this.depth = 5;
+
+  this.updateHold = function(){
+    if(this.holded){
+      this.x = input.mouseX - this.holdX;
+      this.y = input.mouseY - this.holdY;
+
+      if(!input.mouseState[0][0]){
+        this.holded = false;
+        this.throwEvent = true;
+
+        let totalXDiff = 0;
+        let totalYDiff = 0;
+
+        for (const mousePos of manager.prevMousePos) {
+          totalXDiff += (this.x + this.holdX) - mousePos.x;
+          totalYDiff += (this.y + this.holdY) - mousePos.y;
+        }
+
+        var throwForce = 1;
+        this.hspd = (totalXDiff / manager.prevMousePos.length) * throwForce;
+        this.vspd = (totalYDiff / manager.prevMousePos.length) * throwForce;
+
+        manager.attachObjectMouse(this);
+      }
+
+     
+    }
+  }
+
+  this.update = function(dt = 1){
+
+    
+   
+
+    if(this.attached && this.attachGridId != -1){
+      this.gravityOn = false;
+
+      if(this.hovered){
+        if(input.mouseState[2][1]){
+          var gridPos = manager.gridInd2XY(this.attachGridId);
+          manager.screenize(gridPos.x, gridPos.y);
+        }
+      }
+
+
+      var targetPos = manager.getPosGrid(this.attachGridId);
+
+      //this.attachCooldownAlarm.update(dt);
+
+      if(Math.abs(targetPos.x - this.x) + Math.abs(targetPos.y - this.y) < 5){
+
+        //if(this.attachCooldownAlarm.finished){
+          if(!this.inPlace){
+            this.hspd = 0;
+            this.vspd = 0;
+
+            var pos = new Vector(this.x, this.y);
+            var dist = targetPos.sub(pos).mag();
+            var dir = targetPos.sub(pos).unit();
+            if(dist < 1){
+              this.x = targetPos.x;
+              this.y = targetPos.y;
+              this.inPlace = true;
+
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
+
+
+            } else {
+              this.x += dir.x/10;
+              this.y += dir.y/10;
+            }
+          }
+        //}
+      } else {
+        this.inPlace = false;
+        var pos = new Vector(this.x, this.y);
+        var dist = targetPos.sub(pos).mag();
+        var dir = targetPos.sub(pos).unit();
+
+        var spd = Math.max((dist*dist)/100000, 0.1);
+
+        this.hspd += dir.x*spd*dt;
+        this.vspd += dir.y*spd*dt;
+      }
+    } else {
+      this.gravityOn = true;
+    }
+
+    this.updateBox(dt);
+
+  }
+
+  this.collisionAction = function(isHorizontal, velocity){
+
+  }
+
+  this.show = function(){
+
+      this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, 0, this.xOffset/this.xScl, this.yOffset/this.yScl);
+      //this.boundingBox.show(ctx);
+      if(this.hovered){
+        this.boundingBox.show(ctx);
+      }
+  }
+}
+
 
 function BlockScreen(x, y, blocksX, blocksY){
   Box.call(this, x, y, blocksX*manager.losWid, blocksY*manager.losHei, sprites[SPR.SCREENTILE]);
+  this.type = OBJECT.SCREEN;
 
   this.hTileNum = blocksX;
   this.vTileNum = blocksY;
@@ -802,8 +814,94 @@ function BlockScreen(x, y, blocksX, blocksY){
   this.hLoss = 0.4;
   this.vLoss = 0.4;
 
+  this.inPlace = false;
+
+  this.depth = 5;
+
+  this.updateHold = function(){
+    if(this.holded){
+      this.x = input.mouseX - this.holdX;
+      this.y = input.mouseY - this.holdY;
+
+      if(!input.mouseState[0][0]){
+        this.holded = false;
+        this.throwEvent = true;
+
+        let totalXDiff = 0;
+        let totalYDiff = 0;
+
+        for (const mousePos of manager.prevMousePos) {
+          totalXDiff += (this.x + this.holdX) - mousePos.x;
+          totalYDiff += (this.y + this.holdY) - mousePos.y;
+        }
+
+        var throwForce = 1;
+        this.hspd = (totalXDiff / manager.prevMousePos.length) * throwForce;
+        this.vspd = (totalYDiff / manager.prevMousePos.length) * throwForce;
+
+        manager.attachObjectMouse(this);
+      }
+
+     
+    }
+  }
+
   this.update = function(dt = 1){
+   
+
+    if(this.attached && this.attachGridId != -1){
+      this.gravityOn = false;
+
+      var targetPos = manager.getPosGrid(this.attachGridId);
+      targetPos.x -= manager.losWid/2;
+      targetPos.y -= manager.losHei/2;
+
+      //this.attachCooldownAlarm.update(dt);
+
+      if(Math.abs(targetPos.x - this.x) + Math.abs(targetPos.y - this.y) < 5){
+
+        //if(this.attachCooldownAlarm.finished){
+          if(!this.inPlace){
+            this.hspd = 0;
+            this.vspd = 0;
+
+            var pos = new Vector(this.x, this.y);
+            var dist = targetPos.sub(pos).mag();
+            var dir = targetPos.sub(pos).unit();
+            if(dist < 1){
+              this.x = targetPos.x;
+              this.y = targetPos.y;
+              this.inPlace = true;
+
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
+
+
+            } else {
+              this.x += dir.x/10;
+              this.y += dir.y/10;
+            }
+          }
+        //}
+      } else {
+        this.inPlace = false;
+        var pos = new Vector(this.x, this.y);
+        var dist = targetPos.sub(pos).mag();
+        var dir = targetPos.sub(pos).unit();
+
+        var spd = Math.max((dist*dist)/100000, 0.1);
+
+        this.hspd += dir.x*spd*dt;
+        this.vspd += dir.y*spd*dt;
+      }
+    } else {
+      this.gravityOn = true;
+    }
+
     this.updateBox(dt);
+
   }
 
   this.collisionAction = function(isHorizontal, velocity){
@@ -855,6 +953,121 @@ function BlockScreen(x, y, blocksX, blocksY){
       //this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, this.ang, this.xOffset/this.xScl, this.yOffset/this.yScl);
       //this.boundingBox.show();
       //this.boundingBoxBack.show();
+  }
+
+}
+
+
+function MedLogo(x, y){
+  Box.call(this, x, y, manager.losWid*4, manager.losHei*2, sprites[SPR.MIDMEDLOGO]);
+  this.type = OBJECT.MIDMEDLOGO;
+
+
+  this.xScl = 4*manager.losWid/this.sprite.width;
+  this.yScl = 2*manager.losHei/this.sprite.height;
+
+  this.xOffset = 0;
+  this.yOffset = 0;
+
+  this.hLoss = 0.4;
+  this.vLoss = 0.4;
+
+  this.inPlace = false;
+
+  this.depth = 10;
+
+  this.updateHold = function(){
+    if(this.holded){
+      this.x = input.mouseX - this.holdX;
+      this.y = input.mouseY - this.holdY;
+
+      if(!input.mouseState[0][0]){
+        this.holded = false;
+        this.throwEvent = true;
+
+        let totalXDiff = 0;
+        let totalYDiff = 0;
+
+        for (const mousePos of manager.prevMousePos) {
+          totalXDiff += (this.x + this.holdX) - mousePos.x;
+          totalYDiff += (this.y + this.holdY) - mousePos.y;
+        }
+
+        var throwForce = 1;
+        this.hspd = (totalXDiff / manager.prevMousePos.length) * throwForce;
+        this.vspd = (totalYDiff / manager.prevMousePos.length) * throwForce;
+
+        manager.attachObjectMouse(this);
+      }
+
+     
+    }
+  }
+
+  this.update = function(dt = 1){
+   
+
+    if(this.attached && this.attachGridId != -1){
+      this.gravityOn = false;
+
+      var targetPos = manager.getPosGrid(this.attachGridId);
+      targetPos.x -= manager.losWid/2;
+      targetPos.y -= manager.losHei/2;
+
+      //this.attachCooldownAlarm.update(dt);
+
+      if(Math.abs(targetPos.x - this.x) + Math.abs(targetPos.y - this.y) < 5){
+
+        //if(this.attachCooldownAlarm.finished){
+          if(!this.inPlace){
+            this.hspd = 0;
+            this.vspd = 0;
+
+            var pos = new Vector(this.x, this.y);
+            var dist = targetPos.sub(pos).mag();
+            var dir = targetPos.sub(pos).unit();
+            if(dist < 1){
+              this.x = targetPos.x;
+              this.y = targetPos.y;
+              this.inPlace = true;
+
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
+
+
+            } else {
+              this.x += dir.x/10;
+              this.y += dir.y/10;
+            }
+          }
+        //}
+      } else {
+        this.inPlace = false;
+        var pos = new Vector(this.x, this.y);
+        var dist = targetPos.sub(pos).mag();
+        var dir = targetPos.sub(pos).unit();
+
+        var spd = Math.max((dist*dist)/100000, 0.1);
+
+        this.hspd += dir.x*spd*dt;
+        this.vspd += dir.y*spd*dt;
+      }
+    } else {
+      this.gravityOn = true;
+    }
+
+    this.updateBox(dt);
+
+  }
+
+  this.collisionAction = function(isHorizontal, velocity){
+
+  }
+
+  this.show = function(){
+      this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, 0, this.xOffset/this.xScl, this.yOffset/this.yScl);
   }
 
 }
