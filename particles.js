@@ -83,6 +83,7 @@ function Particle(x, y, life){
 
 
 function particleSun(x, y){
+  var life = 100;
   var part = new Particle(x, y, life);
   part.radius = randInt(2, 5);
   part.color = new Color(randInt(200, 255), randInt(200, 255), 0, 1);
@@ -106,7 +107,7 @@ function particleConfetti(x, y){
   part.spd = dirVec.mult(spd);
   part.acc = new Vector(0, 0);
   part.damp = new Vector(0.01, 0.01);
-  part.depth = -2;
+  part.depth = -10;
 
   return part;
 }

@@ -304,8 +304,9 @@ class Manager {
 
       var sleepX = this.losangos[NAME.ISRAEL].x;
       var sleepY = this.losangos[NAME.ISRAEL].y;
-
-      this.particles.push(new SleepText(sleepX, sleepY));
+      if(!this.losangos[NAME.ISRAEL.inOtherplane]){
+        this.particles.push(new SleepText(sleepX, sleepY));
+      }
     }
 
 

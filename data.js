@@ -115,10 +115,17 @@ const SPR = Object.freeze(new Enum(
     "HOLE",
     "CURTAIN",
     "DART",
-    "SCREENTILE",
+    "SCREENFRAMETILE",
+    "SCREENBACKTILE",
     "SCREENTILESLOT",
     "METALBLOCK",
     "MIDMEDLOGO",
+    "BUBBLE",
+    "XAROPINHOBANNER",
+    "STONKSBANNER",
+    "NEWTONBANNER",
+    "SAMUBANNER",
+    "DRMARIOSHEET",
     "TOTAL"
 ));
 
@@ -133,10 +140,17 @@ var imgPaths = [  "bombSprite.png",
   "hole.png",
   "black curtain.png",
   "dart.png",
-  "screenTile.png",
+  "screenFrameTile.png",
+  "screenBackTile.png",
   "gameSlot.png",
   "metalBlock.png",
-  "midMedLogo.png"
+  "midMedLogo.png",
+  "bubble.png",
+  "xaropinhoBanner.png",
+  "stonksBanner.png",
+  "newtonBanner.png",
+  "samuBanner.png",
+  "DrMarioSheet.png"
 ];
 
 var need2Load = imgPaths.length;
@@ -157,7 +171,9 @@ function loadSprites() {
         }
 
         sprites[SPR.NUMBERS].setSubimg(16,16);
-        sprites[SPR.SCREENTILE].setSubimg(64, 64);
+        sprites[SPR.SCREENFRAMETILE].setSubimg(64, 64);
+        sprites[SPR.SCREENBACKTILE].setSubimg(64, 64);
+        sprites[SPR.DRMARIOSHEET].setSubimg(8, 8);
 
         spritesLoaded = true;
     }
