@@ -91,6 +91,11 @@ function chance(val){
   return (Math.random() < val);
 }
 
+function choose(options){
+  var ind = randInt(0,options.length);
+  return options[ind];
+}
+
 function tweenIn(percentage){
   return percentage*percentage;
 }

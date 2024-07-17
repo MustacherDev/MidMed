@@ -98,6 +98,7 @@ class Sprite {
   }
 
   drawExt(x, y, img, xscl, yscl, ang, sprOffsetX, sprOffsetY){
+    img = img%(this.imgNumX*this.imgNumY);
     var imgx = img % this.imgNumX;
     var imgy = Math.floor(img / this.imgNumX) % this.imgNumY;
     this.drawInternal(ctx, imgx, imgy, x, y, sprOffsetX, sprOffsetY, xscl, yscl, ang);

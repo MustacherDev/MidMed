@@ -11,6 +11,9 @@ var pageFocused = true;
 var pageFocusChange = false;
 var pageUnfocusedStart = new Date();
 
+var camX = 0;
+var camY = 0;
+
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 

@@ -282,6 +282,8 @@ function Box(x, y, width, height, sprite) {
     this.holdEvent = false;
     this.throwEvent = false;
 
+    this.canBeHeld = true;
+
 
     this.tick = 0;
 
@@ -292,7 +294,7 @@ function Box(x, y, width, height, sprite) {
     }
 
     this.getHold = function(){
-      if(this.hovered && !this.holded && input.mouseState[0][1] && manager.holding == false){
+      if(this.hovered && !this.holded && input.mouseState[0][1] && manager.holding == false && this.canBeHeld){
         manager.holding = true;
         manager.holdingObject = this;
         manager.holdingContent = this.type;
@@ -308,7 +310,7 @@ function Box(x, y, width, height, sprite) {
 
     this.updateHold = function(){
       if(this.holded){
-        
+
         this.x = input.mouseX - this.holdX;
         this.y = input.mouseY - this.holdY;
 
@@ -492,19 +494,59 @@ function Rock(x, y, width, height) {
   this.hLoss = 0;
   this.vLoss = 0;
 
+  this.hspdMax = 30;
+  this.vspdMax = 30;
+
+  this.gravity = 0.25;
+
   this.depth = objectsDepth.rock;
 
   this.rotateOnCollision = false;
 
   this.collisionAction = function(isHorizontal, velocity){
+
     var spd =  Math.abs(velocity);
 
     if(spd > 5){
       playSound(SND.HIT);
     }
 
+
+
     if(!isHorizontal){
       manager.rockHit(spd);
+      stopSound(SND.FALLINGROCK);
+    }
+  }
+
+  this.update = function(dt = 1){
+
+    if(this.onGround){
+      this.linDamp = 0.95;
+    } else {
+      this.linDamp = 1;
+    }
+
+    this.updateBox(dt);
+
+    
+
+    if(this.vspd > 10){
+      for(var i = 0 ; i < objectLists[OBJECT.MIDMEDLOGO].length; i++){
+        var logoObj = objectLists[OBJECT.MIDMEDLOGO][i];
+        if(this.boundingBox.checkCollision(logoObj.boundingBox)){
+          manager.breakLogo(logoObj);
+          this.vspd *= -0.1;
+          playSound(SND.HIT);
+          playSound(SND.METALHIT3);
+          stopSound(SND.FALLINGROCK);
+          var parts = createParticlesInRect(particleLock, 50, this.x - this.xOffset, this.y - this.yOffset + this.height/1.5, this.width, this.height);
+
+          manager.addParticles(parts);
+
+
+        }
+      }
     }
   }
 }
@@ -558,7 +600,7 @@ function Sun(x, y){
         var partNum = randInt(8, 12);
         var partPlaces = placesInRect(partNum, this.x - this.width/2, this.y- this.height/2, this.width, this.height);
         manager.addParticles(createParticleWithPlaces(particleSun, partPlaces));
-    
+
         playSound(SND.POP);
         manager.collectSun();
       }
@@ -575,16 +617,22 @@ function Sun(x, y){
 
 
 function Dart(x, y, ang){
-  Box.call(this, x, y, 30, 30, sprites[SPR.DART]);
+  Box.call(this, x, y, 60, 60, sprites[SPR.DART]);
   this.type = OBJECT.DART;
+
+
+
+
+  this.xScl = this.width/this.sprite.width;
+  this.yScl = this.xScl;
+
+  this.xOffset = this.xScl*this.sprite.width/2;
+  this.yOffset = this.yScl*this.sprite.height/4;
 
   this.boundingBox = new BoundingBox(this.x  -this.xOffset, this.y -this.yOffset + this.width, this.width, this.height);
   this.boundingBoxBack = new BoundingBox(this.x  -this.xOffset, this.y -this.yOffset, this.width, this.height);
 
-  this.xOffset = this.sprite.width/2;
-  this.yOffset = this.sprite.height/4;
-  this.xScl = 30/this.sprite.width;
-  this.yScl = this.xScl;
+
 
   this.hLoss = 0.4;
   this.vLoss = 0.4;
@@ -775,155 +823,6 @@ function MetalBlock(x, y){
   }
 }
 
-// Temporary Dr Mario object
-class DrMarioObj{
-  constructor(type, orientation = 0){
-    this.type = type;
-    this.orientation = orientation;
-    this.updated = false;
-  }
-}
-
-class DrMarioPlayerPill{
-  constructor(c1, c2, orientation, switched, x, y){
-    this.x = x;
-    this.y = y;
-    this.c1 = c1;
-    this.c2 = c2;
-    this.orientation = orientation;
-    this.switched = switched;
-  }
-}
-
-class DrMarioGame{
-  constructor(wid, hei){
-    this.wid = wid;
-    this.hei = hei;
-    this.grid = [];
-    this.nextPill = null;
-    this.playerPill = new DrMarioPlayerPill(3, 4, 0,false, 0, 0);
-
-    this.stepAlarm = new Alarm(0, 10);
-
-    this.placingPill = false;
-
-    this.gameover = false;
-
-    this.ready = false;
-
-  }
-
-  init(){
-    for(var i = 0; i < this.hei; i++){
-      var row = [];
-      for(var j = 0; j < this.wid; j++){
-        if(chance(0.04)){
-          row.push(new DrMarioObj(randInt(3,7)));
-        } else {
-          row.push(new DrMarioObj(0));
-        }
-      } 
-      this.grid.push(row);
-    }
-    this.ready = true;
-  }
-
-  placePlayer(){
-    this.grid[this.playerPill.y][this.playerPill.x] = new DrMarioObj(this.playerPill.switched ? this.playerPill.c2: this.playerPill.c1);
-    var addX = 1;
-    var addY = 0;
-    if(this.playerPill.orientation == 1){
-      addX = 0;
-      addY = -1;
-    }
-
-    if(this.playerPill.y + addY >= 0){
-      this.grid[this.playerPill.y + addY][this.playerPill.x + addX] = new DrMarioObj(this.playerPill.switched ? this.playerPill.c1: this.playerPill.c2);
-    }
-
-    this.placingPill = false;
-    this.playerPill.x = 0;
-    this.playerPill.y = 0;
-    this.playerPill.c1 = randInt(3, 7);
-    this.playerPill.c2 = randInt(3, 7);
-    this.orientation = randInt(0, 2);
-  }
-
-  update(dt){
-    if(!this.ready) return;
-
-    this.stepAlarm.update(dt);
-    if(this.stepAlarm.finished){
-      this.stepAlarm.start();
-
-      if(this.placingPill){
-
-        if(this.playerPill.y == this.hei-1){
-          this.placePlayer();
-        }
-        if(this.grid[this.playerPill.y+1][this.playerPill.x].type == 0){
-          if(this.playerPill.orientation == 0){
-            if(this.grid[this.playerPill.y+1][this.playerPill.x+1].type == 0){
-              this.playerPill.y++;
-            } else {
-              this.placePlayer();
-            }
-          } else{
-            this.playerPill.y++;
-          }
-        } else {
-          this.placePlayer();
-        }
-      } else {
-        // CHECKING BOTTOM FIRST
-        // FALLING SAND PHYSICS
-        var moved = false;
-        for(var i = this.hei-2; i < 0; i--){
-          for(var j = 0; j < this.wid; j++){
-            if(this.grid[i][j].type == 0 || this.grid[i][j].type == 1) continue;
-
-            if(this.grid[i+1][j].type == 0){
-              this.grid[i+1][j] = this.grid[i][j];
-              this.grid[i][j] = new DrMarioObj(0);
-              moved = true;
-            }
-          } 
-        }
-
-        if(!moved) this.placingPill = true;
-      }
-    }
-  }
-
-  draw(){
-    var x = 0;
-    var y = 0;
-    var w = 50;
-    var h = 50;
-    var scl = w/sprites[SPR.DRMARIOSHEET].width;
-
-    for(var i = 0; i < this.hei; i++){
-      for(var j = 0; j < this.wid; j++){
-        var obj = this.grid[i][j];
-
-        if(obj.type != 0){
-          sprites[SPR.DRMARIOSHEET].drawExt(x+w*j, y+h*i, 3 + 4*obj.type, scl,scl,0,0,0);
-        }
-      } 
-    }
-
-    var type = this.playerPill.c1;
-    if(type != 0){
-      sprites[SPR.DRMARIOSHEET].drawExt(x+w*this.playerPill.x, y+h*this.playerPill.y, 3 + 4*obj.type, scl,scl,0,0,0);
-    }
-
-    type = this.playerPill.c2;
-    if(type != 0){
-      sprites[SPR.DRMARIOSHEET].drawExt(x+(w*this.playerPill.x+1), y+h*this.playerPill.y, 3 + 4*obj.type, scl,scl,0,0,0);
-    }
-  }
-}
-
 
 function BlockScreen(x, y, blocksX, blocksY){
   Box.call(this, x, y, blocksX*manager.losWid, blocksY*manager.losHei, sprites[SPR.SCREENBACKTILE]);
@@ -932,10 +831,12 @@ function BlockScreen(x, y, blocksX, blocksY){
   this.hTileNum = blocksX;
   this.vTileNum = blocksY;
 
-  this.xOffset = 0;
-  this.yOffset = 0;
+
   this.xScl = manager.losWid/this.sprite.width;
   this.yScl = manager.losHei/this.sprite.height;
+
+  this.xOffset = 0;
+  this.yOffset = 0;
 
   this.hLoss = 0.4;
   this.vLoss = 0.4;
@@ -945,6 +846,7 @@ function BlockScreen(x, y, blocksX, blocksY){
   this.depth = 5;
 
   this.hasCartridgeSlot = (this.hTileNum >= 3);
+  this.hasUsbSlot = (this.vTileNum == 1);
 
   // SCREEN VISUAL STUFF
 
@@ -962,23 +864,14 @@ function BlockScreen(x, y, blocksX, blocksY){
   this.turnOffAlarm = new Alarm(0,50);
 
 
-  // Temporary DRMARIO 
+  // Temporary DRMARIO
   this.bottleWid = this.hTileNum*4;
   this.bottleHei = this.vTileNum*4;
 
-  this.drMario = new DrMarioGame(this.bottleWid, this.bottleHei);
-  this.drMario.init();
-
-  // -1 = empty;
-  // 0 = blue, 1 = green, 2 = red virus 
-  // 3 = 
-
 
   this.update = function(dt = 1){
-   
-    this.depth = 5;
 
-    //this.drMario.update(dt);
+    this.depth = 5;
 
     this.checkCartridgeAlarm.update(dt);
 
@@ -1013,7 +906,7 @@ function BlockScreen(x, y, blocksX, blocksY){
     if(this.attached && this.attachGridId != -1){
 
       this.depth = -5;
-      
+
 
       // CHECKING CARTRIDGE
       if(this.checkCartridgeAlarm.finished){
@@ -1025,6 +918,10 @@ function BlockScreen(x, y, blocksX, blocksY){
               if(gridObj.object.type == OBJECT.LOSANGO){
                 this.cartridge = gridObj.object.id;
                 this.lastCartridge = this.cartridge;
+                if(this.cartridge == NAME.BERNAD){
+                  manager.startDrMario(this.bottleWid, this.bottleHei);
+                }
+
               } else {
                 this.cartridge = null;
               }
@@ -1106,61 +1003,86 @@ function BlockScreen(x, y, blocksX, blocksY){
 
   this.show = function(){
 
-    //this.drMario.draw();
+
 
       for(var i = 0; i < this.vTileNum; i++){
         for(var j = 0; j < this.hTileNum; j++){
           var xx = this.x + j*manager.losWid;
           var yy = this.y + i*manager.losHei;
           var img = 0;
+          var rotation = 0;
 
           // Image machine
-          if(i == 0){
+          if(this.vTileNum == 1 && this.hTileNum == 1){
+            img = 12;
+          } else if(this.vTileNum == 1){
+            
             if(j == 0){
-              img = 0;
+              img = 9;
             } else if(j == this.hTileNum-1){
-              img = 2;
+              img = 11;
             } else {
-              img = 1;
+              img = 10;
             }
-          } else if (i == this.vTileNum-1) {
-            if(j == 0){
-              img = 6;
-            } else if(j == this.hTileNum-1){
-              img = 8;
+          } else if(this.hTileNum == 1){    
+            rotation = Math.PI/2;  
+            if(i == 0){
+              img = 9;
+            } else if(i == this.vTileNum-1){
+              img = 11;
             } else {
-              img = 7;
+              img = 10;
             }
           } else {
-            if(j == 0){
-              img = 3;
-            } else if(j == this.hTileNum-1){
-              img = 5;
+            if(i == 0){
+              if(j == 0){
+                img = 0;
+              } else if(j == this.hTileNum-1){
+                img = 2;
+              } else {
+                img = 1;
+              }
+            } else if (i == this.vTileNum-1) {
+              if(j == 0){
+                img = 6;
+              } else if(j == this.hTileNum-1){
+                img = 8;
+              } else {
+                img = 7;
+              }
             } else {
-              img = 4;
+              if(j == 0){
+                img = 3;
+              } else if(j == this.hTileNum-1){
+                img = 5;
+              } else {
+                img = 4;
+              }
             }
           }
 
 
-          this.sprite.drawExt(xx, yy, img, this.xScl, this.yScl, 0, this.xOffset/this.xScl, this.yOffset/this.yScl);
+          sprites[SPR.SCREENBACKTILE].drawExt(xx + 32*this.xScl, yy + 32*this.yScl, img, this.xScl, this.yScl, rotation, 32,32);
         }
       }
 
-  
+      
+
+
       if(this.lastCartridge != null ){
 
         if(this.attachGridId != -1){
           this.cartridgePos = manager.getPosGrid(this.attachGridId - manager.cols + 1);
         }
         //sprites[SPR.BUBBLE].drawExt(this.x + manager.losWid*1.5, this.y - manager.losHei*0.5, 0, this.xScl*1.2, this.yScl*1.2, 0, 32,32);
-        
+
         if(this.cartridge != null){
           sprites[SPR.BUBBLE].drawExt(this.cartridgePos.x, this.cartridgePos.y, 0, this.xScl*1.2, this.yScl*1.2, 0, 32,32);
         }
 
 
         var powerPerc = (this.powerOn ? (1-this.turnOffAlarm.percentage()) : this.turnOnAlarm.percentage());
-       
+
         var clipVPerc = tweenIn(0.01 + (clamp(powerPerc, 0.75, 1) - 0.75)*(0.99/0.25));
         var clipHPerc = powerPerc;
         var clipWid = this.width - 10*this.xScl;
@@ -1184,12 +1106,19 @@ function BlockScreen(x, y, blocksX, blocksY){
           case 41:
             sprites[SPR.SAMUBANNER].drawExt(this.x, this.y, 0, this.xScl, this.yScl, 0,0,0);
           break;
+          case 4:
+            manager.drMario.draw(this.x, this.y, this.hTileNum*manager.losWid, this.vTileNum*manager.losHei);
+          break;
         }
         ctx.restore();
       }
 
       if(this.hasCartridgeSlot){
         sprites[SPR.SCREENTILESLOT].drawExt(this.x + manager.losWid*1.5, this.y, 0, this.xScl, this.yScl, 0, sprites[SPR.SCREENTILESLOT].width/2, sprites[SPR.SCREENTILESLOT].height);
+      }
+
+      if(this.hasUsbSlot){
+        sprites[SPR.SCREENUSBSLOT].drawExt(this.x, this.y + manager.losHei*0.5, 0, this.xScl, this.yScl, 0, sprites[SPR.SCREENUSBSLOT].width, sprites[SPR.SCREENUSBSLOT].height/2);
       }
 
 
@@ -1202,37 +1131,62 @@ function BlockScreen(x, y, blocksX, blocksY){
           var yy = this.y + i*manager.losHei;
           var img = 0;
 
+          var rotation = 0;
+
           // Image machine
-          if(i == 0){
+          if(this.vTileNum == 1 && this.hTileNum == 1){
+            img = 12;
+          } else if(this.vTileNum == 1){
+            
             if(j == 0){
-              img = 0;
+              img = 9;
             } else if(j == this.hTileNum-1){
-              img = 2;
+              img = 11;
             } else {
-              img = 1;
+              img = 10;
             }
-          } else if (i == this.vTileNum-1) {
-            if(j == 0){
-              img = 6;
-            } else if(j == this.hTileNum-1){
-              img = 8;
+          } else if(this.hTileNum == 1){      
+            rotation = Math.PI/2;
+            if(i == 0){
+              img = 9;
+            } else if(i == this.vTileNum-1){
+              img = 11;
             } else {
-              img = 7;
+              img = 10;
             }
           } else {
-            if(j == 0){
-              img = 3;
-            } else if(j == this.hTileNum-1){
-              img = 5;
+            if(i == 0){
+              if(j == 0){
+                img = 0;
+              } else if(j == this.hTileNum-1){
+                img = 2;
+              } else {
+                img = 1;
+              }
+            } else if (i == this.vTileNum-1) {
+              if(j == 0){
+                img = 6;
+              } else if(j == this.hTileNum-1){
+                img = 8;
+              } else {
+                img = 7;
+              }
             } else {
-              img = 4;
+              if(j == 0){
+                img = 3;
+              } else if(j == this.hTileNum-1){
+                img = 5;
+              } else {
+                img = 4;
+              }
             }
           }
 
 
-         sprites[SPR.SCREENFRAMETILE].drawExt(xx, yy, img, this.xScl, this.yScl, 0, this.xOffset/this.xScl, this.yOffset/this.yScl);
+         sprites[SPR.SCREENFRAMETILE].drawExt(xx + 32*this.xScl, yy + 32*this.yScl, img, this.xScl, this.yScl, rotation, 32,32);
         }
       }
+
 
   }
 
@@ -1254,6 +1208,7 @@ function MedLogo(x, y){
   this.vLoss = 0.4;
 
   this.inPlace = false;
+  this.canBeHeld = false;
 
   this.depth = 10;
 
@@ -1281,12 +1236,12 @@ function MedLogo(x, y){
         manager.attachObjectMouse(this);
       }
 
-     
+
     }
   }
 
   this.update = function(dt = 1){
-   
+
 
     if(this.attached && this.attachGridId != -1){
       this.gravityOn = false;
@@ -1340,6 +1295,12 @@ function MedLogo(x, y){
     }
 
     this.updateBox(dt);
+
+    if(this.hovered && input.mouseState[0][1]){
+      manager.clickParticle();
+      var ind = choose([SND.METALHIT1, SND.METALHIT2, SND.METALHIT3]);
+      playSound(ind);
+    }
 
   }
 

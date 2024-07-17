@@ -152,8 +152,8 @@ canvas.addEventListener("mousemove", function (event) {
   if(isMobile) return;
   input.mouseCanvasX = event.offsetX;
   input.mouseCanvasY = event.offsetY;
-  input.mouseX = (input.mouseCanvasX -canvasOffsetX)/canvasSclX;
-  input.mouseY = (input.mouseCanvasY -canvasOffsetY)/canvasSclY;
+  input.mouseX = ((input.mouseCanvasX -canvasOffsetX)/canvasSclX)-camX;
+  input.mouseY = ((input.mouseCanvasY -canvasOffsetY)/canvasSclY)-camY;
 });
 
 canvas.addEventListener("mousedown", function (event) {
@@ -192,8 +192,8 @@ function handleTouchStart(event) {
      input.mouseState[0][1] = true;
    }, 5); //
     input.mouseState[0][2] = false; // Ensure clean click (down -> up)
-    input.mouseX = (input.touchX - canvasOffsetX) / canvasSclX;
-    input.mouseY = (input.touchY - canvasOffsetY) / canvasSclY;
+    input.mouseX = ((input.touchX - canvasOffsetX) / canvasSclX)-camX;
+    input.mouseY = ((input.touchY - canvasOffsetY) / canvasSclY)-camY;
   }
 }
 
@@ -224,43 +224,10 @@ function handleTouchMove(event) {
     input.touchY = event.touches[0].clientY;
 
     if(isMobile){
-      input.mouseX = (input.touchX -canvasOffsetX)/canvasSclX;
-      input.mouseY = (input.touchY -canvasOffsetY)/canvasSclY;
+      input.mouseX = ((input.touchX -canvasOffsetX)/canvasSclX) - camX;
+      input.mouseY = ((input.touchY -canvasOffsetY)/canvasSclY) - camY;
     }
 }
-
-
-// function handleTouchStart(event) {
-//     event.preventDefault();
-//     // Get the coordinates of the touch event
-//     input.touchX = event.touches[0].clientX;
-//     input.touchY = event.touches[0].clientY;
-//
-//     input.touchState[0] = true;
-//     input.touchState[1] = true;
-//
-//     if(isMobile){
-//        input.mouseState[0][0] = true;
-//        input.mouseState[0][1] = true;
-//     }
-//
-// }
-// function handleTouchEnd(event) {
-//
-//     event.preventDefault();
-//     // Reset touch coordinates
-//     input.touchX = 0;
-//     input.touchY = 0;
-//
-//     input.touchState[0] = false;
-//     input.touchState[2] = true;
-//
-//     if(isMobile){
-//        input.mouseState[0][0] = false;
-//        input.mouseState[0][2] = true;
-//     }
-// }
-
 
 document.addEventListener('keydown', function (event) {
     const keyCode = event.keyCode || event.which;

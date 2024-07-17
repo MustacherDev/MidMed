@@ -1,5 +1,6 @@
 var path = "Sounds/";
 
+Howler.autoUnlock = true;
 
 
 /// SOUND AND TEXTURES LOADER
@@ -26,21 +27,14 @@ const SND = Object.freeze(new Enum(
     "SNEEZE",
     "SMWBWOOP",
     "POOF",
-    "TOTAL"
-));
-
-const WINSND = Object.freeze(new Enum(
-    "CLASHROYALE",
-    "FNAF",
-    "MARIOBROS",
-    "MINECRAFT",
-    "PVZ",
-    "SMW",
-    "UNDERTALE",
-    "WIN1",
-    "WIN2",
-    "WIN3",
-    "YOUWIN",
+    "STATICHIT",
+    "GLITCHHIT",
+    "KNOCK",
+    "SLAP",
+    "FALLINGROCK",
+    "METALHIT1",
+    "METALHIT2",
+    "METALHIT3",
     "TOTAL"
 ));
 
@@ -59,8 +53,31 @@ const sndPaths = [
   "whistle.mp3",
   "Sneeze.mp3",
   "SMW Bwoop.mp3",
-  "poof.mp3"
+  "poof.mp3",
+  "staticHit.mp3",
+  "glitchHit.mp3",
+  "knock.mp3",
+  "slap.mp3",
+  "fallingRock.mp3",
+  "metalHit1.mp3",
+  "metalHit2.mp3",
+  "metalHit3.mp3"
 ];
+
+const WINSND = Object.freeze(new Enum(
+  "CLASHROYALE",
+  "FNAF",
+  "MARIOBROS",
+  "MINECRAFT",
+  "PVZ",
+  "SMW",
+  "UNDERTALE",
+  "WIN1",
+  "WIN2",
+  "WIN3",
+  "YOUWIN",
+  "TOTAL"
+));
 
 const winSndPaths = [
   "Clash Royale Win Theme.mp3",
@@ -79,20 +96,29 @@ const winSndPaths = [
 
 
 for(var i = 0 ; i < sndPaths.length; i++){
-  sounds.push(new Audio("Sounds/" + sndPaths[i]));
+  sounds.push(new Howl({src:["Sounds/" + sndPaths[i]]}));
 }
 
-sounds[SND.HIT].volume = 0.5;
-sounds[SND.PAGEFLIP].volume = 0.8;
-sounds[SND.EXPLOSION].volume = 0.4;
+sounds[SND.HIT].volume(0.25);
+sounds[SND.PAGEFLIP].volume(0.4);
+sounds[SND.EXPLOSION].volume(0.2);
+sounds[SND.GLITCHHIT].volume(0.2);
 
 
 function playSound(soundId){
-  if(sounds[soundId].paused || sounds[soundId].currentTime > 0){
-    sounds[soundId].pause();
-    sounds[soundId].currentTime = 0;
-    sounds[soundId].play();
-  }
+  //if(sounds[soundId].paused || sounds[soundId].currentTime > 0){
+   // sounds[soundId].pause();
+   // sounds[soundId].currentTime = 0;
+  return sounds[soundId].play();
+  //}
+}
+
+function pauseSound(soundId){
+  sounds[soundId].pause();
+}
+
+function stopSound(soundId){
+  sounds[soundId].stop();
 }
 
 for(var i = 0 ; i < winSndPaths.length; i++){
@@ -118,6 +144,7 @@ const SPR = Object.freeze(new Enum(
     "SCREENFRAMETILE",
     "SCREENBACKTILE",
     "SCREENTILESLOT",
+    "SCREENUSBSLOT",
     "METALBLOCK",
     "MIDMEDLOGO",
     "BUBBLE",
@@ -126,6 +153,8 @@ const SPR = Object.freeze(new Enum(
     "NEWTONBANNER",
     "SAMUBANNER",
     "DRMARIOSHEET",
+    "SMACKEFFECT",
+    "INVENTORYITEMS",
     "TOTAL"
 ));
 
@@ -143,6 +172,7 @@ var imgPaths = [  "bombSprite.png",
   "screenFrameTile.png",
   "screenBackTile.png",
   "gameSlot.png",
+  "usb.png",
   "metalBlock.png",
   "midMedLogo.png",
   "bubble.png",
@@ -150,7 +180,9 @@ var imgPaths = [  "bombSprite.png",
   "stonksBanner.png",
   "newtonBanner.png",
   "samuBanner.png",
-  "DrMarioSheet.png"
+  "DrMarioSheet.png",
+  "Hit.png",
+  "inventoryItems.png"
 ];
 
 var need2Load = imgPaths.length;
@@ -174,6 +206,8 @@ function loadSprites() {
         sprites[SPR.SCREENFRAMETILE].setSubimg(64, 64);
         sprites[SPR.SCREENBACKTILE].setSubimg(64, 64);
         sprites[SPR.DRMARIOSHEET].setSubimg(8, 8);
+        sprites[SPR.SMACKEFFECT].setSubimg(32, 32);
+        sprites[SPR.INVENTORYITEMS].setSubimg(16,16);
 
         spritesLoaded = true;
     }

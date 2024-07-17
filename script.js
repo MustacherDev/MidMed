@@ -19,6 +19,7 @@ function stateMenu(dt){
   ctx.save();
   ctx.translate(canvasOffsetX, canvasOffsetY);
   ctx.scale(canvasSclX, canvasSclY);
+  ctx.translate(camX, camY);
 
 
   //scaleCanvasContent();
@@ -41,6 +42,8 @@ function stateMenu(dt){
   manager.drawGUI();
 
   objectLists[OBJECT.DRAW] = [];
+  cleanAllLists();
+
 
 
 

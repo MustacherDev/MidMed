@@ -52,7 +52,7 @@ class Alarm {
   }
 
   percentage(){
-    return this.timer/this.time;
+    return clamp(this.timer/this.time, 0, 1);
   }
 }
 

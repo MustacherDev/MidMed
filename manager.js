@@ -4,7 +4,7 @@ const objectsDepth = {
   rock: 1,
   bitcoin: 2,
   sun: 3,
-  dart: 4
+  dart: -2
 }
 
 
@@ -23,6 +23,12 @@ class Manager {
   constructor(){
     this.losWid = 120;
     this.losHei = 120;
+
+    const today = new Date();
+    const day = today.getDate();
+    const month = today.getMonth() + 1; // Months are zero-indexed
+    this.day = day;
+    this.month = month;
 
     this.verticalSpace = this.losHei;
 
@@ -49,6 +55,12 @@ class Manager {
 
     this.hdmiScreen = new HDMIScreen();
 
+    this.drMario = new DrMarioGame();
+    this.drMarioPlaying = false;
+
+  
+
+
     this.screenMaking = false;
     this.screenMakingProgress = 0;
 
@@ -61,6 +73,10 @@ class Manager {
 
     this.mode = 0;
 
+    this.sortPattern = 0;
+
+
+
     this.altNames = false;
     this.birthdayId = -1;
 
@@ -70,7 +86,11 @@ class Manager {
     this.moneyAmount = 0;
 
 
+
+
+
     this.sunDisplay = new SunDisplay();
+    this.inventory = new Inventory();
 
     this.spotlight = new Spotlight();
 
@@ -79,7 +99,7 @@ class Manager {
     this.sleeping = false;
 
     this.mouseGrid = -1;
-    this.mouseGridAlarm = new Alarm(0, 25);
+    this.mouseGridAlarm = new Alarm(0, 50);
 
     this.fadeInAlarm = new Alarm(0, 100);
 
@@ -92,9 +112,14 @@ class Manager {
 
 
 
+    // SOUND MANAGEMENT
     this.winSoundId = 0;
     this.winSoundCharging = false;
     this.winSoundPool = [];
+
+    this.pageSlipStart = Date.now();
+
+    this.poofStart = Date.now();
 
     this.world = Physics();
     this.worldEdgebounce;
@@ -118,8 +143,22 @@ class Manager {
       this.losangosGrid.push(i);
       this.losangosPhy.push(null);
       this.losangosAnim.push(new LosangoAnimator());
+     
+
+      if(nameMan.persons[i].bday == this.day && nameMan.persons[i].bmonth == this.month){
+        this.losangos[i].anniversary = true;
+      }
+
+      if(i >= NAME.DIOGO){
+        this.losangos[i].inOtherplane = true;
+      }
+    }
+
+
+    for(let i = 0; i < NAME.DIOGO; i++){
       this.grid.push(new GridObject(i, this.losangos[i], 1, 1));
     }
+
 
     this.worldEdgebounce = Physics.behavior('edge-collision-detection', {
        aabb: Physics.aabb(0,0,roomWidth, roomHeight)
@@ -138,8 +177,16 @@ class Manager {
    var screen = new BlockScreen(100, 100, 3, 4);
    //addObject(screen, OBJECT.SCREEN);
 
-   var midmedlogo = new MedLogo(100, 100);
-   //addObject(midmedlogo, OBJECT.MIDMEDLOGO);
+   var midPos = this.getPosGrid(23);
+   var midmedlogo = new MedLogo(midPos.x - this.losWid/2, midPos.y - this.losHei/2);
+   addObject(midmedlogo, OBJECT.MIDMEDLOGO);
+   this.attachObject(midmedlogo, 23);
+
+   for(var  i = 0 ; i < this.losangos.length; i++){
+      if(!this.losangos[i].attached){
+        this.killLosango(i);
+      }
+   }
 
 
   }
@@ -174,6 +221,22 @@ class Manager {
 
     switch(this.mode){
       case 0:
+
+        if(this.drMarioPlaying){
+          if(input.keyState[KeyCodes.ArrowLeft][1]){
+            this.drMario.inputMove(-1);
+          }
+      
+          if(input.keyState[KeyCodes.ArrowRight][1]){
+            this.drMario.inputMove(1);
+          }
+      
+          if(input.keyState[KeyCodes.Space][1]){
+            this.drMario.inputTurn();
+          }
+      
+          this.drMario.update(dt);
+        }
 
         this.animWaitAlarm.update(dt);
         this.animAlarm.update(dt);
@@ -221,6 +284,15 @@ class Manager {
           if(!this.endingMinesweeper){
             if(!this.minesweeper.gameover){
               winSounds[WINSND.WIN1].play();
+
+              for(var i = 0; i < 3;i++){
+                var coinX = randInt(0, roomWidth);
+                var coinY = -100 - randInt(0,300);
+
+                addObject(new Bitcoin(coinX, coinY, randInt(25, 40)), OBJECT.BITCOIN);
+              }
+              playSound(SND.COINNOISE);
+              
             }
 
             this.endingMinesweeper = true;
@@ -235,6 +307,7 @@ class Manager {
         break;
 
     }
+
 
 
 
@@ -265,6 +338,17 @@ class Manager {
     this.hdmiScreen.update(dt);
     if(this.hdmiScreen.hdmi){
       this.mode = 2;
+    }
+
+    this.inventory.update(dt);
+    if(this.inventory.state == 1){
+      camY = -200*this.inventory.inAlarm.percentage();
+    } else if(this.inventory.state == 3){
+      camY = -200*(1-this.inventory.outAlarm.percentage());
+    } else if(this.inventory.state == 2){
+      camY = -200;
+    } else {
+      camY = 0;
     }
 
     this.world.step();
@@ -304,7 +388,7 @@ class Manager {
 
       var sleepX = this.losangos[NAME.ISRAEL].x;
       var sleepY = this.losangos[NAME.ISRAEL].y;
-      if(!this.losangos[NAME.ISRAEL.inOtherplane]){
+      if(!this.losangos[NAME.ISRAEL].inOtherplane){
         this.particles.push(new SleepText(sleepX, sleepY));
       }
     }
@@ -349,37 +433,22 @@ class Manager {
       ctx.restore();
     }
 
-    for(let i = 0; i < this.losangosGrid.length; i++){
-      //if(this.losangosGrid[i].inPlace) continue;
+    this.inventory.draw(ctx);
 
+    for(let i = 0; i < this.grid.length; i++){
       var pos = this.getPosGrid(i);
-      sprites[SPR.PIN].drawExt(pos.x, pos.y, 0, 2, 2, 0, 4, 4);
+      sprites[SPR.PIN].drawExt(pos.x, pos.y, 0, 3, 3, 0, 4, 4);
     }
-
-    // for(let i = 0; i < this.losangosPhy.length; i++){
-    //   if(this.losangosPhy[i] == null) continue;
-
-    //   if(this.losangosPhy[i]._world == null) continue;
-
-    //   var posPhy = this.losangosPhy[i].state.pos;
-    //   var xx = posPhy.x;
-    //   var yy = posPhy.y;
-
-    //   var ang = (this.losangosPhy[i].state.angular.pos)%(Math.PI*2);
-
-    //   ctx.save();
-    //   ctx.translate(xx, yy);
-    //   ctx.rotate(ang);
-    //   ctx.strokeStyle = "rgb(255,255,100)";
-    //   ctx.strokeRect(-this.losWid/2,-this.losHei/2, this.losWid,this.losHei);
-    //   ctx.restore();
-    // }
   }
 
   drawGUI(){
     this.hdmiScreen.draw(ctx);
 
     this.sunDisplay.draw(ctx);
+
+    this.spotlight.draw(ctx);
+
+
 
     if(isMobile){
       ctx.textAlign = "left";
@@ -388,11 +457,6 @@ class Manager {
       ctx.font = '14px Arial';
       ctx.fillText("MOBILE Version", 30, 10);
     }
-
-    this.spotlight.draw(ctx);
-
-    //drawAlarm(ctx, this.animAlarm, roomWidth/2, 0, 150);
-
   }
 
 
@@ -465,24 +529,25 @@ class Manager {
 
   fall(){
     console.log("FALLING");
-    for(var i = 0; i < this.losangos.length; i++){
-      //if(this.losangos[i].attached){
-        this.deattachObject(i);
-      //}
+    for(var i = 0; i < this.grid.length; i++){
+      this.deattachObject(i);
     }
   }
 
   rockHit(spd){
     if(spd > 5){
 
-      for(var i = 0 ; i < this.losangos.length; i++){
+      for(var i = 0 ; i < this.grid.length; i++){
+        if(!this.grid[i].valid) continue;
+        if(this.grid[i].object.type != OBJECT.LOSANGO) continue;
+
         var dir = new Vector(0,0);
         var amp = spd*randRange(0, 0.2);
         dir.setAngle(deg2rad(randRange(0, 360)));
 
-        this.losangos[i].attachCooldownAlarm.start(randInt(-100, 50));
-        this.losangos[i].hspd += 1*amp*dir.x;
-        this.losangos[i].vspd += 1*amp*dir.y;
+        this.grid[i].object.attachCooldownAlarm.start(randInt(-100, 50));
+        this.grid[i].object.hspd += 1*amp*dir.x;
+        this.grid[i].object.vspd += 1*amp*dir.y;
       }
 
       for(var i = 0; i < objectLists[OBJECT.BITCOIN].length; i++){
@@ -502,18 +567,20 @@ class Manager {
   sortGrid(){
     playSound(SND.WHISTLE);
 
-    console.log("SORTING");
+    
 
-    for(var i = 0; i < this.losangos.length; i++){
-        //if(this.losangos[i].attached){
-          this.deattachObject(i);
-        //}
+    for(var i = 0; i < this.grid.length; i++){
+      if(this.grid[i].valid){
+        if(this.grid[i].object.type == OBJECT.MIDMEDLOGO) continue;
+      }
+      this.deattachObject(i);
     }
 
-    for(var i = 0; i < this.losangos.length; i++){
+    for(var i = 0; i < this.grid.length; i++){
+      if(this.losangos.length <= i ) continue;
+      if(this.losangos[i].inOtherplane) continue;
 
-      this.attachObject(this.losangos[i], i);
-
+      this.attachObject(this.losangos[nameMan.orderPattern[this.sortPattern][i]], i);
 
       var updatePacket = new UpdateLosango([
         new PropertyObject("rotating", true),
@@ -523,6 +590,84 @@ class Manager {
       updatePacket.isFront = true;
 
     }
+
+    this.sortPattern++;
+    if(this.sortPattern >= 4){
+      this.sortPattern = 0;
+    }
+  }
+
+  randomizeGrid(){
+    playSound(SND.WHISTLE);
+
+
+    var losangoIndexes = [];
+    for(var i = 0; i < this.grid.length; i++){
+      if(this.grid[i].valid){
+        if(this.grid[i].object.type == OBJECT.MIDMEDLOGO) continue;
+      }
+      this.deattachObject(i);
+    }
+
+    for(var i = 0; i < this.losangos.length; i++){
+      if(this.losangos[i].inOtherplane) continue;
+      losangoIndexes.push(i);
+    }
+
+    var losangoRandomIndexes = [];
+    
+    for(var i = 0; i < this.grid.length; i++){
+      var ind = randInt(0, losangoIndexes.length);
+      losangoRandomIndexes.push(losangoIndexes[ind]);
+      losangoIndexes.splice(ind, 1);
+    }
+    
+    
+
+    for(var i = 0; i < this.grid.length; i++){
+      if(this.losangos.length <= i ) continue;
+      if(this.losangos[i].inOtherplane) continue;
+
+      if(this.grid[i].valid) continue;
+      if(losangoRandomIndexes.length <= 0) break;
+
+      this.attachObject(this.losangos[losangoRandomIndexes[0]], i);
+      losangoRandomIndexes.splice(0, 1);
+
+      var updatePacket = new UpdateLosango([
+        new PropertyObject("rotating", true),
+        new PropertyObject("isTilted", false)]);
+
+      this.losangos[i].updateList.push(updatePacket);
+      updatePacket.isFront = true;
+
+    }
+  }
+
+  clickParticle(){
+    this.particles.push(particleClick(input.mouseX, input.mouseY));
+  }
+
+  printGridPattern(){
+    var str = "";
+    for(var i = 0 ; i < this.grid.length; i++){
+      if(this.grid[i].valid){
+        if(this.grid[i].object.type == OBJECT.LOSANGO){
+          str += this.grid[i].object.id;
+          if(i != this.grid.length-1){
+            str += ", ";
+          }
+        } else {
+          console.log("NOT ALL GRID PINS ARE FILLED");
+          return;
+        }
+      } else {
+        console.log("NOT ALL GRID PINS ARE FILLED");
+        return;
+      }
+    }
+
+    console.log(str);
   }
 
   explosionImpulse(x, y, amp){
@@ -620,7 +765,7 @@ class Manager {
         }
       }
       //console.log("Results found " + hInd + ", " + vInd);
-      if (hInd >= 2 && vInd >= 2) {
+      if (hInd >= 1 && vInd >= 1) {
         for(var i = 0; i < vInd; i++){
           for(var j = 0; j < hInd; j++){
             var ind = this.gridXY2Ind(startX+j, startY+i);
@@ -643,6 +788,45 @@ class Manager {
 
         playSound(SND.POOF);
       }
+    }
+  }
+
+  startDrMario(wid, hei){
+    if(this.drMarioPlaying){
+      if(this.drMario.wid != wid || this.drMario.hei != hei){
+        this.drMario.init(wid, hei);
+      }
+    } else {
+      this.drMario.init(wid, hei);
+      this.drMarioPlaying = true;
+    }
+  }
+
+  openInventory(){
+    this.inventory.state = 1;
+    camY = -200;
+  }
+
+  closeInventory(){
+    this.inventory.state = 3;
+    camY = 0;
+  }
+
+  breakLogo(logoObj){
+    logoObj.active = false;
+    this.particles.push(particleLogo(logoObj.x, logoObj.y));
+    if(!this.logoBroken){
+      for(var i = 2; i < 4; i++){
+        for(var j = 3; j < 7; j++){
+          var ind = this.gridXY2Ind(j, i);
+          this.spawnLosango(ind);
+          this.attachObject(this.losangos[ind], ind);
+          this.losangos[ind].shrinked = true;
+          this.losangos[ind].growthAlarm.start();
+          this.losangos[ind].growthAlarm.timer = randInt(-150, 0);
+        }
+      }
+      this.logoBroken = true;
     }
   }
 
@@ -771,6 +955,41 @@ class Manager {
     }
     obj.attachGridId = -1;
 
+  }
+
+  killLosango(id){
+
+    if(this.losangos[id].attached){
+      this.deattachObject(this.losangos[id].attachGridId);
+    }
+
+    if(this.losangosPhy[id] != null){
+      this.world.remove(this.losangosPhy[id]);
+      this.losangosPhy[id] = null;
+    }
+
+    
+    this.losangos[id].inOtherplane = true;
+  }
+
+  spawnLosango(id){
+    if(!this.losangos[id].attached){
+      var los = this.losangos[id];
+      this.losangosPhy[id] = Physics.body('rectangle', {
+        width: los.width
+        ,height: los.height
+        ,x: los.x
+        ,y: los.y
+        ,vx: los.hspd
+        ,vy: los.vspd
+        ,cof: 0.99
+        ,restitution: 0.99
+      });
+      this.losangosPhy[id].state.angular.pos = los.angle;
+      this.world.add(this.losangosPhy[id]);
+    }
+
+    this.losangos[id].inOtherplane = false;
   }
 
   
