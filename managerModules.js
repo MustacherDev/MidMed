@@ -906,6 +906,7 @@ class DrMarioGame{
           this.runState = 0;
         } else {
           this.runState = 2;
+          //console.log(this.grid);
         }
 
 
@@ -991,13 +992,13 @@ class DrMarioGame{
     var py = this.playerPill.y;
     var pill1 = this.playerPill.part1;
     var pill2 = this.playerPill.part2;
+
     var vertical = this.playerPill.orientation;
 
     var type = pill1.type;
     var color = pill1.color;
 
-    var angle = (Math.PI/2)*vertical;
-
+    var angle = -(Math.PI/2)*vertical;
 
 
     if(type != DRMARIOTYPE.EMPTY){
@@ -1007,18 +1008,14 @@ class DrMarioGame{
     type = pill2.type;
     color = pill2.color;
 
-    if(type == DRMARIOTYPE.DOUBLEPILL){
-      var or = obj.orientation%2;
-      angle = (Math.PI/2)*or;
-
-      if(obj.orientation >= 2){
-        extraImg = 1;
-      }
+    var addPos = new Vector(1, 0);
+    if(vertical){
+      addPos = new Vector(0, -1);
     }
 
-
+    angle = -(Math.PI/2)*vertical;
     if(type != DRMARIOTYPE.EMPTY){
-      sprites[SPR.DRMARIOSHEET].drawExt(x+w*(px+1*(1-vertical)) + 4*scl, y+h*(py-1*(vertical)) + 4*scl, (type) + color*4, scl,scl,angle,4,4);
+      sprites[SPR.DRMARIOSHEET].drawExt(x+w*(px+addPos.x) + 4*scl, y+h*(py+addPos.y) + 4*scl, (type) + color*4, scl,scl,angle,4,4);
     }
   }
 }

@@ -44,6 +44,7 @@ class Manager {
 
     // Contains the objects in each grid slot
     this.grid = [];
+    this.backGrid = [];
 
     this.losangos = [];
     this.losangosGrid = [];
@@ -219,24 +220,26 @@ class Manager {
       this.mouseGridAlarm.restart();
     }
 
+    if(this.drMarioPlaying){
+      if(input.keyState[KeyCodes.ArrowLeft][1]){
+        this.drMario.inputMove(-1);
+      }
+  
+      if(input.keyState[KeyCodes.ArrowRight][1]){
+        this.drMario.inputMove(1);
+      }
+  
+      if(input.keyState[KeyCodes.Space][1]){
+        this.drMario.inputTurn();
+      }
+  
+      this.drMario.update(dt);
+    }
+
     switch(this.mode){
       case 0:
 
-        if(this.drMarioPlaying){
-          if(input.keyState[KeyCodes.ArrowLeft][1]){
-            this.drMario.inputMove(-1);
-          }
-      
-          if(input.keyState[KeyCodes.ArrowRight][1]){
-            this.drMario.inputMove(1);
-          }
-      
-          if(input.keyState[KeyCodes.Space][1]){
-            this.drMario.inputTurn();
-          }
-      
-          this.drMario.update(dt);
-        }
+        
 
         this.animWaitAlarm.update(dt);
         this.animAlarm.update(dt);
@@ -287,7 +290,7 @@ class Manager {
 
               for(var i = 0; i < 3;i++){
                 var coinX = randInt(0, roomWidth);
-                var coinY = -100 - randInt(0,300);
+                var coinY = -100 - randInt(0,500);
 
                 addObject(new Bitcoin(coinX, coinY, randInt(25, 40)), OBJECT.BITCOIN);
               }
