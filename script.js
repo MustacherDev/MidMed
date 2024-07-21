@@ -38,6 +38,27 @@ function stateMenu(dt){
   sortDepth();
   drawList(OBJECT.DRAW);
 
+  var str = "[";
+  for(var i = 0 ; i < objectLists[OBJECT.DRAW].length; i++){
+    if(objectLists[OBJECT.DRAW][i].type != OBJECT.SCREEN){
+      str += objectLists[OBJECT.DRAW][i].depth;
+      str += ", ";
+    }
+
+    if(objectLists[OBJECT.DRAW][i].type == OBJECT.SCREEN){
+      str += "*";
+      str += objectLists[OBJECT.DRAW][i].depth;
+      str += "*";
+      str += ", ";
+    }
+
+  }
+  str += " ]";
+
+  if(input.mouseState[0][1]){
+    console.log(str);
+  }
+
 
   manager.drawGUI();
 

@@ -31,7 +31,7 @@ class Particle{
     return {x: vec.x/mag, y: vec.y/mag};
   }
 
-  show(){
+  drawRequest(ctx, parameter){
     this.draw();
   }
 
@@ -169,7 +169,26 @@ class ParticleAnim extends Particle{
 
 
 
+function particleBlackHole(x, y){
+  var life = 200;
+  var part = new ParticleCircle(x, y, life);
+  part.radius = randInt(5, 10);
+  part.color = Color.fromHSL(0, 100, 100);
+  part.colorSpd = new Color(0,0,0, -1/life);
+  part.radiusSpd = -part.radius/life;
 
+  part.tanAcc = 0.1;
+  part.radAcc = -0.1;
+
+  var dir = randRange(0, deg2rad(360));
+  var dirVec = new Vector(Math.cos(dir), Math.sin(dir));
+  var spd = randRange(0.25, 2);
+
+  part.spd = dirVec.mult(spd);
+  part.acc = new Vector(0, 0);
+  part.damp = new Vector(0.01, 0.01);
+  part.depth = -10;
+}
 
 function particleSun(x, y){
   var life = 100;

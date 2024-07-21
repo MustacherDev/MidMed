@@ -36,72 +36,18 @@ class Sprite {
     this.imgNum = this.imgNumX * this.imgNumY;
   }
 
-
-    /// Draw sprite
-  drawSimple(x, y, img, scl) {
-      var imgx = img % this.imgNumX;
-      var imgy = Math.floor(img / this.imgNumX) % this.imgNumY;
-
-      ctx.drawImage(this.img, imgx * this.width, imgy * this.height, this.width, this.height, x - this.xoffset, y - this.yoffset, this.width * scl, this.height * scl);
-  }
-
-    /// Draw sprite with separe scaling and centralizing option
-  draw(x, y, img, xscl, yscl, centerTransform) {
-      this.drawRot(x, y, img, xscl, yscl, 0, centerTransform);
-  }
-
-    /// Draw sprite with rotation
-  drawRot(x, y, img, xscl, yscl, ang, centerTransform) {
-
-      var imgx = img % this.imgNumX;
-      var imgy = Math.floor(img / this.imgNumX) % this.imgNumY;
-
-      // Centralizing Transformations
-      let centerTrnsf = centerTransform || false;
-
-      let offx = this.xoffset;
-      let offy = this.yoffset;
-
-      if (centerTrnsf) {
-          offx = this.width / 2;
-          offy = this.height / 2;
-      }
-
-      this.drawInternal(ctx, imgx, imgy, x, y, offx, offy, xscl, yscl, ang);
-  }
-
-  /// Draw sprite with rotation and offset
-  drawFix(x, y, img, xscl, yscl, ang, transfX, transfY, offSetX, offSetY) {
-
-      var imgx = img % this.imgNumX;
-      var imgy = Math.floor(img / this.imgNumX) % this.imgNumY;
-
-      // Centralizing Transformations
-
-      let transX = transfX;
-      let transY = transfY;
-
-      let offx = (-offSetX + transX) * Math.abs(xscl);
-      let offy = (-offSetY + transY) * Math.abs(yscl);
-
-      ctx.save();
-      ctx.translate(x + offx, y + offy);
-      ctx.scale(xscl, yscl);
-
-      if (ang != 0) {
-          ctx.rotate(ang);
-      }
-
-      ctx.drawImage(this.img, imgx * this.width, imgy * this.height, this.width, this.height, -transX, -transY, this.width, this.height);
-
-      ctx.restore();
-  }
-
   drawExt(x, y, img, xscl, yscl, ang, sprOffsetX, sprOffsetY){
     img = img%(this.imgNumX*this.imgNumY);
     var imgx = img % this.imgNumX;
     var imgy = Math.floor(img / this.imgNumX) % this.imgNumY;
     this.drawInternal(ctx, imgx, imgy, x, y, sprOffsetX, sprOffsetY, xscl, yscl, ang);
+  }
+
+  drawExtRelative(x, y, img, xscl, yscl, ang, sprOffsetXPercent, sprOffsetYPercent){
+    img = img%(this.imgNumX*this.imgNumY);
+    var imgx = img % this.imgNumX;
+    var imgy = Math.floor(img / this.imgNumX) % this.imgNumY;
+    this.drawInternal(ctx, imgx, imgy, x, y, sprOffsetXPercent*this.width, sprOffsetYPercent*this.height, xscl, yscl, ang);
   }
 
   drawInternal(ctx, sourceImgX, sourceImgY, spriteX, spriteY, spriteOffsetX, spriteOffsetY, scaleX, scaleY, angle){

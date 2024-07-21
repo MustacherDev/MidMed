@@ -155,6 +155,9 @@ const SPR = Object.freeze(new Enum(
     "DRMARIOSHEET",
     "SMACKEFFECT",
     "INVENTORYITEMS",
+    "BANNERS",
+    "MONEYDISPLAY",
+    "MONEY",
     "TOTAL"
 ));
 
@@ -182,7 +185,10 @@ var imgPaths = [  "bombSprite.png",
   "samuBanner.png",
   "DrMarioSheet.png",
   "Hit.png",
-  "inventoryItems.png"
+  "inventoryItems.png",
+  "banners.png",
+  "moneyDisplay.png",
+  "money.png"
 ];
 
 var need2Load = imgPaths.length;
@@ -208,6 +214,7 @@ function loadSprites() {
         sprites[SPR.DRMARIOSHEET].setSubimg(8, 8);
         sprites[SPR.SMACKEFFECT].setSubimg(32, 32);
         sprites[SPR.INVENTORYITEMS].setSubimg(16,16);
+        sprites[SPR.BANNERS].setSubimg(320, 210);
 
         spritesLoaded = true;
     }

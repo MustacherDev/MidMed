@@ -19,6 +19,13 @@ class GridObject{
 }
 
 
+const GRID = Object.freeze(new Enum(
+  "MIDDLE",
+  "BACK",
+  "FRONT",
+  "TOTAL"
+));
+
 class Manager {
   constructor(){
     this.losWid = 120;
@@ -43,8 +50,7 @@ class Manager {
 
 
     // Contains the objects in each grid slot
-    this.grid = [];
-    this.backGrid = [];
+    this.grid      = [];
 
     this.losangos = [];
     this.losangosGrid = [];
@@ -58,6 +64,7 @@ class Manager {
 
     this.drMario = new DrMarioGame();
     this.drMarioPlaying = false;
+    this.drMarioScreen = null;
 
   
 
@@ -91,6 +98,7 @@ class Manager {
 
 
     this.sunDisplay = new SunDisplay();
+    this.moneyDisplay = new MoneyDisplay();
     this.inventory = new Inventory();
 
     this.spotlight = new Spotlight();
@@ -155,9 +163,23 @@ class Manager {
       }
     }
 
+    for(var j = 0 ; j < GRID.TOTAL; j++){
+      var subGrid = [];
+      for(var i = 0; i < 50; i ++){
+
+
+        subGrid.push(new GridObject(i, null, 1, 1));
+        subGrid[i].valid = false;
+
+      }
+
+      this.grid.push(subGrid);
+    }
+
 
     for(let i = 0; i < NAME.DIOGO; i++){
-      this.grid.push(new GridObject(i, this.losangos[i], 1, 1));
+      this.grid[GRID.MIDDLE][i] = new GridObject(i, this.losangos[i], 1, 1);
+      
     }
 
 
@@ -181,7 +203,7 @@ class Manager {
    var midPos = this.getPosGrid(23);
    var midmedlogo = new MedLogo(midPos.x - this.losWid/2, midPos.y - this.losHei/2);
    addObject(midmedlogo, OBJECT.MIDMEDLOGO);
-   this.attachObject(midmedlogo, 23);
+   this.attachObject(midmedlogo, 23, GRID.MIDDLE);
 
    for(var  i = 0 ; i < this.losangos.length; i++){
       if(!this.losangos[i].attached){
@@ -197,7 +219,7 @@ class Manager {
 
     if(this.holdingObject == null){
       this.holding = false;
-    } else if(!this.holdingObject.holded){
+    } else if(!this.holdingObject.holder.holded){
       this.holding = false;
     } else if(!this.holdingObject.active){
       this.holding = false;
@@ -220,20 +242,28 @@ class Manager {
       this.mouseGridAlarm.restart();
     }
 
-    if(this.drMarioPlaying){
-      if(input.keyState[KeyCodes.ArrowLeft][1]){
-        this.drMario.inputMove(-1);
+    
+
+    if(this.drMarioScreen != null){
+      if(this.drMarioScreen.cartridge == NAME.BERNAD){
+        if(input.keyState[KeyCodes.ArrowLeft][1]){
+          this.drMario.inputMove(-1);
+        }
+    
+        if(input.keyState[KeyCodes.ArrowRight][1]){
+          this.drMario.inputMove(1);
+        }
+
+        if(input.keyState[KeyCodes.ArrowDown][0]){
+          this.drMario.inputDown();
+        }
+    
+        if(input.keyState[KeyCodes.Space][1]){
+          this.drMario.inputTurn();
+        }
+    
+        this.drMario.update(dt);
       }
-  
-      if(input.keyState[KeyCodes.ArrowRight][1]){
-        this.drMario.inputMove(1);
-      }
-  
-      if(input.keyState[KeyCodes.Space][1]){
-        this.drMario.inputTurn();
-      }
-  
-      this.drMario.update(dt);
     }
 
     switch(this.mode){
@@ -398,20 +428,21 @@ class Manager {
 
 
     this.sunDisplay.update(dt);
+    this.moneyDisplay.update(dt);
 
 
 
 
 
     for(let i = 0; i < this.losangos.length; i++){
-      addList(this.losangos[i], OBJECT.DRAW);
+      addList(new DrawRequest(this.losangos[i], this.losangos[i].depth, 0), OBJECT.DRAW);
     }
 
 
     // DRAWING PARTICLES
     for (var i = 0; i < this.particles.length; i++) {
         if (this.particles[i].active) {
-            addList(this.particles[i], OBJECT.DRAW);
+            addList(new DrawRequest(this.particles[i], this.particles[i].depth, 0), OBJECT.DRAW);
         }
     }
   }
@@ -438,7 +469,7 @@ class Manager {
 
     this.inventory.draw(ctx);
 
-    for(let i = 0; i < this.grid.length; i++){
+    for(let i = 0; i < this.grid[GRID.MIDDLE].length; i++){
       var pos = this.getPosGrid(i);
       sprites[SPR.PIN].drawExt(pos.x, pos.y, 0, 3, 3, 0, 4, 4);
     }
@@ -448,6 +479,8 @@ class Manager {
     this.hdmiScreen.draw(ctx);
 
     this.sunDisplay.draw(ctx);
+
+    this.moneyDisplay.draw(ctx);
 
     this.spotlight.draw(ctx);
 
@@ -532,25 +565,25 @@ class Manager {
 
   fall(){
     console.log("FALLING");
-    for(var i = 0; i < this.grid.length; i++){
-      this.deattachObject(i);
+    for(var i = 0; i < this.grid[GRID.MIDDLE].length; i++){
+      this.deattachObject(i, GRID.MIDDLE);
     }
   }
 
   rockHit(spd){
     if(spd > 5){
 
-      for(var i = 0 ; i < this.grid.length; i++){
-        if(!this.grid[i].valid) continue;
-        if(this.grid[i].object.type != OBJECT.LOSANGO) continue;
+      for(var i = 0 ; i < this.grid[GRID.MIDDLE].length; i++){
+        if(!this.grid[GRID.MIDDLE][i].valid) continue;
+        if(this.grid[GRID.MIDDLE][i].object.type != OBJECT.LOSANGO) continue;
 
         var dir = new Vector(0,0);
         var amp = spd*randRange(0, 0.2);
         dir.setAngle(deg2rad(randRange(0, 360)));
 
-        this.grid[i].object.attachCooldownAlarm.start(randInt(-100, 50));
-        this.grid[i].object.hspd += 1*amp*dir.x;
-        this.grid[i].object.vspd += 1*amp*dir.y;
+        this.grid[GRID.MIDDLE][i].object.attachCooldownAlarm.start(randInt(-100, 50));
+        this.grid[GRID.MIDDLE][i].object.hspd += 1*amp*dir.x;
+        this.grid[GRID.MIDDLE][i].object.vspd += 1*amp*dir.y;
       }
 
       for(var i = 0; i < objectLists[OBJECT.BITCOIN].length; i++){
@@ -572,18 +605,18 @@ class Manager {
 
     
 
-    for(var i = 0; i < this.grid.length; i++){
-      if(this.grid[i].valid){
-        if(this.grid[i].object.type == OBJECT.MIDMEDLOGO) continue;
+    for(var i = 0; i < this.grid[GRID.MIDDLE].length; i++){
+      if(this.grid[GRID.MIDDLE][i].valid){
+        if(this.grid[GRID.MIDDLE][i].object.type == OBJECT.MIDMEDLOGO) continue;
       }
-      this.deattachObject(i);
+      this.deattachObject(i, GRID.MIDDLE);
     }
 
-    for(var i = 0; i < this.grid.length; i++){
+    for(var i = 0; i < this.grid[GRID.MIDDLE].length; i++){
       if(this.losangos.length <= i ) continue;
       if(this.losangos[i].inOtherplane) continue;
 
-      this.attachObject(this.losangos[nameMan.orderPattern[this.sortPattern][i]], i);
+      this.attachObject(this.losangos[nameMan.orderPattern[this.sortPattern][i]], i, GRID.MIDDLE);
 
       var updatePacket = new UpdateLosango([
         new PropertyObject("rotating", true),
@@ -605,11 +638,11 @@ class Manager {
 
 
     var losangoIndexes = [];
-    for(var i = 0; i < this.grid.length; i++){
-      if(this.grid[i].valid){
-        if(this.grid[i].object.type == OBJECT.MIDMEDLOGO) continue;
+    for(var i = 0; i < this.grid[GRID.MIDDLE].length; i++){
+      if(this.grid[GRID.MIDDLE][i].valid){
+        if(this.grid[GRID.MIDDLE][i].object.type == OBJECT.MIDMEDLOGO) continue;
       }
-      this.deattachObject(i);
+      this.deattachObject(i,GRID.MIDDLE);
     }
 
     for(var i = 0; i < this.losangos.length; i++){
@@ -619,7 +652,7 @@ class Manager {
 
     var losangoRandomIndexes = [];
     
-    for(var i = 0; i < this.grid.length; i++){
+    for(var i = 0; i < this.grid[GRID.MIDDLE].length; i++){
       var ind = randInt(0, losangoIndexes.length);
       losangoRandomIndexes.push(losangoIndexes[ind]);
       losangoIndexes.splice(ind, 1);
@@ -627,14 +660,14 @@ class Manager {
     
     
 
-    for(var i = 0; i < this.grid.length; i++){
+    for(var i = 0; i < this.grid[GRID.MIDDLE].length; i++){
       if(this.losangos.length <= i ) continue;
       if(this.losangos[i].inOtherplane) continue;
 
-      if(this.grid[i].valid) continue;
+      if(this.grid[GRID.MIDDLE][i].valid) continue;
       if(losangoRandomIndexes.length <= 0) break;
 
-      this.attachObject(this.losangos[losangoRandomIndexes[0]], i);
+      this.attachObject(this.losangos[losangoRandomIndexes[0]], i, GRID.MIDDLE);
       losangoRandomIndexes.splice(0, 1);
 
       var updatePacket = new UpdateLosango([
@@ -653,11 +686,11 @@ class Manager {
 
   printGridPattern(){
     var str = "";
-    for(var i = 0 ; i < this.grid.length; i++){
-      if(this.grid[i].valid){
-        if(this.grid[i].object.type == OBJECT.LOSANGO){
-          str += this.grid[i].object.id;
-          if(i != this.grid.length-1){
+    for(var i = 0 ; i < this.grid[GRID.MIDDLE].length; i++){
+      if(this.grid[GRID.MIDDLE][i].valid){
+        if(this.grid[GRID.MIDDLE][i].object.type == OBJECT.LOSANGO){
+          str += this.grid[GRID.MIDDLE][i].object.id;
+          if(i != this.grid[GRID.MIDDLE].length-1){
             str += ", ";
           }
         } else {
@@ -696,7 +729,7 @@ class Manager {
 
         if(!this.checkValidGridPos(x+j, y+i)) continue;
 
-        var gridObj = this.grid[this.gridXY2Ind(x+j, y+i)];
+        var gridObj = this.grid[GRID.MIDDLE][this.gridXY2Ind(x+j, y+i)];
 
         if(gridObj.valid){
           if(gridObj.object.type == OBJECT.LOSANGO){
@@ -737,7 +770,7 @@ class Manager {
             var yy = pos.y + i    + 1;
             if(this.checkValidGridPos(xx, yy)){
               var newInd = this.gridXY2Ind(xx, yy);
-              if (!this.grid[newInd].valid || this.grid[newInd].object.type != OBJECT.METALBLOCK) {
+              if (!this.grid[GRID.MIDDLE][newInd].valid || this.grid[GRID.MIDDLE][newInd].object.type != OBJECT.METALBLOCK) {
                 hEnd = true;
                 break;
               }
@@ -755,7 +788,7 @@ class Manager {
             var yy = pos.y + vInd + 1;
             if(this.checkValidGridPos(xx, yy)){
               var newInd = this.gridXY2Ind(xx, yy);
-              if (!this.grid[newInd].valid || this.grid[newInd].object.type != OBJECT.METALBLOCK) {
+              if (!this.grid[GRID.MIDDLE][newInd].valid || this.grid[GRID.MIDDLE][newInd].object.type != OBJECT.METALBLOCK) {
                 vEnd = true;
                 break;
               }
@@ -772,15 +805,22 @@ class Manager {
         for(var i = 0; i < vInd; i++){
           for(var j = 0; j < hInd; j++){
             var ind = this.gridXY2Ind(startX+j, startY+i);
-            this.grid[ind].object.active = false;
-            this.deattachObject(ind);
+            this.grid[GRID.MIDDLE][ind].object.active = false;
+            this.deattachObject(ind,GRID.MIDDLE);
           }
         }
         var ind = this.gridXY2Ind(startX, startY);
         var screenPos = this.getPosGrid(ind);
-        var newScreen = new BlockScreen(screenPos.x - this.losWid/2, screenPos.y - this.losHei/2, hInd, vInd);
-        addObject(newScreen, OBJECT.SCREEN);
-        this.attachObject(newScreen, ind);
+        
+        if(hInd == 1 || vInd == 1){
+          var newPanel = new BlockPanel(screenPos.x - this.losWid/2, screenPos.y - this.losHei/2, hInd, vInd);
+          addObject(newPanel, OBJECT.PANEL);
+          this.attachObject(newPanel, ind, GRID.BACK);
+        } else {
+          var newScreen = new BlockScreen(screenPos.x - this.losWid/2, screenPos.y - this.losHei/2, hInd, vInd);
+          addObject(newScreen, OBJECT.SCREEN);
+          this.attachObject(newScreen, ind, GRID.MIDDLE);
+        }
 
         //screenPos.x -= this.losWid/2;
         //screenPos.y -= this.losHei/2;
@@ -794,14 +834,16 @@ class Manager {
     }
   }
 
-  startDrMario(wid, hei){
+  startDrMario(screen, wid, hei){
     if(this.drMarioPlaying){
       if(this.drMario.wid != wid || this.drMario.hei != hei){
         this.drMario.init(wid, hei);
       }
+      this.drMarioScreen = screen;
     } else {
       this.drMario.init(wid, hei);
       this.drMarioPlaying = true;
+      this.drMarioScreen = screen;
     }
   }
 
@@ -823,7 +865,7 @@ class Manager {
         for(var j = 3; j < 7; j++){
           var ind = this.gridXY2Ind(j, i);
           this.spawnLosango(ind);
-          this.attachObject(this.losangos[ind], ind);
+          this.attachObject(this.losangos[ind], ind, GRID.MIDDLE);
           this.losangos[ind].shrinked = true;
           this.losangos[ind].growthAlarm.start();
           this.losangos[ind].growthAlarm.timer = randInt(-150, 0);
@@ -841,6 +883,12 @@ class Manager {
     this.sunAmount += 25;
     this.sunDisplay.sun = this.sunAmount;
     this.sunDisplay.updateSun();
+  }
+
+  collectMoney(amount){
+    this.moneyAmount += amount;
+    this.moneyDisplay.money = this.moneyAmount;
+    this.moneyDisplay.updateMoney();
   }
 
   winSoundReady(){
@@ -919,16 +967,16 @@ class Manager {
   }
 
 
-  deattachObject(gridCell){
+  deattachObject(gridCell, grid){
     //console.log("DEATTACHING OBJECT on " + gridCell);
-    if(!this.grid[gridCell].valid) return;
+    if(!this.grid[grid][gridCell].valid) return;
 
     //console.log(this.grid[gridCell]);
-    if(!this.grid[gridCell].object.attached) return;
+    if(!this.grid[grid][gridCell].object.attached) return;
     
-    var wid = this.grid[gridCell].width;
-    var hei = this.grid[gridCell].height;
-    var ind = this.grid[gridCell].index;
+    var wid = this.grid[grid][gridCell].width;
+    var hei = this.grid[grid][gridCell].height;
+    var ind = this.grid[grid][gridCell].index;
     var pos = this.gridInd2XY(ind);
     var x = pos.x;
     var y = pos.y;
@@ -936,16 +984,16 @@ class Manager {
     //console.log("WH(" + wid + ", " + hei + ")");
     //console.log("XY("+ x + ", " + y +")")
 
-    var obj = this.grid[gridCell].object;
+    var obj = this.grid[grid][gridCell].object;
 
     for(var i = 0; i < hei; i++){
       for(var j = 0; j < wid; j++){
         var subInd = this.gridXY2Ind(x + j, y + i);
 
-        if(!this.grid[subInd].valid) continue;
+        if(!this.grid[grid][subInd].valid) continue;
 
-        if(this.grid[subInd].object == obj){
-          this.grid[subInd].valid = false;
+        if(this.grid[grid][subInd].object == obj){
+          this.grid[grid][subInd].valid = false;
         }
         
       }
@@ -963,7 +1011,7 @@ class Manager {
   killLosango(id){
 
     if(this.losangos[id].attached){
-      this.deattachObject(this.losangos[id].attachGridId);
+      this.deattachObject(this.losangos[id].attachGridId, GRID.MIDDLE);
     }
 
     if(this.losangosPhy[id] != null){
@@ -1024,14 +1072,14 @@ class Manager {
     this.losangos[id].attached = false;
   }
 
-  attachObject(obj, gridCell){
+  attachObject(obj, gridCell, grid){
 
     if(obj.attached) return;
 
     var wid = 1;
     var hei = 1;
 
-    if(obj.type == OBJECT.SCREEN){
+    if(obj.type == OBJECT.SCREEN || obj.type == OBJECT.PANEL){
       wid = obj.hTileNum;
       hei = obj.vTileNum;
       //console.log("SCREEN ATTACH");
@@ -1047,7 +1095,7 @@ class Manager {
     //console.log("ATTACHING " + obj + " on " + gridCell + " XY("+ x +", "+ y+")");
 
     // CHECK IF THE OBJECT FITS INSIDE THE SCREEN
-    if(!this.checkValidGridArea(x, y, wid ,hei)) return false;
+    if(!this.checkValidGridArea(x, y, wid, hei)) return false;
 
 
 
@@ -1056,7 +1104,7 @@ class Manager {
       for(var j = 0; j < wid; j++){
         var subInd = this.gridXY2Ind(x + j, y + i);
         //console.log("DEATTACHING on " + subInd + " TO ATTACH   XY(" + (x+j)+ "," + (y+i) + ")") ;
-        this.deattachObject(subInd);
+        this.deattachObject(subInd, grid);
       }
     }
 
@@ -1066,7 +1114,8 @@ class Manager {
     for(var i = 0; i < hei; i++){
       for(var j = 0; j < wid; j++){
         var subInd = this.gridXY2Ind(x + j, y + i);
-        this.grid[subInd] = gridObj;
+
+        this.grid[grid][subInd] = gridObj;
       }
     }
 
@@ -1093,16 +1142,10 @@ class Manager {
   }
 
 
-  attachObjectMouse(obj){
+  attachObjectMouse(obj, grid){
     if(this.mouseGrid == -1 || !this.mouseGridAlarm.finished) return;
     //console.log("TRYING TO ATTACH WITH MOUSE " + obj.type);
-    this.attachObject(obj, this.mouseGrid);
-  }
-
-
-  attachLosangoMouse(id){
-    if(this.mouseGrid == -1 || !this.mouseGridAlarm.finished) return;
-    this.attachObject(this.losangos[id], this.mouseGrid);
+    this.attachObject(obj, this.mouseGrid, grid);
   }
 
 

@@ -15,6 +15,7 @@ const OBJECT = Object.freeze(new Enum(
     "LOSANGO",
     "METALBLOCK",
     "MIDMEDLOGO",
+    "PANEL",
     "TOTAL"
 ));
 
@@ -64,14 +65,9 @@ function updateList(type, dt = 1) {
 function drawList(type) {
     var _len = objectLists[type].length;
     for (var i = 0; i < _len; i++) {
-        if (objectLists[type][i].active) {
-            objectLists[type][i].show();
-        }
-        // } else {
-        //     objectLists[type].splice(i, 1);
-        //     i--;
-        //     _len--;
-        // }
+        // (objectLists[type][i].active) {
+            objectLists[type][i].draw(ctx);
+        //}
     }
 }
 
@@ -82,7 +78,7 @@ function addList(obj, type) {
 function addObject(obj, type){
   objectLists[type].push(obj);
   objectLists[OBJECT.GAMEOBJECT].push(obj);
-  objectLists[OBJECT.DRAW].push(obj);
+  //objectLists[OBJECT.DRAW].push(obj);
 }
 
 function sortDepth() {

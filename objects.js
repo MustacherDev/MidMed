@@ -6,26 +6,86 @@ function BoundingBox(x, y, width, height) {
     this.width = width;
     this.height = height;
 
-    this.checkCollision = function (otherBoundingBox) {
-        if (this.x < otherBoundingBox.x + otherBoundingBox.width &&
-            this.x + this.width > otherBoundingBox.x &&
-            this.y < otherBoundingBox.y + otherBoundingBox.height &&
-            this.y + this.height > otherBoundingBox.y) {
-            return true; // Collision detected
+    this.xOffset = 0;
+    this.yOffset = 0;
+
+    this.checkCollision = function (otherBB) {
+        if (this.x - this.xOffset < otherBB.x - otherBB.xOffset + otherBB.width &&
+            this.x - this.xOffset + this.width > otherBB.x - otherBB.xOffset &&
+            this.y - this.yOffset < otherBB.y - otherBB.yOffset + otherBB.height &&
+            this.y - this.yOffset + this.height > otherBB.y - otherBB.yOffset) {
+            return true;
         }
-        return false; // No collision
+        return false;
     };
 
     this.isPointInside = function(x,y){
-      return pointInRect(x, y, this.x, this.y, this.x + this.width, this.y + this.height);
+      return pointInRect(x, y, this.x - this.xOffset, this.y - this.yOffset, this.x - this.xOffset + this.width, this.y - this.yOffset + this.height);
     }
+
+    this.add = function(x, y){
+      var bb = new BoundingBox(this.x + x,this.y + y,this.width,this.height);
+      bb.xOffset = this.xOffset;
+      bb.yOffset = this.yOffset;
+      return bb;
+    }
+
+
 
     this.show = function () {
         // Draw the rectangle border
         ctx.strokeStyle = "rgb(255, 0, 0)";
         //ctx.lineWidth = 2;
-        ctx.strokeRect(this.x, this.y, this.width, this.height);
+        ctx.strokeRect(this.x - this.xOffset, this.y - this.yOffset, this.width, this.height);
     };
+}
+
+
+class BoundingArea{
+  constructor(){
+    this.areas = [];
+  }
+
+
+
+  checkCollision(otherBoundingBox) {
+
+    if(otherBoundingBox instanceof BoundingArea){
+      for(var i = 0 ; i < otherBoundingBox.areas.length; i++){
+        var area = otherBoundingBox.areas[i];
+        if(this.checkCollisionBoundingBox(area)){
+          return true;
+        }
+      }
+    } else {
+      if(this.checkCollisionBoundingBox(otherBoundingBox)){
+        return true;
+      }
+    }
+    return false; // No collision
+  }
+
+  checkCollisionBoundingBox(otherBB){
+    for(var i = 0 ; i < this.areas.length; i++){
+      var area = this.areas[i];
+
+      if(area.checkCollision(otherBB)){
+        return true;
+      }
+    }
+    return false;
+  }
+
+  isPointInside(x,y){
+    for(var i = 0 ; i < this.areas.length; i++){
+      var area = this.areas[i];
+      if(area.isPointInside(x, y)){
+        return true;
+      } 
+    }
+    return false;
+  }
+
 }
 
 
@@ -52,12 +112,16 @@ function GameObject(x, y, sprite) {
     this.active = true;
 
     this.pushDrawList = function () {
-      addList(this, OBJECT.DRAW);
+      addList(new DrawRequest(this, this.depth, 0), OBJECT.DRAW);
+    }
+
+    this.drawRequest = function(ctx, parameter){
+      this.draw(ctx);
     }
 }
 
-GameObject.prototype.show = function () {
-    this.sprite.drawSimple(this.x, this.y, 0, this.xScl);
+GameObject.prototype.draw = function (ctx) {
+    this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.xScl, 0, 0, 0);
 };
 
 GameObject.prototype.update = function () {
@@ -65,6 +129,19 @@ GameObject.prototype.update = function () {
     this.y += this.vspd;
     this.ang += this.angSpd;
 };
+
+
+class DrawRequest{
+  constructor(obj, depth, parameter = null){
+    this.obj = obj;
+    this.depth = depth;
+    this.parameter = parameter;
+  }
+
+  draw(ctx){
+    this.obj.drawRequest(ctx, this.parameter);
+  }
+}
 
 
 
@@ -79,6 +156,8 @@ function TextObject(x, y, text) {
     this.text = text;
     this.active = true;
 
+    this.depth = -1;
+
     this.maxLife = 150;
     this.life = this.maxLife;
 
@@ -91,7 +170,7 @@ function TextObject(x, y, text) {
         }
     }
 
-    this.show = function(){
+    this.drawRequest = function(ctx, parameter){
       this.draw();
     }
 
@@ -104,6 +183,7 @@ function TextObject(x, y, text) {
         ctx.fillStyle = "rgb(255, 255, 255)";
         ctx.fillText(this.text, this.x, this.y);
     }
+
 }
 
 function SleepText(x, y){
@@ -113,6 +193,8 @@ function SleepText(x, y){
 
   this.vspd = -1;
   this.hspd = 0.5;
+
+
 
   this.update = function(){
     this.phase += 0.05;
@@ -229,7 +311,61 @@ function Block(x, y, wid, hei) {
 
 
 
+class Holder{
+  constructor(){
+    this.holded = false;
+    this.holdX = 0;
+    this.holdY = 0;
+    this.holdEvent = false; 
+    this.throwEvent = false;
+  }
 
+  getHold(obj){
+    if(obj.hovered && !this.holded && input.mouseState[0][1] && manager.holding == false && obj.canBeHeld){
+      manager.holding = true;
+      manager.holdingObject = obj;
+      manager.holdingContent = obj.type;
+
+      this.holded = true;
+      this.holdEvent = true;
+      this.holdX = input.mouseX - obj.x;
+      this.holdY = input.mouseY - obj.y;
+
+
+      obj.hspd = 0;
+      obj.vspd = 0;
+    }
+  }
+
+  update(obj){
+    if(this.holded){
+
+      obj.x = input.mouseX - this.holdX;
+      obj.y = input.mouseY - this.holdY;
+
+      if(!input.mouseState[0][0]){
+        this.holded = false;
+        this.throwEvent = true;
+
+        this.throw(obj);
+      }
+    }
+  }
+
+  throw(obj){
+    let totalXDiff = 0;
+    let totalYDiff = 0;
+
+    for (const mousePos of manager.prevMousePos) {
+      totalXDiff += (obj.x + this.holdX) - mousePos.x;
+      totalYDiff += (obj.y + this.holdY) - mousePos.y;
+    }
+
+    var throwForce = 1;
+    obj.hspd = (totalXDiff / manager.prevMousePos.length) * throwForce;
+    obj.vspd = (totalYDiff / manager.prevMousePos.length) * throwForce;
+  }
+}
 
 
 
@@ -251,9 +387,9 @@ function Box(x, y, width, height, sprite) {
     this.boundingBox = new BoundingBox(this.x  -this.xOffset, this.y -this.yOffset, this.width, this.height);
 
     this.hovered = false;
-    this.holded = false;
-    this.holdX = 0;
-    this.holdY = 0;
+    // this.holded = false;
+    // this.holdX = 0;
+    // this.holdY = 0;
 
     this.prevX = 0;
     this.prevY = 0;
@@ -279,60 +415,15 @@ function Box(x, y, width, height, sprite) {
 
     this.onGround = false;
 
-    this.holdEvent = false;
-    this.throwEvent = false;
-
+    this.holder = new Holder();
     this.canBeHeld = true;
 
 
     this.tick = 0;
 
-    this.show = function () {
-        //this.strokeBounds();
+    this.draw = function () {
         this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, this.ang, this.xOffset/this.xScl, this.yOffset/this.yScl);
-        //this.sprite.drawFix(this.x, this.y, 0, this.xScl, this.xScl, this.ang, this.xOffset, this.yOffset, 0, 0);
     }
-
-    this.getHold = function(){
-      if(this.hovered && !this.holded && input.mouseState[0][1] && manager.holding == false && this.canBeHeld){
-        manager.holding = true;
-        manager.holdingObject = this;
-        manager.holdingContent = this.type;
-
-        this.holded = true;
-        this.holdEvent = true;
-        this.holdX = input.mouseX - this.x;
-        this.holdY = input.mouseY - this.y;
-        this.hspd = 0;
-        this.vspd = 0;
-      }
-    }
-
-    this.updateHold = function(){
-      if(this.holded){
-
-        this.x = input.mouseX - this.holdX;
-        this.y = input.mouseY - this.holdY;
-
-        if(!input.mouseState[0][0]){
-          this.holded = false;
-          this.throwEvent = true;
-
-          let totalXDiff = 0;
-          let totalYDiff = 0;
-
-          for (const mousePos of manager.prevMousePos) {
-            totalXDiff += (this.x + this.holdX) - mousePos.x;
-            totalYDiff += (this.y + this.holdY) - mousePos.y;
-          }
-
-          var throwForce = 1;
-          this.hspd = (totalXDiff / manager.prevMousePos.length) * throwForce;
-          this.vspd = (totalYDiff / manager.prevMousePos.length) * throwForce;
-        }
-      }
-    }
-
 
 
     this.parameterStep = function(dt){
@@ -382,10 +473,10 @@ function Box(x, y, width, height, sprite) {
           this.hovered = true;
         }
 
-        this.getHold();
+        this.holder.getHold(this);
 
         // Wall Collisions
-        if (!this.holded) {
+        if (!this.holder.holded) {
             this.tick++;
 
             if (this.x - this.xOffset + this.width> roomWidth) {
@@ -434,7 +525,7 @@ function Box(x, y, width, height, sprite) {
           }
         }
 
-        this.updateHold();
+        this.holder.update(this);
 
         this.pushDrawList();
     }
@@ -479,6 +570,22 @@ function Bitcoin(x, y, radius) {
       }
     }
   }
+
+  this.update = function(dt){
+    this.updateBox(dt);
+
+    if(this.holder.throwEvent){
+
+      if(manager.inventory.boundingBox.isPointInside(input.mouseX, input.mouseY)){
+        manager.inventory.attachObjectMouse(this);
+      } else {
+        manager.attachObjectMouse(this, GRID.FRONT);
+      }
+
+
+      this.holder.throwEvent = false;
+    }
+  }
 }
 
 function Rock(x, y, width, height) {
@@ -519,7 +626,7 @@ function Rock(x, y, width, height) {
     }
   }
 
-  this.update = function(dt = 1){
+  this.update = function(dt){
 
     if(this.onGround){
       this.linDamp = 0.95;
@@ -547,6 +654,17 @@ function Rock(x, y, width, height) {
 
         }
       }
+    }
+
+    
+    if(this.holder.throwEvent){
+
+      if(manager.inventory.boundingBox.isPointInside(input.mouseX, input.mouseY)){
+        manager.inventory.attachObjectMouse(this);
+      }
+
+
+      this.holder.throwEvent = false;
     }
   }
 }
@@ -607,11 +725,11 @@ function Sun(x, y){
     }
 
     this.pushDrawList();
-    //pushDrawList
+
   }
 
-  this.show = function(){
-    this.sprite.drawRot(this.x, this.y, 0, this.xScl, this.xScl, this.ang, true);
+  this.draw = function(){
+    this.sprite.drawExtRelative(this.x, this.y, 0, this.xScl, this.yScl, this.ang, 0.5,0.5);
   }
 }
 
@@ -675,10 +793,20 @@ function Dart(x, y, ang){
       }
     }
 
-    if(this.holdEvent){
-      this.holdEvent = false;
+    if(this.holder.holdEvent){
+      this.holder.holdEvent = false;
       this.fixed = false;
       this.gravityOn = true;
+    }
+
+    if(this.holder.throwEvent){
+
+      if(manager.inventory.boundingBox.isPointInside(input.mouseX, input.mouseY)){
+        manager.inventory.attachObjectMouse(this);
+      }
+
+
+      this.holder.throwEvent = false;
     }
   }
 
@@ -710,7 +838,7 @@ function Dart(x, y, ang){
 
   }
 
-  this.show = function(){
+  this.draw = function(){
       this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, this.ang, this.xOffset/this.xScl, this.yOffset/this.yScl);
       //this.boundingBox.show();
       //this.boundingBoxBack.show();
@@ -800,11 +928,16 @@ function MetalBlock(x, y){
 
     this.updateBox(dt);
 
-    if(this.throwEvent){
-      if(!this.attached){
-        manager.attachObjectMouse(this);
+    if(this.holder.throwEvent){
+
+      if(manager.inventory.boundingBox.isPointInside(input.mouseX, input.mouseY)){
+        manager.inventory.attachObjectMouse(this);
+      } else {
+        if(!this.attached){
+          manager.attachObjectMouse(this, GRID.MIDDLE);
+        }
       }
-      this.throwEvent = false;
+      this.holder.throwEvent = false;
     }
 
   }
@@ -813,14 +946,272 @@ function MetalBlock(x, y){
 
   }
 
-  this.show = function(){
-
+  this.draw = function(){
       this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, 0, this.xOffset/this.xScl, this.yOffset/this.yScl);
-      //this.boundingBox.show(ctx);
-      if(this.hovered){
-        this.boundingBox.show(ctx);
-      }
   }
+}
+
+function BlockPanel(x, y, blocksX, blocksY){
+  Box.call(this, x, y, blocksX*manager.losWid, blocksY*manager.losHei, sprites[SPR.SCREENBACKTILE]);
+  this.type = OBJECT.PANEL;
+
+  this.hTileNum = blocksX;
+  this.vTileNum = blocksY;
+
+
+  this.xScl = manager.losWid/this.sprite.width;
+  this.yScl = manager.losHei/this.sprite.height;
+
+  this.xOffset = 0;
+  this.yOffset = 0;
+
+  this.hLoss = 0.4;
+  this.vLoss = 0.4;
+
+  this.inPlace = false;
+
+  this.depth = 10;
+
+  this.hasCartridgeSlot = (this.hTileNum >= 3);
+  this.hasUsbSlot = (this.vTileNum == 1);
+
+  this.pushDrawList = function(){
+    objectLists[OBJECT.DRAW].push(new DrawRequest(this, this.depth, 0));
+    objectLists[OBJECT.DRAW].push(new DrawRequest(this, -15, 1));
+  }
+
+
+  this.update = function(dt = 1){
+
+    this.depth = 5;
+
+    if(this.attached && this.attachGridId != -1){
+
+      this.depth = 10;
+      this.gravityOn = false;
+
+      var targetPos = manager.getPosGrid(this.attachGridId);
+      targetPos.x -= manager.losWid/2;
+      targetPos.y -= manager.losHei/2;
+
+      //this.attachCooldownAlarm.update(dt);
+
+      if(Math.abs(targetPos.x - this.x) + Math.abs(targetPos.y - this.y) < 5){
+
+        //if(this.attachCooldownAlarm.finished){
+          if(!this.inPlace){
+            this.hspd = 0;
+            this.vspd = 0;
+
+            var pos = new Vector(this.x, this.y);
+            var dist = targetPos.sub(pos).mag();
+            var dir = targetPos.sub(pos).unit();
+            if(dist < 1){
+              this.x = targetPos.x;
+              this.y = targetPos.y;
+              this.inPlace = true;
+
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
+              manager.particles.push(particleConfetti(this.x, this.y));
+
+
+            } else {
+              this.x += dir.x/10;
+              this.y += dir.y/10;
+            }
+          }
+        //}
+      } else {
+        this.inPlace = false;
+        var pos = new Vector(this.x, this.y);
+        var dist = targetPos.sub(pos).mag();
+        var dir = targetPos.sub(pos).unit();
+
+        var spd = Math.max((dist*dist)/100000, 0.1);
+
+        this.hspd += dir.x*spd*dt;
+        this.vspd += dir.y*spd*dt;
+      }
+    } else {
+      this.gravityOn = true;
+    }
+
+    this.updateBox(dt);
+
+    if(this.holder.throwEvent){
+      if(manager.inventory.boundingBox.isPointInside(input.mouseX, input.mouseY)){
+        manager.inventory.attachObjectMouse(this);
+      } else {
+        if(!this.attached){
+          manager.attachObjectMouse(this, GRID.BACK);
+        }
+      }
+      this.holder.throwEvent = false;
+    }
+  }
+
+  this.collisionAction = function(isHorizontal, velocity){
+
+  }
+
+  this.drawRequest = function(ctx, parameter){
+    if(parameter == 0){
+      this.draw();
+    } else {
+      this.drawBorder();
+    }
+  }
+
+  this.drawBorder = function(){
+
+    for(var i = 0; i < this.vTileNum; i++){
+      for(var j = 0; j < this.hTileNum; j++){
+        var xx = this.x + j*manager.losWid;
+        var yy = this.y + i*manager.losHei;
+        var img = 0;
+
+        var rotation = 0;
+
+        // Image machine
+        if(this.vTileNum == 1 && this.hTileNum == 1){
+          img = 12;
+        } else if(this.vTileNum == 1){
+          
+          if(j == 0){
+            img = 9;
+          } else if(j == this.hTileNum-1){
+            img = 11;
+          } else {
+            img = 10;
+          }
+        } else if(this.hTileNum == 1){      
+          rotation = Math.PI/2;
+          if(i == 0){
+            img = 9;
+          } else if(i == this.vTileNum-1){
+            img = 11;
+          } else {
+            img = 10;
+          }
+        } else {
+          if(i == 0){
+            if(j == 0){
+              img = 0;
+            } else if(j == this.hTileNum-1){
+              img = 2;
+            } else {
+              img = 1;
+            }
+          } else if (i == this.vTileNum-1) {
+            if(j == 0){
+              img = 6;
+            } else if(j == this.hTileNum-1){
+              img = 8;
+            } else {
+              img = 7;
+            }
+          } else {
+            if(j == 0){
+              img = 3;
+            } else if(j == this.hTileNum-1){
+              img = 5;
+            } else {
+              img = 4;
+            }
+          }
+        }
+
+
+       sprites[SPR.SCREENFRAMETILE].drawExt(xx + 32*this.xScl, yy + 32*this.yScl, img, this.xScl, this.yScl, rotation, 32,32);
+      }
+    }
+
+    if(this.hasCartridgeSlot){
+      sprites[SPR.SCREENTILESLOT].drawExt(this.x + manager.losWid*1.5, this.y, 0, this.xScl, this.yScl, 0, sprites[SPR.SCREENTILESLOT].width/2, sprites[SPR.SCREENTILESLOT].height);
+    }
+
+    if(this.hasUsbSlot){
+      sprites[SPR.SCREENUSBSLOT].drawExt(this.x, this.y + manager.losHei*0.5, 0, this.xScl, this.yScl, 0, sprites[SPR.SCREENUSBSLOT].width, sprites[SPR.SCREENUSBSLOT].height/2);
+    }
+
+  }
+
+
+  this.draw = function(){
+
+
+
+      for(var i = 0; i < this.vTileNum; i++){
+        for(var j = 0; j < this.hTileNum; j++){
+          var xx = this.x + j*manager.losWid;
+          var yy = this.y + i*manager.losHei;
+          var img = 0;
+          var rotation = 0;
+
+          // Image machine
+          if(this.vTileNum == 1 && this.hTileNum == 1){
+            img = 12;
+          } else if(this.vTileNum == 1){
+            
+            if(j == 0){
+              img = 9;
+            } else if(j == this.hTileNum-1){
+              img = 11;
+            } else {
+              img = 10;
+            }
+          } else if(this.hTileNum == 1){    
+            rotation = Math.PI/2;  
+            if(i == 0){
+              img = 9;
+            } else if(i == this.vTileNum-1){
+              img = 11;
+            } else {
+              img = 10;
+            }
+          } else {
+            if(i == 0){
+              if(j == 0){
+                img = 0;
+              } else if(j == this.hTileNum-1){
+                img = 2;
+              } else {
+                img = 1;
+              }
+            } else if (i == this.vTileNum-1) {
+              if(j == 0){
+                img = 6;
+              } else if(j == this.hTileNum-1){
+                img = 8;
+              } else {
+                img = 7;
+              }
+            } else {
+              if(j == 0){
+                img = 3;
+              } else if(j == this.hTileNum-1){
+                img = 5;
+              } else {
+                img = 4;
+              }
+            }
+          }
+
+
+          sprites[SPR.SCREENBACKTILE].drawExt(xx + 32*this.xScl, yy + 32*this.yScl, img, this.xScl, this.yScl, rotation, 32,32);
+        }
+      }
+
+      
+
+
+
+      
+
+  }
+  
 }
 
 
@@ -868,6 +1259,11 @@ function BlockScreen(x, y, blocksX, blocksY){
   this.bottleWid = this.hTileNum*4;
   this.bottleHei = this.vTileNum*4;
 
+  this.pushDrawList = function(){
+    objectLists[OBJECT.DRAW].push(new DrawRequest(this, this.depth, 0));
+    objectLists[OBJECT.DRAW].push(new DrawRequest(this, this.depth, 1));
+  }
+
 
   this.update = function(dt = 1){
 
@@ -913,13 +1309,13 @@ function BlockScreen(x, y, blocksX, blocksY){
         if(this.cartridgeUpdated && this.hasCartridgeSlot){
           var gridPos = manager.gridInd2XY(this.attachGridId);
           if(manager.checkValidGridPos(gridPos.x + 1, gridPos.y - 1)){
-            var gridObj = manager.grid[manager.gridXY2Ind(gridPos.x + 1, gridPos.y - 1)];
+            var gridObj = manager.grid[GRID.MIDDLE][manager.gridXY2Ind(gridPos.x + 1, gridPos.y - 1)];
             if(gridObj.valid){
               if(gridObj.object.type == OBJECT.LOSANGO){
                 this.cartridge = gridObj.object.id;
                 this.lastCartridge = this.cartridge;
                 if(this.cartridge == NAME.BERNAD){
-                  manager.startDrMario(this.bottleWid, this.bottleHei);
+                  manager.startDrMario(this, this.bottleWid, this.bottleHei);
                 }
 
               } else {
@@ -988,11 +1384,15 @@ function BlockScreen(x, y, blocksX, blocksY){
 
     this.updateBox(dt);
 
-    if(this.throwEvent){
-      if(!this.attached){
-        manager.attachObjectMouse(this);
+    if(this.holder.throwEvent){
+      if(manager.inventory.boundingBox.isPointInside(input.mouseX, input.mouseY)){
+        manager.inventory.attachObjectMouse(this);
+      } else {
+        if(!this.attached){
+          manager.attachObjectMouse(this, GRID.MIDDLE);
+        }
       }
-      this.throwEvent = false;
+      this.holder.throwEvent = false;
     }
 
   }
@@ -1001,9 +1401,98 @@ function BlockScreen(x, y, blocksX, blocksY){
 
   }
 
-  this.show = function(){
+  this.drawRequest = function(ctx, parameter){
+    if(parameter == 0){
+      this.draw();
+    } else {
+      this.drawBorder();
+    }
+  }
+
+  this.drawBorder = function(){
+
+    for(var i = 0; i < this.vTileNum; i++){
+      for(var j = 0; j < this.hTileNum; j++){
+        var xx = this.x + j*manager.losWid;
+        var yy = this.y + i*manager.losHei;
+        var img = 0;
+
+        var rotation = 0;
+
+        // Image machine
+        if(this.vTileNum == 1 && this.hTileNum == 1){
+          img = 12;
+        } else if(this.vTileNum == 1){
+          
+          if(j == 0){
+            img = 9;
+          } else if(j == this.hTileNum-1){
+            img = 11;
+          } else {
+            img = 10;
+          }
+        } else if(this.hTileNum == 1){      
+          rotation = Math.PI/2;
+          if(i == 0){
+            img = 9;
+          } else if(i == this.vTileNum-1){
+            img = 11;
+          } else {
+            img = 10;
+          }
+        } else {
+          if(i == 0){
+            if(j == 0){
+              img = 0;
+            } else if(j == this.hTileNum-1){
+              img = 2;
+            } else {
+              img = 1;
+            }
+          } else if (i == this.vTileNum-1) {
+            if(j == 0){
+              img = 6;
+            } else if(j == this.hTileNum-1){
+              img = 8;
+            } else {
+              img = 7;
+            }
+          } else {
+            if(j == 0){
+              img = 3;
+            } else if(j == this.hTileNum-1){
+              img = 5;
+            } else {
+              img = 4;
+            }
+          }
+        }
 
 
+       sprites[SPR.SCREENFRAMETILE].drawExt(xx + 32*this.xScl, yy + 32*this.yScl, img, this.xScl, this.yScl, rotation, 32,32);
+      }
+    }
+
+    if(this.hasCartridgeSlot){
+      sprites[SPR.SCREENTILESLOT].drawExt(this.x + manager.losWid*1.5, this.y, 0, this.xScl, this.yScl, 0, sprites[SPR.SCREENTILESLOT].width/2, sprites[SPR.SCREENTILESLOT].height);
+    }
+
+    if(this.hasUsbSlot){
+      sprites[SPR.SCREENUSBSLOT].drawExt(this.x, this.y + manager.losHei*0.5, 0, this.xScl, this.yScl, 0, sprites[SPR.SCREENUSBSLOT].width, sprites[SPR.SCREENUSBSLOT].height/2);
+    }
+
+
+
+  }
+
+  this.draw = function(){
+
+
+    if(this.lastCartridge != null ){
+      if(this.cartridge != null){
+        sprites[SPR.BUBBLE].drawExt(this.cartridgePos.x, this.cartridgePos.y, 0, this.xScl*1.2, this.yScl*1.2, 0, 32,32);
+      }
+    }
 
       for(var i = 0; i < this.vTileNum; i++){
         for(var j = 0; j < this.hTileNum; j++){
@@ -1074,11 +1563,7 @@ function BlockScreen(x, y, blocksX, blocksY){
         if(this.attachGridId != -1){
           this.cartridgePos = manager.getPosGrid(this.attachGridId - manager.cols + 1);
         }
-        //sprites[SPR.BUBBLE].drawExt(this.x + manager.losWid*1.5, this.y - manager.losHei*0.5, 0, this.xScl*1.2, this.yScl*1.2, 0, 32,32);
 
-        if(this.cartridge != null){
-          sprites[SPR.BUBBLE].drawExt(this.cartridgePos.x, this.cartridgePos.y, 0, this.xScl*1.2, this.yScl*1.2, 0, 32,32);
-        }
 
 
         var powerPerc = (this.powerOn ? (1-this.turnOffAlarm.percentage()) : this.turnOnAlarm.percentage());
@@ -1089,22 +1574,28 @@ function BlockScreen(x, y, blocksX, blocksY){
         var clipHei = this.height - 10*this.yScl;
         var clipX = this.x+5*this.xScl + (clipWid * (1-clipHPerc))/2;
         var clipY = this.y+5*this.yScl + (clipHei * (1-clipVPerc))/2;
+
+        var xx = this.x +this.width/2;
+        var yy = this.y +this.height/2;
         ctx.save();
         ctx.beginPath();
         ctx.rect(clipX, clipY, clipWid*clipHPerc, clipHei*clipVPerc);
         ctx.clip();
         switch(this.lastCartridge){
           case 12:
-            sprites[SPR.XAROPINHOBANNER].drawExt(this.x, this.y, 0, this.xScl, this.yScl, 0,0,0);
+            sprites[SPR.BANNERS].drawExtRelative(xx, yy, 0, this.xScl, this.yScl, 0,0.5,0.5);
           break;
           case 27:
-            sprites[SPR.STONKSBANNER].drawExt(this.x, this.y, 0, this.xScl, this.yScl, 0,0,0);
+            sprites[SPR.BANNERS].drawExtRelative(xx, yy, 2, this.xScl, this.yScl, 0,0.5,0.5);
           break;
           case 40:
-            sprites[SPR.NEWTONBANNER].drawExt(this.x, this.y, 0, this.xScl, this.yScl, 0,0,0);
+            sprites[SPR.BANNERS].drawExtRelative(xx, yy, 3, this.xScl, this.yScl, 0,0.5,0.5);
           break;
           case 41:
-            sprites[SPR.SAMUBANNER].drawExt(this.x, this.y, 0, this.xScl, this.yScl, 0,0,0);
+            sprites[SPR.BANNERS].drawExtRelative(xx, yy, 1, this.xScl, this.yScl, 0,0.5,0.5);
+          break;
+          case 11:
+            sprites[SPR.BANNERS].drawExtRelative(xx, yy, 4, this.xScl, this.yScl, 0,0.5,0.5);
           break;
           case 4:
             manager.drMario.draw(this.x, this.y, this.hTileNum*manager.losWid, this.vTileNum*manager.losHei);
@@ -1112,81 +1603,6 @@ function BlockScreen(x, y, blocksX, blocksY){
         }
         ctx.restore();
       }
-
-      if(this.hasCartridgeSlot){
-        sprites[SPR.SCREENTILESLOT].drawExt(this.x + manager.losWid*1.5, this.y, 0, this.xScl, this.yScl, 0, sprites[SPR.SCREENTILESLOT].width/2, sprites[SPR.SCREENTILESLOT].height);
-      }
-
-      if(this.hasUsbSlot){
-        sprites[SPR.SCREENUSBSLOT].drawExt(this.x, this.y + manager.losHei*0.5, 0, this.xScl, this.yScl, 0, sprites[SPR.SCREENUSBSLOT].width, sprites[SPR.SCREENUSBSLOT].height/2);
-      }
-
-
-
-
-
-      for(var i = 0; i < this.vTileNum; i++){
-        for(var j = 0; j < this.hTileNum; j++){
-          var xx = this.x + j*manager.losWid;
-          var yy = this.y + i*manager.losHei;
-          var img = 0;
-
-          var rotation = 0;
-
-          // Image machine
-          if(this.vTileNum == 1 && this.hTileNum == 1){
-            img = 12;
-          } else if(this.vTileNum == 1){
-            
-            if(j == 0){
-              img = 9;
-            } else if(j == this.hTileNum-1){
-              img = 11;
-            } else {
-              img = 10;
-            }
-          } else if(this.hTileNum == 1){      
-            rotation = Math.PI/2;
-            if(i == 0){
-              img = 9;
-            } else if(i == this.vTileNum-1){
-              img = 11;
-            } else {
-              img = 10;
-            }
-          } else {
-            if(i == 0){
-              if(j == 0){
-                img = 0;
-              } else if(j == this.hTileNum-1){
-                img = 2;
-              } else {
-                img = 1;
-              }
-            } else if (i == this.vTileNum-1) {
-              if(j == 0){
-                img = 6;
-              } else if(j == this.hTileNum-1){
-                img = 8;
-              } else {
-                img = 7;
-              }
-            } else {
-              if(j == 0){
-                img = 3;
-              } else if(j == this.hTileNum-1){
-                img = 5;
-              } else {
-                img = 4;
-              }
-            }
-          }
-
-
-         sprites[SPR.SCREENFRAMETILE].drawExt(xx + 32*this.xScl, yy + 32*this.yScl, img, this.xScl, this.yScl, rotation, 32,32);
-        }
-      }
-
 
   }
 
@@ -1212,33 +1628,35 @@ function MedLogo(x, y){
 
   this.depth = 10;
 
-  this.updateHold = function(){
-    if(this.holded){
-      this.x = input.mouseX - this.holdX;
-      this.y = input.mouseY - this.holdY;
+  // this.updateHold = function(){
+  //   if(this.holded){
+  //     this.x = input.mouseX - this.holdX;
+  //     this.y = input.mouseY - this.holdY;
 
-      if(!input.mouseState[0][0]){
-        this.holded = false;
-        this.throwEvent = true;
+  //     if(!input.mouseState[0][0]){
+  //       this.holded = false;
+  //       this.throwEvent = true;
 
-        let totalXDiff = 0;
-        let totalYDiff = 0;
+  //       let totalXDiff = 0;
+  //       let totalYDiff = 0;
 
-        for (const mousePos of manager.prevMousePos) {
-          totalXDiff += (this.x + this.holdX) - mousePos.x;
-          totalYDiff += (this.y + this.holdY) - mousePos.y;
-        }
+  //       for (const mousePos of manager.prevMousePos) {
+  //         totalXDiff += (this.x + this.holdX) - mousePos.x;
+  //         totalYDiff += (this.y + this.holdY) - mousePos.y;
+  //       }
 
-        var throwForce = 1;
-        this.hspd = (totalXDiff / manager.prevMousePos.length) * throwForce;
-        this.vspd = (totalYDiff / manager.prevMousePos.length) * throwForce;
+  //       var throwForce = 1;
+  //       this.hspd = (totalXDiff / manager.prevMousePos.length) * throwForce;
+  //       this.vspd = (totalYDiff / manager.prevMousePos.length) * throwForce;
 
-        manager.attachObjectMouse(this);
-      }
+  //       manager.attachObjectMouse(this);
+  //     }
 
 
-    }
-  }
+  //   }
+
+
+    //}
 
   this.update = function(dt = 1){
 
@@ -1300,6 +1718,12 @@ function MedLogo(x, y){
       manager.clickParticle();
       var ind = choose([SND.METALHIT1, SND.METALHIT2, SND.METALHIT3]);
       playSound(ind);
+    }
+
+
+    if(this.holder.throwEvent){
+      manager.attachObjectMouse(this, GRID.MIDDLE);
+      this.holder.throwEvent = false;
     }
 
   }

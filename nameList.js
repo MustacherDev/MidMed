@@ -66,6 +66,13 @@ class Person{
 }
 
 
+class CodenamesHint{
+  constructor(hint, nameList){
+    this.hint = hint;
+    this.nameList = nameList;
+  }
+}
+
 
 
 class NameManager{
@@ -157,6 +164,31 @@ class NameManager{
         40,41,42,43,44,45,46,47,48,49
       ]
 
+    ];
+
+
+    this.hint = function(name, probNameList){
+      var fixedList = [];
+
+      for(var i = 0; i < probNameList.length; i++){
+        if(probNameList[i].length == 1){
+          fixedList.push([probNameList[i][0], 1]);
+        } else {
+          fixedList.push(probNameList[i]);
+        }
+      }
+
+      return new CodenamesHint(name, probNameList);
+    }
+    this.codenamesHints = [
+      this.hint("050", [[NAME.JOAS], [NAME.HENRIQUE], [NAME.SAMUEL], [NAME.MARLUS, 0.75], [NAME.ELISIANY, 0.5], [NAME.GABRIEL, 0.2]]),
+      this.hint("MULHER", [[NAME.ALICE], [NAME.ANAJU], [NAME.BRUNA], [NAME.EUDA], 
+        [NAME.ISABELLA], [NAME.MAYANNE], [NAME.MARIALUISA], [NAME.MARIANNA], [NAME.INGRID],
+        [NAME.PAULA], [NAME.THALIA], [NAME.VICTORIA], [NAME.LAIS], [NAME.LILIAN], [NAME.MELINA],
+        [NAME.MILENA], [NAME.NATHALIA], [NAME.DENISE], [NAME.ELISIANY], [NAME.BRUNELY], [NAME.SHEILA]]),
+      this.hint("ESPIRITO SANTO", [[NAME.ANDRE], [NAME.LUIS], [NAME.MAYANNE]]),
+      this.hint("ALTURA", [[NAME.LUIS], [NAME.JOATAN], [NAME.JOAS], [NAME.JVPORTO], [NAME.NILTON, 0.7], [NAME.FGOIS, 0.7], [NAME.IKARO, 0.8], [NAME.BERNAD, 0.8]]),
+      this.hint("XADREZ", [[NAME.DANTAS], [NAME.MICCHAEL], [NAME.SIDNEY, 0.9] , [NAME.HENRIQUE, 0.7], [NAME.JOAS, 0.7], [NAME.FBARRETO, 0.5], [NAME.JVPORTO, 0.7]]),
     ];
   }
 }

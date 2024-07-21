@@ -31,6 +31,8 @@ function resizeCanvas(){
   if(isMobile){
     roomWidth = 1450;
     roomHeight = 720;
+
+    window.scrollTo(0, 1);
   }
 
   canvas.width  = window.innerWidth;

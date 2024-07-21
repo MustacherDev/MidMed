@@ -7,6 +7,332 @@ const LSTATE = Object.freeze(new Enum(
     "TOTAL"
 ));
 
+
+class Effector{
+  constructor(){
+    
+  }
+
+  effect(los, rightClick){
+    if(los.minesweeper){
+      if(rightClick){
+        manager.flagMinesweeper(manager.losangosGrid[los.id]);
+        return;
+      }
+
+
+      if(!los.locked){
+        los.flip(1);
+        los.locked = true;
+        //los.open = true;
+        manager.exposeMinesweeper(manager.losangosGrid[los.id]);
+      }
+
+      if(los.id == NAME.LUIS){
+        manager.minesweeper.exposeAll();
+      }
+      return;
+    }
+
+
+    if(los.id == NAME.WILLISTON){
+      if(chance(0.2)){
+        los.sneezing = true;
+        return;
+      }
+
+      if(los.sneezing){
+        playSound(SND.KNOCK);
+        manager.clickParticle();
+        return;
+      } 
+
+      manager.altNames = !manager.altNames;
+      for(var i = 0; i < manager.losangos.length; i++){
+          var id = manager.losangos[i].id;
+          if(nameMan.persons[id].altName != nameMan.persons[id].name){
+            var updatePacket = new UpdateLosango([new PropertyObject("useAltName", manager.altNames)]);
+            updatePacket.isFront = true;
+            manager.losangos[i].updateList.push(updatePacket);
+          }
+      }
+    } else if(los.id == NAME.LUIS){
+      manager.initMinesweeper(manager.losangosGrid[los.id]);
+    } else if(los.id == NAME.JOAS){
+      playSound(SND.KNOCK);
+      manager.clickParticle();
+      if(chance(manager.bitCoinToMine/10)){
+        manager.bitCoinToMine--;
+        var coinX = randInt(0, roomWidth);
+        var coinY = -100;
+        addObject(new Bitcoin(coinX, coinY, randInt(25, 40)), OBJECT.BITCOIN);
+        playSound(SND.COINNOISE);
+      }
+    }else if(los.id == NAME.NATHALIA){
+      var row = manager.gridInd2XY(manager.losangosGrid[los.id]).y;
+      if(chance(1 -  ((row/manager.rows)))){
+        var sunX = randInt(0, roomWidth);
+        var sunY = -100;
+        addObject(new Sun(sunX, sunY), OBJECT.SUN);
+        
+        manager.clickParticle();
+        playSound(SND.POP);
+      } else {
+        los.flip();
+      }
+    } else if(los.id == NAME.VICTORIA){
+      if(manager.winSoundReady()){
+        playSound(SND.POP);
+        var newWinSound = randInt(0, WINSND.TOTAL);
+
+        if(los.popInAlarm.paused){
+          los.popInAlarm.start();
+          los.popInAlarm.timer = Math.floor(los.popInAlarm.time/5);
+        }
+
+        var partPos = manager.getPosGrid(los.getGridId());
+
+        for(var i = 0; i < 50; i++){
+          manager.particles.push(particleConfetti(partPos.x, partPos.y));
+        }
+
+
+
+        manager.winSoundId = (newWinSound == manager.winSoundId) ? (newWinSound+1)%WINSND.TOTAL : newWinSound;
+        //manager.winSoundId = WINSND.SMW;
+        winSounds[manager.winSoundId].play();
+
+        if(manager.winSoundId == WINSND.SMW){
+          manager.spotlight.x = partPos.x;
+          manager.spotlight.y = partPos.y;
+          manager.spotlight.width = 1500;
+          manager.spotlight.height = 1500;
+
+          var now = new Date();
+          manager.bwoopRealTimeAlarm.time = new Date(now.getTime() + 1000 + 1000*winSounds[manager.winSoundId].duration);
+          manager.bwoopRealTimeAlarm.active = true;
+
+
+          manager.spotlight.spd = manager.spotlight.width/((sounds[SND.SMWBWOOP].duration() - 0.2)*FRAMERATE);
+          manager.spotlight.active = false;
+        }
+      }
+    } else if(los.id == NAME.LAIS){
+      var directions = [
+        new Vector(1, -1),
+        new Vector(-1, -1),
+        new Vector(-1, 1),
+        new Vector(1, 1),
+      ];
+
+      for(var i = 0; i < directions.length; i++){
+        var pos = manager.gridInd2XY(los.getGridId());
+        pos.x += directions[i].x;
+        pos.y += directions[i].y;
+
+        if(manager.checkValidGridPos(pos.x, pos.y)){
+          var sideInd = manager.gridXY2Ind(pos.x, pos.y);
+          var sideGridObj = manager.grid[GRID.MIDDLE][sideInd];
+          if(sideGridObj.valid){
+            if(sideGridObj.object.type == OBJECT.LOSANGO){
+              var sideId = sideGridObj.object.id;
+
+              sideGridObj.object.shop();
+
+              //var validIds = [NAME.JOAS, NAME.ANDRE, NAME.LUIS, NAME.MATHEUS, NAME.HENRIQUE, NAME.GABRIEL, NAME.BERNAD, NAME.FSANCHEZ, NAME.RAFAEL];
+              //var canSlap = false;
+              // for(var j = 0; j < validIds.length; j++){
+              //   if(sideId == validIds[j]){
+              //     canSlap = true;
+              //     break;
+              //   }
+              // }
+
+              // if(canSlap){
+              //   sideGridObj.object.hspd += 10*directions[i].x;
+              //   sideGridObj.object.x += 10*directions[i].x;
+              //   sideGridObj.object.vspd += 10*directions[i].y;
+              //   sideGridObj.object.y += 10*directions[i].y;
+              //   manager.particles.push(particleSmack(sideGridObj.object.x, sideGridObj.object.y));
+              //   playSound(SND.SLAP);
+              // } 
+            }
+          }
+        }
+      }
+      los.flip(1);
+      los.blackHole();
+      
+    } else if(los.id == NAME.CAIO){
+      if(los.useAltName){
+        //playSound(SND.FALL);
+        manager.fall();
+      } else {
+        if(input.mouseState[0][1]){
+          manager.clickParticle();
+        }    
+      }
+
+    } else if (los.id == NAME.ALICE){
+      manager.sortGrid();
+    } else if (los.id == NAME.FGOIS){
+      manager.randomizeGrid();
+    } else if (los.id == NAME.JP){
+      playSound(SND.KNOCK);
+      manager.clickParticle();
+      manager.glitch();
+    } else if(los.id == NAME.JVROCHA){
+
+      playSound(SND.KNOCK);
+      manager.clickParticle();
+      if(objectLists[OBJECT.ROCK].length > 0) return;
+      var rockX = roomWidth/2;
+      var rockY = -2500;
+      addObject(new Rock(rockX, rockY, 300, 100), OBJECT.ROCK);
+      playSound(SND.FALLINGROCK);
+    } else if(los.id == NAME.ISRAEL){
+      if(manager.sleeping && manager.mode == 0){
+        if(los.attached){
+          manager.deattachObject(los.getGridId(), GRID.MIDDLE);
+          playSound(SND.POP);
+        }
+      } else {
+        los.flip();
+      }
+    } else if (los.id == NAME.EUDA){
+      manager.openInventory();
+      los.flip();
+    } else if (los.id == NAME.BERNAD){
+      if(los.useAltName){
+        if(!manager.losangos[NAME.ISRAEL].inOtherplane){
+          var pos = new Vector(manager.losangos[NAME.ISRAEL].x,manager.losangos[NAME.ISRAEL].y);
+          manager.addParticles(createParticlesInRect(particleLock, 20, pos.x, pos.y, 0, 0));
+          manager.quietAlarm.timer = manager.quietAlarm.time;
+          playSound(SND.POOF);
+        }
+      }
+      los.flip();
+    } else if (los.id == NAME.SAMUEL){
+
+      var directions = [
+        new Vector(1, 0),
+        new Vector(1, -1),
+        new Vector(0, -1),
+        new Vector(-1, -1),
+        new Vector(-1, 0),
+        new Vector(-1, 1),
+        new Vector(0, 1),
+        new Vector(1, 1),
+      ];
+
+      for(var i = 0; i < directions.length; i++){
+        var pos = manager.gridInd2XY(los.getGridId());
+        pos.x += directions[i].x;
+        pos.y += directions[i].y;
+
+        if(manager.checkValidGridPos(pos.x, pos.y)){
+          var sideInd = manager.gridXY2Ind(pos.x, pos.y);
+          var sideGridObj = manager.grid[GRID.MIDDLE][sideInd];
+          if(sideGridObj.valid){
+            if(sideGridObj.object.type == OBJECT.LOSANGO){
+              var sideId = sideGridObj.object.id;
+
+              var validIds = [NAME.JOAS, NAME.ANDRE, NAME.LUIS, NAME.MATHEUS, NAME.HENRIQUE, NAME.GABRIEL, NAME.BERNAD, NAME.FSANCHEZ, NAME.RAFAEL];
+              var canSlap = false;
+              for(var j = 0; j < validIds.length; j++){
+                if(sideId == validIds[j]){
+                  canSlap = true;
+                  break;
+                }
+              }
+
+              if(canSlap){
+                sideGridObj.object.hspd += 10*directions[i].x;
+                sideGridObj.object.x += 10*directions[i].x;
+                sideGridObj.object.vspd += 10*directions[i].y;
+                sideGridObj.object.y += 10*directions[i].y;
+                manager.particles.push(particleSmack(sideGridObj.object.x, sideGridObj.object.y));
+                playSound(SND.SLAP);
+              } 
+            }
+          }
+        }
+      }
+      los.flip();
+      
+    } else if (los.id == NAME.DANILO){
+
+      if(los.isFront && chance(0.5) && objectLists[OBJECT.DART].length <= 1){
+        var pos = manager.getPosGrid(los.getGridId());
+        var ang = Math.random()*Math.PI*2;
+        var spd = randRange(5, 10);
+        var dart = new Dart(pos.x, pos.y, ang);
+        dart.hspd = Math.cos(ang)*spd;
+        dart.vspd = Math.sin(ang)*spd;
+        dart.depth = 10;
+
+        los.backItem = dart;
+
+        los.flip(1);
+      } else if(!los.isFront){
+        if(los.backItem != null){
+
+          if(los.backItem.type == OBJECT.DART){
+
+            var pos = manager.getPosGrid(los.getGridId());
+            los.backItem.x = pos.x;
+            los.backItem.y = pos.y;
+            addObject(los.backItem, OBJECT.DART);
+
+
+            playSound(SND.POP);
+            manager.clickParticle();
+
+            los.backItem = null;
+          }
+        } else {
+          los.flip(1);
+        }
+      } else {
+        los.flip();
+      }
+    } else if (los.id == NAME.MARCELO){
+
+      var directions = [
+        new Vector(1, 0),
+        new Vector(1, -1),
+        new Vector(0, -1),
+        new Vector(-1, -1),
+        new Vector(-1, 0),
+        new Vector(-1, 1),
+        new Vector(0, 1),
+        new Vector(1, 1),
+      ];
+
+      for(var i = 0; i < directions.length; i++){
+        var pos = manager.gridInd2XY(los.getGridId());
+        pos.x += directions[i].x;
+        pos.y += directions[i].y;
+
+        if(manager.checkValidGridPos(pos.x, pos.y)){
+          var sideInd = manager.gridXY2Ind(pos.x, pos.y);
+          var sideGridObj = manager.grid[GRID.MIDDLE][sideInd];
+          if(sideGridObj.valid){
+            if(sideGridObj.object.type == OBJECT.LOSANGO){
+              manager.metalize(pos.x, pos.y, 1,1);
+            }
+          }
+        }
+      }
+
+      los.flip();
+    } else {
+      los.flip();
+    }
+
+  }
+}
+
 class Losango {
   constructor(x, y, id){
     this.x = x;
@@ -38,14 +364,23 @@ class Losango {
     this.boxCollider.centerX = this.boxWid;
     this.boxCollider.centerY = this.boxHei;
 
-    this.prevX = 0;
-    this.prevY = 0;
+    // this.prevX = 0;
+    // this.prevY = 0;
 
-    this.holdX = 0;
-    this.holdY = 0;
-    this.holded = false;
+    // this.holdX = 0;
+    // this.holdY = 0;
+    // this.holded = false;
+
+    this.holder = new Holder();
+    this.canBeHeld = true;
 
     this.boundingBox = new BoundingBox(this.x - this.boxWid/2, this.y - this.boxHei/2, this.boxWid, this.boxHei);
+    
+    
+    this.clickingBox = new BoundingBox(this.x, this.y, this.width, this.height);
+    this.clickingBox.xOffset = this.boxWid/2;
+    this.clickingBox.yOffset = this.boxHei/2;
+
 
     this.flipping = false;
     this.flipPhase = 0;
@@ -64,19 +399,6 @@ class Losango {
     this.scalingSpd = 0.01;
     this.extraScale = 1;
 
-    this.frames = 0;
-
-    this.frontColor = new Color(255,255,255);
-    this.backColor = new Color(200, 200, 200);
-
-    this.linePerc = 0.1;
-
-    this.hovered = false;
-
-    this.useAltName = false;
-    this.minesweeper = false;
-    this.anniversary = false;
-
     this.sneezing = false;
     this.sneezeTries = 0;
     this.sneezePauseTime = 0;
@@ -94,12 +416,32 @@ class Losango {
     this.popOutAlarm = new Alarm(0, 200);
     this.popOutAlarm.paused = true;
 
+    this.frames = 0;
+
+    this.frontColor = new Color(255,255,255);
+    this.backColor = new Color(200, 200, 200);
+
+    this.linePerc = 0.1;
+
+    this.hovered = false;
+
+    this.useAltName = false;
+    this.minesweeper = false;
+    this.anniversary = false;
+
+
+
     this.screenMode = false;
+
+    this.shopMode = false;
+
 
     this.inOtherplane = false;
 
     this.backItem = null;
 
+
+    this.effector = new Effector();
 
 
     this.updatePacket = null;
@@ -134,278 +476,9 @@ class Losango {
 
 
 
-  effect(rightClick){
-    if(this.minesweeper){
-      if(rightClick){
-        manager.flagMinesweeper(manager.losangosGrid[this.id]);
-        return;
-      }
 
 
-      if(!this.locked){
-        this.flip(1);
-        this.locked = true;
-        //this.open = true;
-        manager.exposeMinesweeper(manager.losangosGrid[this.id]);
-      }
-
-      if(this.id == NAME.LUIS){
-        manager.minesweeper.exposeAll();
-      }
-      return;
-    }
-
-
-    if(this.id == NAME.WILLISTON){
-      if(chance(0.2)){
-        this.sneezing = true;
-        return;
-      }
-
-      if(this.sneezing){
-        playSound(SND.KNOCK);
-        manager.clickParticle();
-        return;
-      } 
-
-      manager.altNames = !manager.altNames;
-      for(var i = 0; i < manager.losangos.length; i++){
-          var id = manager.losangos[i].id;
-          if(nameMan.persons[id].altName != nameMan.persons[id].name){
-            var updatePacket = new UpdateLosango([new PropertyObject("useAltName", manager.altNames)]);
-            updatePacket.isFront = true;
-            manager.losangos[i].updateList.push(updatePacket);
-          }
-      }
-    } else if(this.id == NAME.LUIS){
-      manager.initMinesweeper(manager.losangosGrid[this.id]);
-    } else if(this.id == NAME.JOAS){
-      playSound(SND.KNOCK);
-      manager.clickParticle();
-      if(chance(manager.bitCoinToMine/10)){
-        manager.bitCoinToMine--;
-        var coinX = randInt(0, roomWidth);
-        var coinY = -100;
-        addObject(new Bitcoin(coinX, coinY, randInt(25, 40)), OBJECT.BITCOIN);
-        playSound(SND.COINNOISE);
-      }
-    }else if(this.id == NAME.NATHALIA){
-      var row = manager.gridInd2XY(manager.losangosGrid[this.id]).y;
-      if(chance(1 -  ((row/manager.rows)))){
-        var sunX = randInt(0, roomWidth);
-        var sunY = -100;
-        addObject(new Sun(sunX, sunY), OBJECT.SUN);
-        
-        manager.clickParticle();
-        playSound(SND.POP);
-      } else {
-        this.flip();
-      }
-    } else if(this.id == NAME.VICTORIA){
-      if(manager.winSoundReady()){
-        playSound(SND.POP);
-        var newWinSound = randInt(0, WINSND.TOTAL);
-
-        if(this.popInAlarm.paused){
-          this.popInAlarm.start();
-          this.popInAlarm.timer = Math.floor(this.popInAlarm.time/5);
-        }
-
-        var partPos = manager.getPosGrid(this.getGridId());
-
-        for(var i = 0; i < 50; i++){
-          manager.particles.push(particleConfetti(partPos.x, partPos.y));
-        }
-
-
-
-        manager.winSoundId = (newWinSound == manager.winSoundId) ? (newWinSound+1)%WINSND.TOTAL : newWinSound;
-        //manager.winSoundId = WINSND.SMW;
-        winSounds[manager.winSoundId].play();
-
-        if(manager.winSoundId == WINSND.SMW){
-          manager.spotlight.x = partPos.x;
-          manager.spotlight.y = partPos.y;
-          manager.spotlight.width = 1500;
-          manager.spotlight.height = 1500;
-
-          var now = new Date();
-          manager.bwoopRealTimeAlarm.time = new Date(now.getTime() + 1000 + 1000*winSounds[manager.winSoundId].duration);
-          manager.bwoopRealTimeAlarm.active = true;
-
-
-          manager.spotlight.spd = manager.spotlight.width/((sounds[SND.SMWBWOOP].duration() - 0.2)*FRAMERATE);
-          manager.spotlight.active = false;
-        }
-      }
-    } else if(this.id == NAME.CAIO){
-      if(this.useAltName){
-        //playSound(SND.FALL);
-        manager.fall();
-      } else {
-        if(input.mouseState[0][1]){
-          manager.clickParticle();
-        }    
-      }
-
-    } else if (this.id == NAME.ALICE){
-      manager.sortGrid();
-    } else if (this.id == NAME.FGOIS){
-      manager.randomizeGrid();
-    } else if (this.id == NAME.JP){
-      playSound(SND.KNOCK);
-      manager.clickParticle();
-      manager.glitch();
-    } else if(this.id == NAME.JVROCHA){
-
-      playSound(SND.KNOCK);
-      manager.clickParticle();
-      if(objectLists[OBJECT.ROCK].length > 0) return;
-      var rockX = roomWidth/2;
-      var rockY = -2500;
-      addObject(new Rock(rockX, rockY, 300, 100), OBJECT.ROCK);
-      playSound(SND.FALLINGROCK);
-    } else if(this.id == NAME.ISRAEL){
-      if(manager.sleeping && manager.mode == 0){
-        if(this.attached){
-          manager.deattachObject(this.getGridId());
-          playSound(SND.POP);
-        }
-      } else {
-        this.flip();
-      }
-    } else if (this.id == NAME.EUDA){
-      //manager.openInventory();
-      this.flip();
-    } else if (this.id == NAME.BERNAD){
-      if(this.useAltName){
-        if(!manager.losangos[NAME.ISRAEL].inOtherplane){
-          var pos = new Vector(manager.losangos[NAME.ISRAEL].x,manager.losangos[NAME.ISRAEL].y);
-          manager.addParticles(createParticlesInRect(particleLock, 20, pos.x, pos.y, 0, 0));
-          manager.quietAlarm.timer = manager.quietAlarm.time;
-          playSound(SND.POOF);
-        }
-      }
-      this.flip();
-    } else if (this.id == NAME.SAMUEL){
-
-      var directions = [
-        new Vector(1, 0),
-        new Vector(1, -1),
-        new Vector(0, -1),
-        new Vector(-1, -1),
-        new Vector(-1, 0),
-        new Vector(-1, 1),
-        new Vector(0, 1),
-        new Vector(1, 1),
-      ];
-
-      for(var i = 0; i < directions.length; i++){
-        var pos = manager.gridInd2XY(this.getGridId());
-        pos.x += directions[i].x;
-        pos.y += directions[i].y;
-
-        if(manager.checkValidGridPos(pos.x, pos.y)){
-          var sideInd = manager.gridXY2Ind(pos.x, pos.y);
-          var sideGridObj = manager.grid[sideInd];
-          if(sideGridObj.valid){
-            if(sideGridObj.object.type == OBJECT.LOSANGO){
-              var sideId = sideGridObj.object.id;
-
-              var validIds = [NAME.JOAS, NAME.ANDRE, NAME.LUIS, NAME.MATHEUS, NAME.HENRIQUE, NAME.GABRIEL, NAME.BERNAD, NAME.FSANCHEZ, NAME.RAFAEL];
-              var canSlap = false;
-              for(var j = 0; j < validIds.length; j++){
-                if(sideId == validIds[j]){
-                  canSlap = true;
-                  break;
-                }
-              }
-
-              if(canSlap){
-                sideGridObj.object.hspd += 10*directions[i].x;
-                sideGridObj.object.x += 10*directions[i].x;
-                sideGridObj.object.vspd += 10*directions[i].y;
-                sideGridObj.object.y += 10*directions[i].y;
-                manager.particles.push(particleSmack(sideGridObj.object.x, sideGridObj.object.y));
-                playSound(SND.SLAP);
-              } 
-            }
-          }
-        }
-      }
-      this.flip();
-     
-    } else if (this.id == NAME.DANILO){
-
-      if(this.isFront && chance(0.5) && objectLists[OBJECT.DART].length <= 1){
-        var pos = manager.getPosGrid(this.getGridId());
-        var ang = Math.random()*Math.PI*2;
-        var spd = randRange(5, 10);
-        var dart = new Dart(pos.x, pos.y, ang);
-        dart.hspd = Math.cos(ang)*spd;
-        dart.vspd = Math.sin(ang)*spd;
-        dart.depth = 10;
-
-        this.backItem = dart;
-
-        this.flip(1);
-      } else if(!this.isFront){
-        if(this.backItem != null){
-
-          if(this.backItem.type == OBJECT.DART){
-
-            var pos = manager.getPosGrid(this.getGridId());
-            this.backItem.x = pos.x;
-            this.backItem.y = pos.y;
-            addObject(this.backItem, OBJECT.DART);
-
-
-            playSound(SND.POP);
-            manager.clickParticle();
-
-            this.backItem = null;
-          }
-        } else {
-          this.flip(1);
-        }
-      } else {
-        this.flip();
-      }
-    } else if (this.id == NAME.MARCELO){
-
-      var directions = [
-        new Vector(1, 0),
-        new Vector(1, -1),
-        new Vector(0, -1),
-        new Vector(-1, -1),
-        new Vector(-1, 0),
-        new Vector(-1, 1),
-        new Vector(0, 1),
-        new Vector(1, 1),
-      ];
-
-      for(var i = 0; i < directions.length; i++){
-        var pos = manager.gridInd2XY(this.getGridId());
-        pos.x += directions[i].x;
-        pos.y += directions[i].y;
-
-        if(manager.checkValidGridPos(pos.x, pos.y)){
-          var sideInd = manager.gridXY2Ind(pos.x, pos.y);
-          var sideGridObj = manager.grid[sideInd];
-          if(sideGridObj.valid){
-            if(sideGridObj.object.type == OBJECT.LOSANGO){
-              manager.metalize(pos.x, pos.y, 1,1);
-            }
-          }
-        }
-      }
-
-      this.flip();
-    } else {
-      this.flip();
-    }
-  }
-
+  
 
 
   update(dt = 1){
@@ -470,9 +543,9 @@ class Losango {
         this.vspd += dir.y*spd*dt;
       }
     } else {
-      if(!this.holded){
+      if(!this.holder.holded){
 
-        this.getHold();
+        this.holder.getHold(this);
 
         // this.vspd += 0.1;
 
@@ -484,14 +557,25 @@ class Losango {
       } else {
         manager.losangosPhy[this.id].state.pos.x = this.x;
         manager.losangosPhy[this.id].state.pos.y = this.y;
-        this.updateHold();
+
+      
+        this.holder.update(this);
       }
     }
 
 
-    if(this.holded){
+    if(this.holder.holded){
       this.depth -= 10;
     }
+
+    if(this.holder.throwEvent){
+      manager.losangosPhy[this.id].state.pos.x = this.x;
+      manager.losangosPhy[this.id].state.pos.y = this.y;
+      manager.attachObjectMouse(this, GRID.MIDDLE);
+      this.holder.throwEvent = false;
+    }
+
+
 
     this.hspd = clamp(this.hspd, -20, 20);
     this.vspd = clamp(this.vspd, -20, 20);
@@ -511,15 +595,11 @@ class Losango {
     this.linePerc = 0.1 + Math.cos(this.frames/40)*0.05;
 
     if(this.hovered){
-
-
-
-
       if(input.mouseState[0][1]){
 
         if(this.attached){
           if(!this.flipping){
-            this.effect(false);
+            this.effector.effect(this, false);
           }
         } else {
 
@@ -529,7 +609,7 @@ class Losango {
 
           if(this.attached){
             if(!this.flipping){
-              this.effect(true);
+              this.effector.effect(this, true);
             }
           }
         }
@@ -613,6 +693,13 @@ class Losango {
     this.xSclMult *= 1 + poppingPerc*0.4;
     this.ySclMult *= 1 + poppingPerc*0.4;
     this.depth += poppingPerc*(-10);
+
+
+    if(this.shopMode){
+      if(!this.flipping && this.isFront){
+        this.shopMode = false;
+      }
+    }
 
 
     // FLIPPING
@@ -727,8 +814,8 @@ class Losango {
 
         if(this.attached){
           var gridId = manager.losangosGrid[this.id];  
-          manager.deattachObject(gridId);
-          manager.attachObject(metalBlock, gridId);
+          manager.deattachObject(gridId, GRID.MIDDLE);
+          manager.attachObject(metalBlock, gridId, GRID.MIDDLE);
         }
         
         var partPlaces = placesInRect(50, this.x - manager.losWid*0.75, this.y - manager.losHei*0.75, manager.losWid*1.5, manager.losHei*1.5);
@@ -763,6 +850,33 @@ class Losango {
         }
       }
     }
+  }
+
+  shop(){
+    if(!this.flipping){
+      if(this.isFront){
+        
+        var obj = null;
+        if(this.id == NAME.JVROCHA){
+          obj = new Rock(this.x, this.y, 100, 100);
+        } 
+
+        if(obj != null){
+          this.backItem = obj;
+          this.shopMode = true;
+
+          this.flip(1);
+          }
+      } 
+    }
+  }
+
+  blackHole(){
+    this.blackHoleMode = true;
+  }
+
+  drawRequest(ctx, parameter){
+    this.draw(ctx);
   }
 
 
@@ -808,7 +922,7 @@ class Losango {
 
     // Birthdat Hat
     if(this.anniversary){
-      sprites[SPR.BIRTHDAY].drawRot(0,-this.height*0.8,0,1,1,deg2rad(0),true);
+      sprites[SPR.BIRTHDAY].drawExtRelative(0,-this.height*0.8,0,1,1,deg2rad(0),0.5,0.5);
     }
 
 
@@ -837,7 +951,7 @@ class Losango {
 
       if(this.minesweeper){
           if(manager.minesweeper.gridFlag[this.getGridId()]){
-              sprites[SPR.NUMBERS].draw(0,0,10,this.boxWid/16, this.boxHei/16, true);
+              sprites[SPR.NUMBERS].drawExtRelative(0,0,10,this.boxWid/16, this.boxHei/16, 0, 0.5,0.5);
           }
       }
       ctx.rotate(angAnim); // Rotate the canvas context
@@ -848,9 +962,9 @@ class Losango {
         ctx.scale(-1, 1); // Scale the x-axis
 
         if(this.states[LSTATE.MINESWEEPER] == -1){
-          sprites[SPR.BOMB].draw(0,0,0,this.boxWid/16, this.boxHei/16, true);
+          sprites[SPR.BOMB].drawExtRelative(0,0,0,this.boxWid/16, this.boxHei/16, 0, 0.5, 0.5);
         } else if (this.states[LSTATE.MINESWEEPER] != 0){
-          sprites[SPR.NUMBERS].draw(0,0,this.states[LSTATE.MINESWEEPER],this.boxWid/16, this.boxHei/16, true);
+          sprites[SPR.NUMBERS].drawExtRelative(0,0,this.states[LSTATE.MINESWEEPER],this.boxWid/16, this.boxHei/16, 0, 0.5, 0.5);
         }
 
         ctx.scale(-1, 1); // Scale the x-axis
@@ -860,7 +974,7 @@ class Losango {
           this.backItem.x = 0;
           this.backItem.y = 0;
 
-          this.backItem.show();
+          this.backItem.draw();
         }
       }
 
@@ -870,49 +984,6 @@ class Losango {
     ctx.restore(); // Restore the original state
   }
 
-
-
-    getHold(){
-      if(this.hovered && !this.holded && input.mouseState[0][1] && manager.holding == false){
-        manager.holding = true;
-        manager.holdingObject = this;
-        manager.holdingContent = OBJECT.LOSANGO;
-        this.holded = true;
-        this.holdX = input.mouseX - this.x;
-        this.holdY = input.mouseY - this.y;
-        this.hspd = 0;
-        this.vspd = 0;
-      }
-    }
-
-    updateHold(){
-      if(this.holded){
-        //manager.holding = true;
-        this.x = input.mouseX - this.holdX;
-        this.y = input.mouseY - this.holdY;
-
-        if(!input.mouseState[0][0]){
-          manager.losangosPhy[this.id].state.pos.x = this.x;
-          manager.losangosPhy[this.id].state.pos.y = this.y;
-
-          this.holded = false;
-
-          let totalXDiff = 0;
-          let totalYDiff = 0;
-
-          for (const mousePos of manager.prevMousePos) {
-            totalXDiff += (this.x + this.holdX) - mousePos.x;
-            totalYDiff += (this.y + this.holdY) - mousePos.y;
-          }
-
-          var throwForce = 1;
-          this.hspd = (totalXDiff / manager.prevMousePos.length) * throwForce;
-          this.vspd = (totalYDiff / manager.prevMousePos.length) * throwForce;
-
-          manager.attachObjectMouse(this);
-        }
-      }
-    }
 
 
   startFlipping(){
