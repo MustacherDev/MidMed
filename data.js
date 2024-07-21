@@ -187,7 +187,7 @@ var imgPaths = [  "bombSprite.png",
   "Hit.png",
   "inventoryItems.png",
   "banners.png",
-  "moneyDisplay.png",
+  "MoneyDisplay.png",
   "money.png"
 ];
 
