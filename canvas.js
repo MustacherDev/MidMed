@@ -32,15 +32,30 @@ function resizeCanvas(){
     roomWidth = 1450;
     roomHeight = 720;
 
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    canvas.style.left = 0+"px";
+    canvas.style.top  = 1+"px";
+    canvas.style.position = "absolute";
+
     window.scrollTo(0, 1);
+
+   
+
+
+  } else {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    canvas.style.left = 0+"px";
+    canvas.style.top  = 0+"px";
+    canvas.style.position = "absolute";
   }
 
-  canvas.width  = window.innerWidth;
-  canvas.height = window.innerHeight;
+ 
 
-  canvas.style.left = 0+"px";
-  canvas.style.top  = 0+"px";
-  canvas.style.position = "absolute";
+
 
   var sclX = canvas.width/roomWidth;
   var sclY = canvas.height/roomHeight;
