@@ -118,6 +118,10 @@ function GameObject(x, y, sprite) {
     this.drawRequest = function(ctx, parameter){
       this.draw(ctx);
     }
+
+    this.onDestroy = function(){
+
+    }
 }
 
 GameObject.prototype.draw = function (ctx) {
@@ -387,9 +391,6 @@ function Box(x, y, width, height, sprite) {
     this.boundingBox = new BoundingBox(this.x  -this.xOffset, this.y -this.yOffset, this.width, this.height);
 
     this.hovered = false;
-    // this.holded = false;
-    // this.holdX = 0;
-    // this.holdY = 0;
 
     this.prevX = 0;
     this.prevY = 0;
@@ -421,7 +422,7 @@ function Box(x, y, width, height, sprite) {
 
     this.tick = 0;
 
-    this.draw = function () {
+    this.draw = function (ctx) {
         this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, this.ang, this.xOffset/this.xScl, this.yOffset/this.yScl);
     }
 
@@ -530,7 +531,7 @@ function Box(x, y, width, height, sprite) {
         this.pushDrawList();
     }
 
-    this.update = function(dt = 1){
+    this.update = function(dt){
       this.updateBox(dt);
     }
 }
@@ -687,7 +688,7 @@ function Sun(x, y){
 
   this.boundingBox = new BoundingBox(this.x, this.y, this.width, this.height);
 
-  this.update = function(dt = 1){
+  this.update = function(dt){
     this.y += this.vspd*dt;
 
     this.phase += 0.02*dt;
@@ -759,7 +760,7 @@ function Dart(x, y, ang){
 
   this.fixed = false;
 
-  this.update = function(dt = 1){
+  this.update = function(dt){
 
     if(this.fixed){
       this.hspd = 0;
@@ -864,7 +865,7 @@ function MetalBlock(x, y){
 
   this.depth = 5;
 
-  this.update = function(dt = 1){
+  this.update = function(dt){
 
 
 
@@ -973,7 +974,12 @@ function BlockPanel(x, y, blocksX, blocksY){
   this.depth = 10;
 
   this.hasCartridgeSlot = (this.hTileNum >= 3);
-  this.hasUsbSlot = (this.vTileNum == 1);
+ 
+  this.usbSlots = [];
+
+  if(this.vTileNum == 1){
+    this.usbSlots.push(new USBSlot(this, this.usbSlots.length, new Vector(0,0), 2));
+  }
 
   this.pushDrawList = function(){
     objectLists[OBJECT.DRAW].push(new DrawRequest(this, this.depth, 0));
@@ -981,7 +987,7 @@ function BlockPanel(x, y, blocksX, blocksY){
   }
 
 
-  this.update = function(dt = 1){
+  this.update = function(dt){
 
     this.depth = 5;
 
@@ -1132,8 +1138,19 @@ function BlockPanel(x, y, blocksX, blocksY){
       sprites[SPR.SCREENTILESLOT].drawExt(this.x + manager.losWid*1.5, this.y, 0, this.xScl, this.yScl, 0, sprites[SPR.SCREENTILESLOT].width/2, sprites[SPR.SCREENTILESLOT].height);
     }
 
-    if(this.hasUsbSlot){
-      sprites[SPR.SCREENUSBSLOT].drawExt(this.x, this.y + manager.losHei*0.5, 0, this.xScl, this.yScl, 0, sprites[SPR.SCREENUSBSLOT].width, sprites[SPR.SCREENUSBSLOT].height/2);
+    var directions = [
+      new Vector(1, 0),
+      new Vector(0, -1),
+      new Vector(-1, 0),
+      new Vector(0, 1)
+    ];
+
+    for(var i = 0; i < this.usbSlots.length; i++){
+      var dir = this.usbSlots[i].direction;
+      var xx = this.usbSlots[i].slotPos.x*manager.losWid + this.x + manager.losWid*0.5 + directions[dir].x*manager.losWid*0.5;
+      var yy = this.usbSlots[i].slotPos.y*manager.losHei + this.y + manager.losHei*0.5 + directions[dir].y*manager.losHei*0.5;;
+      var ang = (dir+2)*Math.PI/2;
+      sprites[SPR.SCREENUSBSLOT].drawExt(xx, yy, 0, this.xScl, this.yScl, ang, sprites[SPR.SCREENUSBSLOT].width, sprites[SPR.SCREENUSBSLOT].height/2);
     }
 
   }
@@ -1237,7 +1254,11 @@ function BlockScreen(x, y, blocksX, blocksY){
   this.depth = 5;
 
   this.hasCartridgeSlot = (this.hTileNum >= 3);
-  this.hasUsbSlot = (this.vTileNum == 1);
+  this.usbSlots = [];
+
+  if(this.vTileNum == 1){
+    this.usbSlots.push(new USBSlot(this, this.usbSlots.length, new Vector(0,0), 2));
+  }
 
   // SCREEN VISUAL STUFF
 
@@ -1265,7 +1286,7 @@ function BlockScreen(x, y, blocksX, blocksY){
   }
 
 
-  this.update = function(dt = 1){
+  this.update = function(dt){
 
     this.depth = 5;
 
@@ -1477,8 +1498,19 @@ function BlockScreen(x, y, blocksX, blocksY){
       sprites[SPR.SCREENTILESLOT].drawExt(this.x + manager.losWid*1.5, this.y, 0, this.xScl, this.yScl, 0, sprites[SPR.SCREENTILESLOT].width/2, sprites[SPR.SCREENTILESLOT].height);
     }
 
-    if(this.hasUsbSlot){
-      sprites[SPR.SCREENUSBSLOT].drawExt(this.x, this.y + manager.losHei*0.5, 0, this.xScl, this.yScl, 0, sprites[SPR.SCREENUSBSLOT].width, sprites[SPR.SCREENUSBSLOT].height/2);
+    var directions = [
+      new Vector(1, 0),
+      new Vector(0, -1),
+      new Vector(-1, 0),
+      new Vector(0, 1)
+    ];
+
+    for(var i = 0; i < this.usbSlots.length; i++){
+      var dir = this.usbSlots[i].direction;
+      var xx = this.usbSlots[i].slotPos.x*manager.losWid + this.x + manager.losWid*0.5 + directions[dir].x*manager.losWid*0.5;
+      var yy = this.usbSlots[i].slotPos.y*manager.losHei + this.y + manager.losHei*0.5 + directions[dir].y*manager.losHei*0.5;;
+      var ang = (dir+2)*Math.PI/2;
+      sprites[SPR.SCREENUSBSLOT].drawExt(xx, yy, 0, this.xScl, this.yScl, ang, sprites[SPR.SCREENUSBSLOT].width, sprites[SPR.SCREENUSBSLOT].height/2);
     }
 
 
@@ -1628,37 +1660,7 @@ function MedLogo(x, y){
 
   this.depth = 10;
 
-  // this.updateHold = function(){
-  //   if(this.holded){
-  //     this.x = input.mouseX - this.holdX;
-  //     this.y = input.mouseY - this.holdY;
-
-  //     if(!input.mouseState[0][0]){
-  //       this.holded = false;
-  //       this.throwEvent = true;
-
-  //       let totalXDiff = 0;
-  //       let totalYDiff = 0;
-
-  //       for (const mousePos of manager.prevMousePos) {
-  //         totalXDiff += (this.x + this.holdX) - mousePos.x;
-  //         totalYDiff += (this.y + this.holdY) - mousePos.y;
-  //       }
-
-  //       var throwForce = 1;
-  //       this.hspd = (totalXDiff / manager.prevMousePos.length) * throwForce;
-  //       this.vspd = (totalYDiff / manager.prevMousePos.length) * throwForce;
-
-  //       manager.attachObjectMouse(this);
-  //     }
-
-
-  //   }
-
-
-    //}
-
-  this.update = function(dt = 1){
+  this.update = function(dt){
 
 
     if(this.attached && this.attachGridId != -1){
@@ -1734,6 +1736,322 @@ function MedLogo(x, y){
 
   this.show = function(){
       this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, 0, this.xOffset/this.xScl, this.yOffset/this.yScl);
+  }
+
+}
+
+function RopeObject(x, y, segments, segmentLen){
+  Box.call(this, x, y, 10 ,10, sprites[SPR.SUN]);
+  this.rope = new RopeBody(x, y, segments, segmentLen);
+  this.depth = -10;
+
+  this.draw = function(ctx){
+    for (var i = 1; i < this.rope.points.length; i++) {
+        var imageNum = 1;
+        if (i == 1) {
+            imageNum = 0;
+        }
+        else if (i == this.rope.points.length - 1) {
+            imageNum = 2;
+        }
+
+        var point1 = this.rope.points[i - 1].pos;
+        var point2 = this.rope.points[i].pos;
+
+        var ppos = point1.add(point2);
+        ppos.x /= 2;
+        ppos.y /= 2;
+        var dif = point1.sub(point2);
+        var segAngle = dif.angle() + Math.PI/2;
+        this.sprite.drawExtRelative(ppos.x, ppos.y, 0, 1,1, segAngle, 0.5, 0.5);
+    }
+  }
+
+  this.update = function(dt){
+
+    this.rope.points[0].pos.x = input.mouseX;
+    this.rope.points[0].pos.y = input.mouseY;
+    
+    this.rope.update(dt);
+
+    this.pushDrawList();
+  }
+}
+
+
+class USBSlot{
+  constructor(device, slotId, slotPos, direction){
+    this.device    = device;
+    this.connector = null;
+
+    this.slotId    = slotId;
+    this.slotPos   = slotPos;
+    this.direction = direction;
+  }
+}
+
+class USBConnection{
+  constructor(){
+    this.usbSlot = null;
+    this.connected = false;
+  }
+}
+
+
+function USBConnector(x, y){
+
+  Box.call(this, x, y, 50 , 50, sprites[SPR.USBCONNECTOR]);
+
+  this.physics = true;
+
+  this.body = null;
+  this.xScl = this.width/this.sprite.width;
+  this.yScl = this.height/this.sprite.height;
+  this.xOffset = 0;
+  this.yOffset = this.yScl*this.sprite.height/2;
+  this.angle = 0;
+
+  this.connection = new USBConnection();
+
+  this.depth = -10;
+
+  this.draw = function(ctx){
+    this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, this.angle, this.xOffset/this.xScl, this.yOffset/this.yScl);
+  }
+
+  this.update = function(dt){
+
+    if(this.physics){
+      if(this.body == null){
+        this.materializeBody();
+      }
+    }
+
+    this.hovered = false;
+    if(this.boundingBox.isPointInside(input.mouseX, input.mouseY)){
+      this.hovered = true;
+    }
+
+    if(!this.connection.connected){
+      this.holder.getHold(this);
+      this.holder.update(this);
+
+      if(this.holder.throwEvent){
+        for(var i = 0; i < objectLists[OBJECT.SCREEN].length; i++){
+          var panel = objectLists[OBJECT.SCREEN][i];
+          if(panel.boundingBox.checkCollision(this.boundingBox)){
+            var panelGridX = Math.floor((input.mouseX-panel.x)/panel.width);
+            var panelGridY = Math.floor((input.mouseY-panel.y)/panel.height);  
+            for(var j = 0; j < panel.usbSlots.length; j++){
+              if(panel.usbSlots[j].connector != null) continue;
+              if(panel.usbSlots[j].slotPos.x != panelGridX) continue;
+              if(panel.usbSlots[j].slotPos.y != panelGridY) continue;
+
+              if(this.connection.connected){
+                if(this.connection.usbSlot != null){
+                  this.connection.usbSlot.disconnect();
+                }
+              }
+
+              panel.usbSlots[j].connector = this;
+              this.connection.connected = true;
+              this.connection.usbSlot = panel.usbSlots[j];
+
+              this.onDestroy();
+              break;
+            }
+            if(this.connection.connected){
+              break;
+            }
+          }
+        }
+       
+        for(var i = 0; i < objectLists[OBJECT.PANEL].length; i++){
+          var panel = objectLists[OBJECT.PANEL][i];
+          if(panel.boundingBox.checkCollision(this.boundingBox)){
+            var panelGridX = Math.floor((input.mouseX-panel.x)/panel.width);
+            var panelGridY = Math.floor((input.mouseY-panel.y)/panel.height);  
+            for(var j = 0; j < panel.usbSlots.length; j++){
+              if(panel.usbSlots[j].connector != null) continue;
+              if(panel.usbSlots[j].slotPos.x != panelGridX) continue;
+              if(panel.usbSlots[j].slotPos.y != panelGridY) continue;
+
+              if(this.connection.connected){
+                if(this.connection.usbSlot != null){
+                  this.connection.usbSlot.disconnect();
+                }
+              }
+
+              panel.usbSlots[j].connector = this;
+              this.connection.connected = true;
+              this.connection.usbSlot = panel.usbSlots[j];
+
+              this.onDestroy();
+              break;
+            }
+            if(this.connection.connected){
+              break;
+            }
+          }
+        }
+        this.holder.throwEvent = false;
+      }
+    } else {
+      var device = this.connection.usbSlot.device;
+      var usbPos = this.connection.usbSlot.slotPos;
+      var dir = this.connection.usbSlot.direction;
+
+      var directions = [
+        new Vector(1, 0),
+        new Vector(0, -1),
+        new Vector(-1, 0),
+        new Vector(0, 1)
+      ];
+
+      this.x = device.x + usbPos.x*manager.losWid + manager.losWid*0.5 + directions[dir].x*manager.losWid*0.9;
+      this.y = device.y + usbPos.y*manager.losHei + manager.losHei*0.5 + directions[dir].y*manager.losHei*0.9;
+      this.angle = (Math.PI/2)*(dir+2);
+    }
+
+    this.boundingBox.x = this.x + Math.cos(this.angle)*this.width/2 - this.width/2;
+    this.boundingBox.y = this.y + Math.sin(this.angle)*this.width/2 - this.height/2;
+    
+    this.pushDrawList();
+
+    //this.updateBox(dt);
+
+   
+
+    if(this.holder.holded){
+      if(this.body != null){
+        this.body.state.pos.x = this.x + Math.cos(this.angle)*this.width/2;
+        this.body.state.pos.y = this.y + Math.sin(this.angle)*this.width/2;
+        this.body.state.angular.pos = this.angle;
+        this.body.sleep(false);
+      }
+    } else {
+      if(this.body != null){
+        if(this.physics){
+          var posPhy = this.body.state.pos;
+          this.x = posPhy.x - (this.width/2)*Math.cos(this.angle);
+          this.y = posPhy.y - (this.width/2)*Math.sin(this.angle);
+
+          this.angle = (this.body.state.angular.pos)%(Math.PI*2);
+        }
+      }
+    }
+  }
+
+  this.applyForce = function(force, point){
+    if(this.body != null){
+      this.body.sleep(false);
+      this.body.applyForce(new Physics.vector(force.x, force.y), new Physics.vector(point.x, point.y));
+    }
+  }
+
+  this.onDestroy = function(){
+    if(this.body != null){
+      manager.world.remove(this.body);
+      this.body = null;
+    }
+    this.physics = false;
+  }
+
+  this.materializeBody = function(){
+    if(this.physics){
+
+      if(this.body != null){
+        manager.world.remove(this.body);
+      }
+
+      this.body = Physics.body('rectangle', {
+        width: this.width
+        ,height: this.height
+        ,x: this.x
+        ,y: this.y
+        ,vx: this.hspd
+        ,vy: this.vspd
+        ,cof: 0.9
+        ,restitution: 0.6
+      });
+
+      manager.world.add(this.body);
+    }
+  }
+}
+
+function USBCable(x, y, segments, segmentLen){
+
+  Box.call(this, x, y, 10 ,10, sprites[SPR.CABLE]);
+
+  this.box1 = new USBConnector(x, y);
+  this.box2 = new USBConnector(x, y);
+  this.rope = new RopeBody(x, y, 10, 50);
+
+
+
+
+
+  this.depth = 4;
+
+  this.onDestroy = function(){
+    this.box1.onDestroy();
+    this.box2.onDestroy();
+  }
+
+  this.draw = function(ctx){
+    var scl = this.rope.segmentLength/this.sprite.height;
+
+    for (var i = 1; i < this.rope.points.length; i++) {
+        var imageNum = 1;
+        if (i == 1) {
+            imageNum = 0;
+        }
+        else if (i == this.rope.points.length - 1) {
+            imageNum = 2;
+        }
+
+        var point1 = this.rope.points[i - 1].pos;
+        var point2 = this.rope.points[i].pos;
+
+        var ppos = point1.add(point2);
+        ppos.x /= 2;
+        ppos.y /= 2;
+        var dif = point1.sub(point2);
+        var segAngle = dif.angle() + Math.PI/2;
+        this.sprite.drawExtRelative(ppos.x, ppos.y, imageNum, scl,scl, segAngle, 0.5, 0.5);
+    }
+  }
+
+  this.update = function(dt){
+
+    this.rope.applyForce(new Vector(0, 0.2));
+
+    var xx1 = (Math.cos(this.box1.angle)*(-this.box1.xOffset*0.25));
+    var yy1 = (Math.sin(this.box1.angle)*(-this.box1.yOffset*0.25));
+
+    var xx2 = (Math.cos(this.box2.angle)*(-this.box2.xOffset*0.25));
+    var yy2 = (Math.sin(this.box2.angle)*(-this.box2.yOffset*0.25));
+
+
+    this.rope.points[0].pos.x = this.box1.x;
+    this.rope.points[0].pos.y = this.box1.y;
+    this.rope.points[this.rope.points.length - 1].pos.x = this.box2.x;
+    this.rope.points[this.rope.points.length - 1].pos.y = this.box2.y;
+
+    this.box1.applyForce(this.rope.tensionForce.mult(0.02), new Vector(xx1,yy1));
+    this.box2.applyForce(this.rope.tensionForce.mult(-0.02), new Vector(xx2,yy2));
+
+    // this.box1.hspd += this.rope.tensionForce.x / 2;
+    // this.box1.vspd += this.rope.tensionForce.y / 2;
+    // this.box2.hspd -= this.rope.tensionForce.x / 2;
+    // this.box2.vspd -= this.rope.tensionForce.y / 2;
+
+    this.box1.update(dt);
+    this.box2.update(dt);
+    this.rope.update(dt);
+
+    this.pushDrawList();
   }
 
 }

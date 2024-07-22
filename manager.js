@@ -132,6 +132,7 @@ class Manager {
 
     this.world = Physics();
     this.worldEdgebounce;
+    this.worldGravity; 
 
     this.prevMousePos = [];
     this.prevMouseLength = 2;
@@ -189,8 +190,11 @@ class Manager {
        ,cof: 0.8
    });
 
+   this.worldGravity = Physics.behavior('constant-acceleration');
+   this.worldGravity.setAcceleration(new Physics.vector(0, 0.0008));
+
     this.world.add([
-       Physics.behavior('constant-acceleration')
+        this.worldGravity
        ,Physics.behavior('body-impulse-response')
        ,Physics.behavior('body-collision-detection')
        ,Physics.behavior('sweep-prune')
@@ -199,6 +203,10 @@ class Manager {
 
    var screen = new BlockScreen(100, 100, 3, 4);
    //addObject(screen, OBJECT.SCREEN);
+
+
+   var usbCable = new USBCable(10, 10, 10, 50);
+   //addObject(usbCable, OBJECT.USBCABLE);
 
    var midPos = this.getPosGrid(23);
    var midmedlogo = new MedLogo(midPos.x - this.losWid/2, midPos.y - this.losHei/2);
@@ -215,7 +223,7 @@ class Manager {
   }
 
 
-  update(dt = 1){
+  update(dt){
 
     if(this.holdingObject == null){
       this.holding = false;

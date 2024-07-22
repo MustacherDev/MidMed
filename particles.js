@@ -56,7 +56,7 @@ class Particle{
     this.angle += this.angleSpd*dt;
   }
 
-  update(dt = 1){
+  update(dt){
 
     if(this.life > 0){
       this.baseStep(dt);
@@ -88,7 +88,7 @@ class ParticleCircle extends Particle{
     this.radius = Math.max(0, this.radius);
   }
 
-  update(dt = 1){
+  update(dt){
 
     if(this.life > 0){
       this.baseStep(dt);
@@ -126,7 +126,7 @@ class ParticleSprite extends Particle{
     this.scl += this.sclSpd*dt;
   }
 
-  update(dt = 1){
+  update(dt){
     if(this.life > 0){
       this.baseStep(dt);
       this.spriteStep(dt);
@@ -153,7 +153,7 @@ class ParticleAnim extends Particle{
     this.scl += this.sclSpd*dt;
   }
 
-  update(dt = 1){
+  update(dt){
     if(this.life > 0){
       this.baseStep(dt);
       this.animationStep(dt);

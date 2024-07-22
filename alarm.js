@@ -10,7 +10,7 @@ class Alarm {
     this.loop = false;
   }
 
-  update(dt = 1){
+  update(dt){
 
     if(!this.paused){
       this.timer += dt;

@@ -51,6 +51,10 @@ function Vector(x, y) {
       this.x = Math.cos(ang);
       this.y = Math.sin(ang);
     }
+
+    this.getCopy = function(){
+      return new Vector(this.x, this.y);
+    }
 }
 
 

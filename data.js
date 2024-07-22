@@ -158,6 +158,8 @@ const SPR = Object.freeze(new Enum(
     "BANNERS",
     "MONEYDISPLAY",
     "MONEY",
+    "CABLE",
+    "USBCONNECTOR",
     "TOTAL"
 ));
 
@@ -188,7 +190,9 @@ var imgPaths = [  "bombSprite.png",
   "inventoryItems.png",
   "banners.png",
   "MoneyDisplay.png",
-  "money.png"
+  "money.png",
+  "cable.png",
+  "usbConnector.png"
 ];
 
 var need2Load = imgPaths.length;
@@ -215,6 +219,7 @@ function loadSprites() {
         sprites[SPR.SMACKEFFECT].setSubimg(32, 32);
         sprites[SPR.INVENTORYITEMS].setSubimg(16,16);
         sprites[SPR.BANNERS].setSubimg(320, 210);
+        sprites[SPR.CABLE].setSubimg(16,16);
 
         spritesLoaded = true;
     }

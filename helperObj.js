@@ -16,6 +16,8 @@ const OBJECT = Object.freeze(new Enum(
     "METALBLOCK",
     "MIDMEDLOGO",
     "PANEL",
+    "ROPE",
+    "USBCABLE",
     "TOTAL"
 ));
 
@@ -48,12 +50,13 @@ function checkUpLists() {
 }
 
 // Update all objects from the list
-function updateList(type, dt = 1) {
+function updateList(type, dt) {
     var _len = objectLists[type].length;
     for (var i = 0; i < _len; i++) {
         if (objectLists[type][i].active) {
             objectLists[type][i].update(dt);
         } else {
+            objectLists[type][i].onDestroy();
             objectLists[type].splice(i, 1);
             i--;
             _len--;

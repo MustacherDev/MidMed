@@ -481,7 +481,7 @@ class Losango {
   
 
 
-  update(dt = 1){
+  update(dt){
 
     if(this.inOtherplane) return;
 
