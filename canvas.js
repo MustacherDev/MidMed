@@ -18,14 +18,6 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/
 
 
 
-const curtainsDiv = document.querySelectorAll(".curtain");
-
-for (const curtainDiv of curtainsDiv) {
-  curtainDiv.addEventListener("touchend", function handleTouchEndCurtain(event) {
-    event.preventDefault();
-  }, false);
-}
-
 function resizeCanvas(){
 
   if(isMobile){
@@ -38,10 +30,6 @@ function resizeCanvas(){
     canvas.style.left = 0+"px";
     canvas.style.top  = 1+"px";
     canvas.style.position = "absolute";
-
-    window.scrollTo(0, 1);
-
-   
 
 
   } else {
@@ -72,9 +60,6 @@ function resizeCanvas(){
   canvasOffsetY = (canvas.height -(roomHeight*canvasSclY))/2;
 
 
-  for(var i = 0; i < curtainsDiv.length; i++){
-    curtainsDiv[i].style.width = (2+(Math.floor(100*canvasOffsetX/canvas.width)))+"%";
-  }
 
   // Anti-alising deactivator
   ctx.webkitImageSmoothingEnabled = false;

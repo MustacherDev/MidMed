@@ -491,14 +491,18 @@ class Inventory{
   constructor(){
     this.x = 0;
     this.y = roomHeight;
-    this.height = 200;
+    
+  
     this.width = roomWidth;
-
+    
     this.slotsX = 10;
     this.slotsY = 2;
 
-    this.slotWid = this.width/this.slotsX;
-    this.slotHei = this.height/this.slotsY;
+    this.slotWid = this.width/(this.slotsX+1);
+    this.slotHei = this.slotWid;
+
+    this.height = this.slotHei*this.slotsY;
+    
 
     this.inAlarm = new Alarm(0, 100);
     this.outAlarm = new Alarm(0, 100);
@@ -521,8 +525,8 @@ class Inventory{
       this.slots.push(row);
     }
 
-    this.boundingBox = new BoundingBox(this.x, this.y, this.width, this.height);
-    this.closeBoundingBox = new BoundingBox(this.x, this.y - this.slotHei, this.slotWid, this.slotHei);
+    this.boundingBox = new BoundingBox(this.x, this.y, this.width-this.slotWid, this.height);
+    this.closeBoundingBox = new BoundingBox(this.x + this.slotWid*this.slotsX, this.y, this.slotWid, this.slotHei*2);
   }
 
   attachObjectMouse(obj){
@@ -581,7 +585,8 @@ class Inventory{
           if(this.slots[this.hoveredSlot.y][this.hoveredSlot.x].valid){
             var obj = this.slots[this.hoveredSlot.y][this.hoveredSlot.x].object;
             obj.active = true;
-
+            
+            obj.onRespawn();
             addObject(obj, obj.type);
 
             this.slots[this.hoveredSlot.y][this.hoveredSlot.x].valid = false;
@@ -597,7 +602,7 @@ class Inventory{
     }
 
     if(this.closeBoundingBox.isPointInside(input.mouseX, input.mouseY)){
-      if(input.mouseState[0][1]){
+      if(input.mouseState[0][1] && this.state == 2){
         manager.closeInventory();
       }
 
@@ -626,15 +631,19 @@ class Inventory{
 
     ctx.globalAlpha = tweenOut(perc);
 
-    ctx.fillStyle = "rgb(150, 150, 150)";
+    ctx.fillStyle = "rgb(0, 0, 0)";
     ctx.fillRect(this.x, this.y, this.width, this.height);
 
-    ctx.fillStyle = "rgb(200, 100, 100)";
+    var closeButtonImg = 0;
+    //ctx.fillStyle = "rgb(200, 100, 100)";
     if(this.closeBoundingBox.isPointInside(input.mouseX, input.mouseY)){
-      ctx.fillStyle = "rgb(150, 50, 50)";
+      closeButtonImg = 1;
+      //ctx.fillStyle = "rgb(150, 50, 50)";
     }
-    ctx.fillRect(this.closeBoundingBox.x, this.closeBoundingBox.y, this.closeBoundingBox.width, this.closeBoundingBox.height);
-    
+    //ctx.fillRect(this.closeBoundingBox.x, this.closeBoundingBox.y, this.closeBoundingBox.width, this.closeBoundingBox.height);
+    var closeScl = this.closeBoundingBox.width/sprites[SPR.CLOSEINVENTORYBUTTON].width;
+    sprites[SPR.CLOSEINVENTORYBUTTON].drawExt(this.closeBoundingBox.x, this.closeBoundingBox.y, closeButtonImg, closeScl,closeScl, 0, 0, 0);
+
 
     for(var i = 0; i < this.slotsY; i++){
       for(var j = 0 ; j < this.slotsX; j++){
@@ -650,9 +659,11 @@ class Inventory{
           ctx.fillStyle = "rgb(60, 60, 60)";
         }
 
-        var perc = 0.8;
+        var perc = 0.85;
         ctx.fillRect(xx +this.slotWid*(1-perc)/2, yy + this.slotHei*(1-perc)/2, this.slotWid*perc, this.slotHei*perc);
 
+        var frameScl = this.slotWid/sprites[SPR.SCREENFRAMETILE].width;
+        sprites[SPR.SCREENFRAMETILE].drawExtRelative(xx + this.slotWid/2, yy + this.slotHei/2, 12, frameScl,frameScl, 0, 0.5, 0.5);
         if(slot.valid){
           sprites[SPR.INVENTORYITEMS].drawExt(xx + this.slotWid/2, yy + this.slotHei/2, slot.object.type-4, 4,4, 0, 8, 8);
         }
@@ -712,6 +723,133 @@ class Spotlight{
 
   }
 }
+
+
+
+class BitcoinGraph{
+  constructor(){
+    this.x = 0;
+    this.y = 0;
+    this.width  = roomWidth;
+    this.height = roomHeight;
+
+    this.value = 1;
+    this.maxValue = 10000;
+    this.minValue = 1;
+
+    this.tickAlarm = new Alarm(0, 50);
+    this.ticks = 0;
+
+    this.variationNum = 5;
+    this.variationTickSpread = 8;
+    this.variations = [];
+
+    this.prevValueNum = 25;
+    this.prevValues = [];
+
+    this.graphLabels = 8;
+
+    this.visible = false;
+  }
+
+  init(){
+    this.tickAlarm.start();
+
+    for(var i = 0; i < this.variationNum; i++){
+      this.variations.push(0);
+    }
+
+    for(var i = 0; i < this.prevValueNum; i++){
+      this.prevValues.push(Math.floor(this.maxValue/4));
+    }
+
+    this.value = this.prevValues[0];
+
+  }
+
+  update(dt){
+    //this.width -= this.spd*dt;
+    //this.height -= this.spd*dt;
+
+    this.tickAlarm.update(dt);
+    if(this.tickAlarm.finished){
+      this.tick();
+      this.tickAlarm.restart();
+    }
+  }
+
+  tick(){
+    var newValue = this.value;
+    for(var i = 0; i < this.variationNum; i++){
+      // ADDING CURRENT VARIATION
+      newValue += this.variations[i];
+
+      // CALCULATING NEW VARIATION VALUE
+      if(this.ticks%((i*this.variationTickSpread) + 1) == 0){
+        this.variations[i] = randInt(-100, 100)*((i)+1);
+      }
+    }
+
+    this.value = clamp(newValue, this.minValue, this.maxValue);
+
+    this.prevValues.shift();
+    this.prevValues.push(this.value);
+  }
+
+  draw(ctx){
+    if(!this.visible) return;
+    this.drawGraph(this.x, this.y, this.width, this.height);
+  } 
+
+  drawGraph(ctx, x, y, width, height){
+    
+    ctx.strokeStyle = "rgb(255, 0, 0)";
+
+    ctx.strokeRect(x, y, width, height);
+    var lineWid = ctx.lineWidth;
+    ctx.lineWidth = 4;
+    for(var i = 0; i < this.prevValueNum-1; i++){
+      var y1 = y + (1-(this.prevValues[i]/this.maxValue))*height; 
+      var y2 = y + (1-(this.prevValues[i+1]/this.maxValue))*height;
+      var x1 = x + (i/this.prevValueNum)*width;
+      var x2 = x + ((i+1)/this.prevValueNum)*width;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+    ctx.lineWidth = lineWid;
+   
+    for(var i = 0; i < this.graphLabels; i++){
+      //var label = Math.floor(this.minValue + (i/this.graphLabels)*(this.maxValue-this.minValue));
+      var labelHei = height/this.graphLabels;
+      var yy = y + height*(1 - (i/this.graphLabels));
+
+      ctx.fillStyle = "rgba(0,0,0, " + (1-(i/this.graphLabels))/2 + ")";
+      
+      ctx.fillRect(x, yy, width, labelHei);
+    }
+   
+
+    
+    for(var i = 0; i < this.graphLabels; i++){
+      var label = Math.floor(this.minValue + (i/this.graphLabels)*(this.maxValue-this.minValue));
+      var yy = y + height*(1 - (i/this.graphLabels));
+
+      ctx.fillStyle = "rgb(255, 0, 0)";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(label, x + width*0.1, y + height*(1 - (i/this.graphLabels)));
+
+      ctx.strokeStyle = "rgb(100, 40, 0)";
+      ctx.beginPath();
+      ctx.moveTo(x, yy);
+      ctx.lineTo(x + width, yy);
+      ctx.stroke();
+    }
+    
+  }
+}
+
 
 
 // Temporary Dr Mario object

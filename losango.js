@@ -3,6 +3,7 @@
 
 const LSTATE = Object.freeze(new Enum(
     "MINESWEEPER",
+    "SHOPMODE",
     "NAME",
     "TOTAL"
 ));
@@ -13,24 +14,61 @@ class Effector{
     
   }
 
+  shopEffects(los, rightClick){
+    if(!los.isFront){
+
+      if(manager.moneyAmount >= los.priceTag){
+        manager.moneyAmount -= los.priceTag;
+
+        var pos = manager.getPosGrid(los.getGridId());
+        los.backItem.x = pos.x;
+        los.backItem.y = pos.y;
+        addObject(los.backItem, los.backItem.type);
+
+
+        playSound(SND.POP);
+        manager.clickParticle();
+
+        los.backItem = null;
+      }
+
+      los.shopMode = false;
+      los.flip(1);
+    } else {
+
+      los.shopMode = false;
+      los.flip(2);
+    }
+  }
+
+  minesweeperEffects(los, rightClick){
+    if(rightClick){
+      manager.flagMinesweeper(manager.losangosGrid[los.id]);
+      return;
+    }
+
+
+    if(!los.locked){
+      los.flip(1);
+      los.locked = true;
+      //los.open = true;
+      manager.exposeMinesweeper(manager.losangosGrid[los.id]);
+    }
+
+    if(los.id == NAME.LUIS){
+      manager.minesweeper.exposeAll();
+    }
+    return;
+  }
+
   effect(los, rightClick){
     if(los.minesweeper){
-      if(rightClick){
-        manager.flagMinesweeper(manager.losangosGrid[los.id]);
-        return;
-      }
+      this.minesweeperEffects(los, rightClick);
+      return;
+    }
 
-
-      if(!los.locked){
-        los.flip(1);
-        los.locked = true;
-        //los.open = true;
-        manager.exposeMinesweeper(manager.losangosGrid[los.id]);
-      }
-
-      if(los.id == NAME.LUIS){
-        manager.minesweeper.exposeAll();
-      }
+    if(los.shopMode){
+      this.shopEffects(los, rightClick);
       return;
     }
 
@@ -138,24 +176,6 @@ class Effector{
               var sideId = sideGridObj.object.id;
 
               sideGridObj.object.shop();
-
-              //var validIds = [NAME.JOAS, NAME.ANDRE, NAME.LUIS, NAME.MATHEUS, NAME.HENRIQUE, NAME.GABRIEL, NAME.BERNAD, NAME.FSANCHEZ, NAME.RAFAEL];
-              //var canSlap = false;
-              // for(var j = 0; j < validIds.length; j++){
-              //   if(sideId == validIds[j]){
-              //     canSlap = true;
-              //     break;
-              //   }
-              // }
-
-              // if(canSlap){
-              //   sideGridObj.object.hspd += 10*directions[i].x;
-              //   sideGridObj.object.x += 10*directions[i].x;
-              //   sideGridObj.object.vspd += 10*directions[i].y;
-              //   sideGridObj.object.y += 10*directions[i].y;
-              //   manager.particles.push(particleSmack(sideGridObj.object.x, sideGridObj.object.y));
-              //   playSound(SND.SLAP);
-              // } 
             }
           }
         }
@@ -181,6 +201,16 @@ class Effector{
       playSound(SND.KNOCK);
       manager.clickParticle();
       manager.glitch();
+
+    } else if(los.id == NAME.HENRIQUE){
+      if(manager.pageScrolled){
+        window.scrollTo(0, 0);
+        manager.pageScrolled = false;
+      } else {
+        window.scrollTo(0, 1);
+        manager.pageScrolled = true;
+      }
+      los.flip();
     } else if(los.id == NAME.JVROCHA){
 
       playSound(SND.KNOCK);
@@ -364,13 +394,6 @@ class Losango {
     this.boxCollider.centerX = this.boxWid;
     this.boxCollider.centerY = this.boxHei;
 
-    // this.prevX = 0;
-    // this.prevY = 0;
-
-    // this.holdX = 0;
-    // this.holdY = 0;
-    // this.holded = false;
-
     this.holder = new Holder();
     this.canBeHeld = true;
 
@@ -428,13 +451,10 @@ class Losango {
     this.useAltName = false;
     this.minesweeper = false;
     this.anniversary = false;
-
-
-
     this.screenMode = false;
 
     this.shopMode = false;
-
+    this.priceTag = 0;
 
     this.inOtherplane = false;
 
@@ -718,6 +738,7 @@ class Losango {
         }
 
         this.states[LSTATE.MINESWEEPER] =  manager.minesweeper.grid[manager.losangosGrid[this.id]];
+        this.states[LSTATE.SHOPMODE] = this.shopMode;
       }
 
       // Flipping stops when it reaches target Phase
@@ -859,14 +880,24 @@ class Losango {
         var obj = null;
         if(this.id == NAME.JVROCHA){
           obj = new Rock(this.x, this.y, 100, 100);
-        } 
+          this.priceTag = 100;
+        } else if(this.id == NAME.MICCHAEL){
+          obj = new MotherBoard(this.x, this.y);
+          this.priceTag = 1000;
+        } else if (this.id == NAME.DENISE){
+          obj = new USBCable(this.x, this.y);
+          this.priceTag = 5000;
+        } else if (this.id == NAME.MARCELO){
+          obj = new MetalBlock(this.x, this.y);
+          this.priceTag = 250;
+        }
 
         if(obj != null){
           this.backItem = obj;
           this.shopMode = true;
 
           this.flip(1);
-          }
+        }
       } 
     }
   }
@@ -970,12 +1001,32 @@ class Losango {
         ctx.scale(-1, 1); // Scale the x-axis
         ctx.rotate(angAnim); // Rotate the canvas context
       } else {
+        
+        ctx.rotate(-angAnim); // Rotate the canvas context
+        ctx.scale(-1, 1); // Scale the x-axis
+
         if(this.backItem != null){
           this.backItem.x = 0;
           this.backItem.y = 0;
 
-          this.backItem.draw();
+          this.backItem.draw(ctx);
         }
+
+        
+        if(this.states[LSTATE.SHOPMODE]){
+          ctx.font = ((isMobile) ? "18" : "14") + "px Arial";
+          ctx.fillStyle = 'green';
+          ctx.textAlign = 'center';
+          //ctx.fillRect();
+          ctx.fillText(this.priceTag, 0, 54);
+          ctx.fillStyle = 'black';
+
+          ctx.fillText(this.priceTag, 0, 50);
+
+        }
+        
+        ctx.scale(-1, 1); // Scale the x-axis
+        ctx.rotate(angAnim); // Rotate the canvas context
       }
 
 

@@ -38,27 +38,6 @@ function stateMenu(dt){
   sortDepth();
   drawList(OBJECT.DRAW);
 
-  var str = "[";
-  for(var i = 0 ; i < objectLists[OBJECT.DRAW].length; i++){
-    if(objectLists[OBJECT.DRAW][i].type != OBJECT.SCREEN){
-      str += objectLists[OBJECT.DRAW][i].depth;
-      str += ", ";
-    }
-
-    if(objectLists[OBJECT.DRAW][i].type == OBJECT.SCREEN){
-      str += "*";
-      str += objectLists[OBJECT.DRAW][i].depth;
-      str += "*";
-      str += ", ";
-    }
-
-  }
-  str += " ]";
-
-  if(input.mouseState[0][1]){
-    console.log(str);
-  }
-
 
   manager.drawGUI();
 
@@ -76,10 +55,20 @@ function stateMenu(dt){
   }
 
   ctx.restore();
-
+  
+  var curtainExtraHei = 20;
   var curtainWid = (window.innerWidth - canvasSclX*roomWidth)/2;
-  sprites[SPR.CURTAIN].drawExt(0,0, 0, curtainWid/sprites[SPR.CURTAIN].width, 1, 0, 0, 0);
-  sprites[SPR.CURTAIN].drawExt(window.innerWidth,0, 0, curtainWid/sprites[SPR.CURTAIN].width, 1, 0, sprites[SPR.CURTAIN].width, 0);
+  var curtainHei = window.innerHeight + curtainExtraHei;
+  var curtainScl = curtainHei/sprites[SPR.CURTAIN].height;
+  var curtainExtraX = 20;
+
+  var canvasSpace = window.innerWidth - curtainWid*2;
+
+  var curtainsState = manager.curtainsState;
+
+  
+  sprites[SPR.CURTAIN].drawExt(curtainWid + curtainExtraX + (canvasSpace/2)*curtainsState,-curtainExtraHei/2, 0, curtainScl, curtainScl, 0, sprites[SPR.CURTAIN].width, 0);
+  sprites[SPR.CURTAIN].drawExt(window.innerWidth - curtainWid - curtainExtraX - (canvasSpace/2)*curtainsState,-curtainExtraHei/2, 0, curtainScl, curtainScl, 0, 0, 0);
 
 
 }

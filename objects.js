@@ -122,6 +122,10 @@ function GameObject(x, y, sprite) {
     this.onDestroy = function(){
 
     }
+
+    this.onRespawn = function(){
+
+    }
 }
 
 GameObject.prototype.draw = function (ctx) {
@@ -144,6 +148,7 @@ class DrawRequest{
 
   draw(ctx){
     this.obj.drawRequest(ctx, this.parameter);
+    
   }
 }
 
@@ -846,6 +851,67 @@ function Dart(x, y, ang){
   }
 
 }
+
+
+
+function MotherBoard(x, y){
+  Box.call(this, x, y, manager.losWid*0.75, manager.losHei*0.75, sprites[SPR.SHOPITEMS]);
+  this.type = OBJECT.MOTHERBOARD;
+
+
+  this.xScl = this.width/this.sprite.width;
+  this.yScl = this.height/this.sprite.height;
+
+  this.xOffset = this.xScl*this.sprite.width/2;
+  this.yOffset = this.yScl*this.sprite.height/2;
+
+  this.hLoss = 0.4;
+  this.vLoss = 0.4;
+
+  this.depth = 5;
+
+  this.update = function(dt){
+    this.updateBox(dt);
+
+    if(this.holder.holded){
+      this.depth = -20;
+    }
+
+    if(this.holder.throwEvent){
+
+      if(manager.inventory.boundingBox.isPointInside(input.mouseX, input.mouseY)){
+        manager.inventory.attachObjectMouse(this);
+      } else {
+        //manager.attachObjectMouse(this, GRID.FRONT);
+        var pos = manager.getMouseGrid();
+        if(manager.checkValidGridPos(pos)){
+          var gridObj = manager.grid[GRID.MIDDLE][pos];
+          if(gridObj.valid){
+            if(gridObj.object.type == OBJECT.METALBLOCK){
+              var gridXY = manager.gridInd2XY(pos);
+              manager.screenize(gridXY.x, gridXY.y);
+              this.active = false;
+            }
+          }
+        }
+
+      }
+      this.holder.throwEvent = false;
+    }
+
+  }
+
+  this.collisionAction = function(isHorizontal, velocity){
+
+  }
+
+  this.draw = function(ctx){
+    
+    this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, 0, this.xOffset/this.xScl, this.yOffset/this.yScl);
+  }
+}
+
+
 
 function MetalBlock(x, y){
   Box.call(this, x, y, manager.losWid, manager.losHei, sprites[SPR.METALBLOCK]);
@@ -1619,6 +1685,7 @@ function BlockScreen(x, y, blocksX, blocksY){
           break;
           case 27:
             sprites[SPR.BANNERS].drawExtRelative(xx, yy, 2, this.xScl, this.yScl, 0,0.5,0.5);
+            manager.bitcoinGraph.drawGraph(ctx, clipX, clipY + 50, clipWid, clipHei - 100);
           break;
           case 40:
             sprites[SPR.BANNERS].drawExtRelative(xx, yy, 3, this.xScl, this.yScl, 0,0.5,0.5);
@@ -1798,10 +1865,11 @@ class USBConnection{
 }
 
 
-function USBConnector(x, y){
+function USBConnector(x, y, cable){
 
   Box.call(this, x, y, 50 , 50, sprites[SPR.USBCONNECTOR]);
 
+  this.type = OBJECT.USBCONNECTOR;
   this.physics = true;
 
   this.body = null;
@@ -1812,10 +1880,13 @@ function USBConnector(x, y){
   this.angle = 0;
 
   this.connection = new USBConnection();
+  this.cable = cable;
 
-  this.depth = -10;
+  this.depth = objectsDepth.usbConnector;
 
   this.draw = function(ctx){
+    
+
     this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, this.angle, this.xOffset/this.xScl, this.yOffset/this.yScl);
   }
 
@@ -1894,6 +1965,17 @@ function USBConnector(x, y){
             }
           }
         }
+
+
+        
+        if(manager.inventory.boundingBox.isPointInside(input.mouseX, input.mouseY)){
+          if(this.cable == null){
+            manager.inventory.attachObjectMouse(this);
+          } else {
+            this.cable.enterInventory();
+          }
+        }
+
         this.holder.throwEvent = false;
       }
     } else {
@@ -1984,23 +2066,88 @@ function USBCable(x, y, segments, segmentLen){
 
   Box.call(this, x, y, 10 ,10, sprites[SPR.CABLE]);
 
-  this.box1 = new USBConnector(x, y);
-  this.box2 = new USBConnector(x, y);
+  this.type = OBJECT.USBCABLE;
+
+  this.box1 = new USBConnector(x, y, this);
+  this.box2 = new USBConnector(x + 100, y, this);
+  
   this.rope = new RopeBody(x, y, 10, 50);
 
 
 
 
 
-  this.depth = 4;
+  this.depth = objectsDepth.usbCable;
 
   this.onDestroy = function(){
     this.box1.onDestroy();
     this.box2.onDestroy();
   }
+  
+  this.onRespawn = function(){
+    this.box1.physics = true;
+    this.box2.physics = true;
+  }
+
+  this.enterInventory = function(){
+    if(this.attached) return;
+    if(this.box1.connection.connected) return;
+    if(this.box2.connection.connected) return;
+
+    manager.inventory.attachObjectMouse(this);
+  }
+
+
+
 
   this.draw = function(ctx){
+
+    //console.log("Ctx DrawUSBCABle " + ctx);
+
     var scl = this.rope.segmentLength/this.sprite.height;
+
+    var boxes = [this.box1, this.box2];
+    var ropeExt = [0, this.rope.points.length-1];
+    var ropeInt = [1, this.rope.points.length-2];
+    
+    var subCableColors = ["rgb(150, 0, 0)", "rgb(0,150,0)", "rgb(0,0,150)"];
+
+    for(var i = 0 ; i < 2; i++){
+      
+      var ropeExtPos = this.rope.points[ropeExt[i]].pos.getCopy();
+      var ropeIntPos = this.rope.points[ropeInt[i]].pos.getCopy();
+
+      var boxPos = new Vector(boxes[i].x,boxes[i].y);
+      
+      var boxSurfVec = (new Vector(0,0));
+      boxSurfVec.setAngle(boxes[i].angle + Math.PI/2);
+
+      var ropeVecDiff = ropeExtPos.sub(ropeIntPos);
+      var ropeSurfAng = Math.atan2(ropeVecDiff.y, ropeVecDiff.x);
+      var ropeSurfVec = (new Vector(0,0))
+      ropeSurfVec.setAngle(ropeSurfAng + Math.PI/2);
+
+
+      for(var j = -1 ; j < 2; j++){
+
+
+        var spacing = 10;
+        var startPoint = boxPos.add(boxSurfVec.mult(j*spacing));
+        var endPoint = ropeExtPos.add(ropeSurfVec.mult(j*spacing));
+
+        var diffVec = startPoint.sub(endPoint);
+        var diffAngle = Math.atan2(diffVec.y, diffVec.x);
+        var diffDist = diffVec.mag(); 
+
+        ctx.save();
+        ctx.translate(startPoint.x, startPoint.y);
+        ctx.rotate(diffAngle);
+        ctx.fillStyle = subCableColors[j+1];
+        ctx.fillRect(0,-4, -diffDist, 8);
+        ctx.restore();
+   
+      }
+    }
 
     for (var i = 1; i < this.rope.points.length; i++) {
         var imageNum = 1;

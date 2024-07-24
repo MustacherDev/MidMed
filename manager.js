@@ -4,7 +4,9 @@ const objectsDepth = {
   rock: 1,
   bitcoin: 2,
   sun: 3,
-  dart: -2
+  dart: -2,
+  usbConnector: -10,
+  usbCable: -9
 }
 
 
@@ -66,12 +68,6 @@ class Manager {
     this.drMarioPlaying = false;
     this.drMarioScreen = null;
 
-  
-
-
-    this.screenMaking = false;
-    this.screenMakingProgress = 0;
-
 
     this.locked = false;
 
@@ -100,6 +96,7 @@ class Manager {
     this.sunDisplay = new SunDisplay();
     this.moneyDisplay = new MoneyDisplay();
     this.inventory = new Inventory();
+    this.bitcoinGraph = new BitcoinGraph();
 
     this.spotlight = new Spotlight();
 
@@ -116,6 +113,12 @@ class Manager {
     this.animWaitAlarm =  new Alarm(0, 2000);
 
     this.bwoopRealTimeAlarm = new RealTimeAlarm(new Date());
+
+    this.pageScrolled = false;
+
+    this.curtainsState = 1;
+    this.curtainsAlarm = new Alarm(0, 300);
+
 
 
 
@@ -147,6 +150,9 @@ class Manager {
 
 
   init(){
+    this.curtainsAlarm.start();
+    this.bitcoinGraph.init();
+
     for(let i = 0; i < NAME.TOTAL; i++){
       var pos = this.getPosGrid(i);
       this.losangos.push(new Losango(pos.x, pos.y, i));
@@ -201,12 +207,16 @@ class Manager {
        ,this.worldEdgebounce
    ]);
 
-   var screen = new BlockScreen(100, 100, 3, 4);
+   var screen = new BlockScreen(100, 100, 5, 4);
    //addObject(screen, OBJECT.SCREEN);
 
 
    var usbCable = new USBCable(10, 10, 10, 50);
    //addObject(usbCable, OBJECT.USBCABLE);
+
+   
+   var motherBoard = new MotherBoard(10, 10);
+   //addObject(motherBoard, OBJECT.MOTHERBOARD);
 
    var midPos = this.getPosGrid(23);
    var midmedlogo = new MedLogo(midPos.x - this.losWid/2, midPos.y - this.losHei/2);
@@ -350,6 +360,9 @@ class Manager {
     }
 
 
+    this.curtainsAlarm.update(dt);
+
+    this.curtainsState = 1-tweenInOut(this.curtainsAlarm.percentage());
 
 
     if(this.bwoopRealTimeAlarm.check()){
@@ -381,13 +394,15 @@ class Manager {
       this.mode = 2;
     }
 
+    this.bitcoinGraph.update(dt);
+
     this.inventory.update(dt);
     if(this.inventory.state == 1){
-      camY = -200*this.inventory.inAlarm.percentage();
+      camY = -this.inventory.height*this.inventory.inAlarm.percentage();
     } else if(this.inventory.state == 3){
-      camY = -200*(1-this.inventory.outAlarm.percentage());
+      camY = -this.inventory.height*(1-this.inventory.outAlarm.percentage());
     } else if(this.inventory.state == 2){
-      camY = -200;
+      camY = -this.inventory.height;
     } else {
       camY = 0;
     }
@@ -490,7 +505,11 @@ class Manager {
 
     this.moneyDisplay.draw(ctx);
 
+    this.bitcoinGraph.draw(ctx);
+
     this.spotlight.draw(ctx);
+
+
 
 
 
@@ -572,7 +591,6 @@ class Manager {
 
 
   fall(){
-    console.log("FALLING");
     for(var i = 0; i < this.grid[GRID.MIDDLE].length; i++){
       this.deattachObject(i, GRID.MIDDLE);
     }
@@ -857,7 +875,7 @@ class Manager {
 
   openInventory(){
     this.inventory.state = 1;
-    camY = -200;
+    camY = manager.inventory.height;
   }
 
   closeInventory(){
