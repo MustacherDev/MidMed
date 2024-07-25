@@ -439,6 +439,10 @@ class Losango {
     this.popOutAlarm = new Alarm(0, 200);
     this.popOutAlarm.paused = true;
 
+    this.hideLineAlarm = new Alarm(0, 25);
+    this.hideLineAlarm.paused = true;
+  
+
     this.frames = 0;
 
     this.frontColor = new Color(255,255,255);
@@ -856,6 +860,7 @@ class Losango {
       }
     }
 
+    this.hideLineAlarm.update(dt);
 
 
     // Packet processing
@@ -941,6 +946,10 @@ class Losango {
 
     // Drawing lines around
     var perc = this.linePerc;
+    
+    if(this.minesweeper){
+      perc *= (1 - this.hideLineAlarm.percentage());
+    }
 
     ctx.fillStyle = "rgb(200, 200, 200)";
     if(this.attached){
