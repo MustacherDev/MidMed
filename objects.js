@@ -587,14 +587,14 @@ function Bitcoin(x, y, radius) {
       } else {
         //manager.attachObjectMouse(this, GRID.FRONT);
         var pos = manager.getMouseGrid();
-        if(manager.checkValidGridPos(pos)){
+        var gridXY = manager.gridInd2XY(pos);
+        if(manager.checkValidGridPos(gridXY.x, gridXY.y)){
 
           var gridObj = manager.grid[GRID.MIDDLE][pos];
+
           if(gridObj.valid){
             if(gridObj.object.type == OBJECT.LOSANGO){
               if(gridObj.object.id == NAME.LAIS){
-
-                var gridXY = manager.gridInd2XY(pos);
                 manager.addParticles(createParticlesInRect(particleSun, 50, gridObj.object.x-manager.losWid/2, gridObj.object.y-manager.losHei/2, manager.losWid, manager.losHei));
                 //manager.screenize(gridXY.x, gridXY.y);
                 manager.collectMoney(manager.bitcoinGraph.value)*8;
@@ -902,11 +902,11 @@ function MotherBoard(x, y){
       } else {
         //manager.attachObjectMouse(this, GRID.FRONT);
         var pos = manager.getMouseGrid();
-        if(manager.checkValidGridPos(pos)){
+        var gridXY = manager.gridInd2XY(pos);
+        if(manager.checkValidGridPos(gridXY.x, gridXY.y)){
           var gridObj = manager.grid[GRID.MIDDLE][pos];
           if(gridObj.valid){
             if(gridObj.object.type == OBJECT.METALBLOCK){
-              var gridXY = manager.gridInd2XY(pos);
               manager.screenize(gridXY.x, gridXY.y);
               this.active = false;
             }

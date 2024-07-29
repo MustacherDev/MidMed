@@ -52,7 +52,7 @@ class Manager {
 
 
     // Contains the objects in each grid slot
-    this.grid      = [];
+    this.grid = [];
 
     this.losangos = [];
     this.losangosGrid = [];
@@ -75,7 +75,7 @@ class Manager {
     this.holdingContent = null;
     this.holdingObject = null;
 
-    this.mode = 0;
+    this.mode = -1;
 
     this.sortPattern = 0;
 
@@ -83,6 +83,7 @@ class Manager {
 
     this.altNames = false;
     this.birthdayId = -1;
+    this.musicMode = false;
 
     this.sunAmount = 0;
     this.bitCoinAmount = 0;
@@ -105,7 +106,7 @@ class Manager {
     this.sleeping = false;
 
     this.mouseGrid = -1;
-    this.mouseGridAlarm = new Alarm(0, 50);
+    this.mouseGridAlarm = new Alarm(0, 20);
 
     this.fadeInAlarm = new Alarm(0, 100);
 
@@ -116,8 +117,22 @@ class Manager {
 
     this.pageScrolled = false;
 
+
+    // OPENING SEQUENCE
+    this.curtainSpotlight = new Spotlight();
+    this.curtainSpotlight.width = 500;
+    this.curtainSpotlight.height = 500;
+    this.curtainSpotlight.screenWidth = window.innerWidth;
+    this.curtainSpotlight.screenHeight = window.innerHeight;
+    this.curtainSpotlight.x = this.curtainSpotlight.screenWidth/2;
+    this.curtainSpotlight.y = this.curtainSpotlight.screenHeight/2;
+    this.curtainSpotlight.active = true;
+
     this.curtainsState = 1;
-    this.curtainsAlarm = new Alarm(0, 300);
+    this.openingAlarm = new Alarm(0, 300);
+    this.openingCooldownAlarm = new Alarm(0, 25);
+    this.openingAlarm.paused = true;
+    this.spotWobbleAlarm = new Alarm(0, 400);
 
 
 
@@ -150,8 +165,10 @@ class Manager {
 
 
   init(){
-    this.curtainsAlarm.start();
     this.bitcoinGraph.init();
+
+
+    playSound(SND.POP);
 
     for(let i = 0; i < NAME.TOTAL; i++){
       var pos = this.getPosGrid(i);
@@ -185,6 +202,7 @@ class Manager {
 
 
     for(let i = 0; i < NAME.DIOGO; i++){
+      this.losangos[i].attachGridId = i;
       this.grid[GRID.MIDDLE][i] = new GridObject(i, this.losangos[i], 1, 1);
       
     }
@@ -207,7 +225,7 @@ class Manager {
        ,this.worldEdgebounce
    ]);
 
-   var screen = new BlockScreen(100, 100, 5, 4);
+   var screen = new BlockScreen(100, 100, 4, 3);
    //addObject(screen, OBJECT.SCREEN);
 
 
@@ -285,10 +303,44 @@ class Manager {
     }
 
     switch(this.mode){
-      case 0:
 
+      case -1:
+        this.spotWobbleAlarm.update(dt);
+        this.openingCooldownAlarm.update(dt);
         
+        this.openingAlarm.update(dt);
+        this.curtainSpotlight.update(dt);
 
+        if(this.spotWobbleAlarm.finished){
+          this.spotWobbleAlarm.restart();
+        }
+
+        if(this.openingAlarm.paused){
+          if(this.openingCooldownAlarm.finished){
+            if(input.mouseState[0][1]){
+              this.openingAlarm.start();
+            }
+          }
+        }
+
+        this.curtainSpotlight.x = (window.innerWidth/2) + 100*(Math.cos(this.spotWobbleAlarm.percentage()*Math.PI*2));
+        this.curtainSpotlight.y = (window.innerHeight/2) - 50 + 50*(1+Math.sin(this.spotWobbleAlarm.percentage()*Math.PI*4));
+
+        this.curtainsState = 1-tweenInOut(this.openingAlarm.percentage());
+        this.curtainSpotlight.width = 500 + 2000*this.openingAlarm.percentage();
+        this.curtainSpotlight.height = this.curtainSpotlight.width;
+
+
+        if(this.openingAlarm.finished){
+          this.mode = 0;
+          this.curtainSpotlight.active = false;
+        }
+
+
+        break;
+
+
+      case 0:
         this.animWaitAlarm.update(dt);
         this.animAlarm.update(dt);
 
@@ -360,9 +412,7 @@ class Manager {
     }
 
 
-    this.curtainsAlarm.update(dt);
 
-    this.curtainsState = 1-tweenInOut(this.curtainsAlarm.percentage());
 
 
     if(this.bwoopRealTimeAlarm.check()){
@@ -380,6 +430,8 @@ class Manager {
         this.spotlight.active = false;
       }
     }
+
+
 
     this.fadeInAlarm.update(dt);
     if(this.fadeInAlarm.finished){

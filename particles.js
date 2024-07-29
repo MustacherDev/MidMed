@@ -255,6 +255,24 @@ function particleSmack(x, y){
   return part;
 }
 
+function particleMusicNote(x, y, type){
+  var life = 40;
+  var part = new ParticleSprite(x, y, life, sprites[SPR.MUSICNOTES]);
+  
+  part.scl = 4;
+  part.xOffset = part.sprite.width/2;
+  part.yOffset = part.sprite.height/2;
+  part.img = type;
+  part.imgSpd = 0;
+  part.spd.y = -5;
+  part.damp.y = 0.05; 
+  part.angle = randRange(-Math.PI/10, Math.PI/10);
+  part.depth = -20;
+
+  return part;
+}
+
+
 function particleLogo(x, y){
   var life = 100;
   var part = new ParticleSprite(x, y, life, sprites[SPR.MIDMEDLOGO]);

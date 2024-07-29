@@ -690,6 +690,9 @@ class Spotlight{
     this.width  = 2000;
     this.height = 2000;
 
+    this.screenWidth = roomWidth;
+    this.screenHeight = roomHeight;
+
     this.active = false;
 
     this.spd = 0;
@@ -716,10 +719,10 @@ class Spotlight{
     sprites[SPR.HOLE].drawExt(this.x, this.y, 0, scl, scl, 0, offset, offset);
     ctx.fillStyle = "rgb(0,0,0)";
 
-    ctx.fillRect(0 - border                    , 0 - border                     , roomWidth + border*2, sprPos.y + border*2);
-    ctx.fillRect(sprPos.x + this.width - border, sprPos.y - border              , roomWidth - (sprPos.x + this.width)+ border*2, this.height+ border*2);
+    ctx.fillRect(0 - border                    , 0 - border                     , this.screenWidth + border*2, sprPos.y + border*2);
+    ctx.fillRect(sprPos.x + this.width - border, sprPos.y - border              , this.screenWidth - (sprPos.x + this.width)+ border*2, this.height+ border*2);
     ctx.fillRect(0 - border                    , sprPos.y - border              , sprPos.x+ border*2, this.height+ border*2);
-    ctx.fillRect(0 - border                    , sprPos.y + this.height - border, roomWidth+ border*2, roomHeight- (sprPos.y + this.height)+ border*2);
+    ctx.fillRect(0 - border                    , sprPos.y + this.height - border, this.screenWidth+ border*2, this.screenHeight- (sprPos.y + this.height)+ border*2);
 
   }
 }
@@ -838,6 +841,7 @@ class BitcoinGraph{
 
       ctx.fillStyle = "rgb(255, 0, 0)";
       ctx.textBaseline = "bottom";
+      ctx.font = ((isMobile) ? "22" : "20") + "px Arial";
       ctx.fillText(label, x + width*0.1, y + height*(1 - (i/this.graphLabels)));
 
       ctx.strokeStyle = "rgb(100, 40, 0)";

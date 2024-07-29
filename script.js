@@ -9,9 +9,12 @@ function stateInit(){
 
 
 
+
 function setupMenuState(){
   manager.init();
 }
+
+
 
 
 function stateMenu(dt){
@@ -21,6 +24,7 @@ function stateMenu(dt){
   ctx.scale(canvasSclX, canvasSclY);
   ctx.translate(camX, camY);
 
+  musicBox.play(dt);
 
   //scaleCanvasContent();
 
@@ -54,6 +58,8 @@ function stateMenu(dt){
     ctx.fillRect(0,0,roomWidth, roomHeight);
   }
 
+
+  //manager.curtainSpotlight.draw(ctx);
   ctx.restore();
   
   var curtainExtraHei = 20;
@@ -70,6 +76,7 @@ function stateMenu(dt){
   sprites[SPR.CURTAIN].drawExt(curtainWid + curtainExtraX + (canvasSpace/2)*curtainsState,-curtainExtraHei/2, 0, curtainScl, curtainScl, 0, sprites[SPR.CURTAIN].width, 0);
   sprites[SPR.CURTAIN].drawExt(window.innerWidth - curtainWid - curtainExtraX - (canvasSpace/2)*curtainsState,-curtainExtraHei/2, 0, curtainScl, curtainScl, 0, 0, 0);
 
+  manager.curtainSpotlight.draw(ctx);
 
 }
 

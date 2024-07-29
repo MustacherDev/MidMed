@@ -148,10 +148,6 @@ const SPR = Object.freeze(new Enum(
     "METALBLOCK",
     "MIDMEDLOGO",
     "BUBBLE",
-    "XAROPINHOBANNER",
-    "STONKSBANNER",
-    "NEWTONBANNER",
-    "SAMUBANNER",
     "DRMARIOSHEET",
     "SMACKEFFECT",
     "INVENTORYITEMS",
@@ -162,6 +158,7 @@ const SPR = Object.freeze(new Enum(
     "USBCONNECTOR",
     "SHOPITEMS",
     "CLOSEINVENTORYBUTTON",
+    "MUSICNOTES",
     "TOTAL"
 ));
 
@@ -183,10 +180,6 @@ var imgPaths = [  "bombSprite.png",
   "metalBlock.png",
   "midMedLogo.png",
   "bubble.png",
-  "xaropinhoBanner.png",
-  "stonksBanner.png",
-  "newtonBanner.png",
-  "samuBanner.png",
   "DrMarioSheet.png",
   "Hit.png",
   "inventoryItems.png",
@@ -196,7 +189,8 @@ var imgPaths = [  "bombSprite.png",
   "cable.png",
   "usbConnector.png",
   "shopItems.png",
-  "closeInventory.png"
+  "closeInventory.png",
+  "musicNotes.png"
 ];
 
 var need2Load = imgPaths.length;
@@ -226,6 +220,8 @@ function loadSprites() {
         sprites[SPR.CABLE].setSubimg(16,16);
         sprites[SPR.SHOPITEMS].setSubimg(32,32);
         sprites[SPR.CLOSEINVENTORYBUTTON].setSubimg(16,32);
+        sprites[SPR.MUSICNOTES].setSubimg(32,32);
+
 
         spritesLoaded = true;
     }
