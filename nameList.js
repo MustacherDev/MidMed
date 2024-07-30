@@ -119,7 +119,7 @@ class NameManager{
       new Person("MELINA","HONEY-INA", ["EUDA"], 23, 2),
       new Person("MICCHAEL","JACKSON", ["EUDA"], 20, 9),
       new Person("MILENA","THOUSAND-ENA", ["EUDA"], 25, 7),
-      new Person("NILTON","NEWTON", ["EUDA"], 0, 13),
+      new Person("NILTON","NEWTON", ["EUDA"], 24, 3),
       new Person("SAMUEL","SAM", ["EUDA"], 23, 12),
       new Person("ARAUJO","MICKELANGELO", ["EUDA"], 26, 2),
       new Person("NATHALIA","NATALINA", ["EUDA"], 12, 5),
