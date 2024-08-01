@@ -297,9 +297,10 @@ class HDMIScreen{
 class SunDisplay{
   constructor(){
     this.x = 40;
-    this.y = -200;
     this.yOff = 0;
     this.height = 200;
+    this.y = -this.height;
+    this.displacement = this.height*0.9;
     this.sun = 0;
 
     this.state = 0;
@@ -324,50 +325,53 @@ class SunDisplay{
   }
 
   update(dt){
-      switch(this.state){
-        // HIDDEN
-        case 0:
-          this.yOff = 0;
-          break;
+      
+    switch(this.state){
+      // HIDDEN
+      case 0:
+        this.yOff = 0;
+        break;
 
-        // ENTERING
-        case 1:
-          this.timer+=dt;
-          this.yOff = 0.9*this.height*tweenOut(this.timer/this.inTime);
-          if(this.timer > this.inTime){
-            this.timer = 0;
-            this.state = 2;
-          }
-          break;
+      // ENTERING
+      case 1:
+        this.timer+=dt;
+        this.yOff = this.displacement*tweenOut(this.timer/this.inTime);
+        if(this.timer > this.inTime){
+          this.timer = 0;
+          this.state = 2;
+        }
+        break;
 
-        // STAYING
-        case 2:
-          this.timer+= dt;
-          this.yOff = 0.9*this.height;
-          if(this.timer > this.stayTime){
-            this.timer = 0;
-            this.state = 3;
-          }
-          break;
+      // STAYING
+      case 2:
+        this.timer+= dt;
+        this.yOff = this.displacement;
+        if(this.timer > this.stayTime){
+          this.timer = 0;
+          this.state = 3;
+        }
+        break;
 
-        // LEAVING
-        case 3:
-          this.timer+= dt;
-          this.yOff = 0.9*this.height*tweenOut(1-(this.timer/this.outTime));
-          if(this.timer > this.outTime){
-            this.timer = 0;
-            this.state = 0;
-          }
-          break;
-      }
+      // LEAVING
+      case 3:
+        this.timer+= dt;
+        this.yOff = this.displacement*tweenOut(1-(this.timer/this.outTime));
+        if(this.timer > this.outTime){
+          this.timer = 0;
+          this.state = 0;
+        }
+        break;
+    }
   }
 
   draw(ctx){
 
+    if(this.state == 0) return;
+
     var scl = this.height/sprites[SPR.SUNDISPLAY].height
     var wid = sprites[SPR.SUNDISPLAY].width*scl;
     var prevAlpha = ctx.globalAlpha;
-    ctx.globalAlpha = tweenOut(this.yOff/this.height);
+    ctx.globalAlpha = tweenOut(this.yOff/this.displacement);
     sprites[SPR.SUNDISPLAY].drawExt(this.x, this.y + this.yOff, 0, scl, scl, 0, 0, 0);
     sprites[SPR.SUN].drawExtRelative(this.x + wid/2, this.y + this.yOff + wid/2, 0, 1, 1, 0, 0.5,0.5);
     ctx.fillStyle = "rgb(255,255,255)";
@@ -378,10 +382,24 @@ class SunDisplay{
 
     ctx.globalAlpha = prevAlpha;
 
+  }
+}
 
-    // ctx.fillRect(this.x, this.y + this.yOff, this.width, this.height);
-    // ctx.fillStyle = "rgb(0,0,0)";
-    // ctx.fillRect(this.x, this.y + this.yOff, this.width, this.height);
+class WeatherManager{
+  constructor(){
+    this.season = 0;
+
+
+  }
+
+  update(dt){
+    if(this.season == 0){
+      
+    }
+  }
+
+  draw(ctx){
+
   }
 }
 
@@ -389,10 +407,12 @@ class SunDisplay{
 
 class MoneyDisplay{
   constructor(){
-    this.x = roomWidth-550;
-    this.y = -100;
+
     this.yOff = 0;
     this.height = 100;
+    this.x = roomWidth-550;
+    this.y = -this.height;
+    this.displacement = this.height*0.9;
     this.money = 0;
 
     this.state = 0;
@@ -417,6 +437,150 @@ class MoneyDisplay{
   }
 
   update(dt){
+      
+    switch(this.state){
+      // HIDDEN
+      case 0:
+        this.yOff = 0;
+        break;
+
+      // ENTERING
+      case 1:
+        this.timer+=dt;
+        this.yOff = this.displacement*tweenOut(this.timer/this.inTime);
+        if(this.timer > this.inTime){
+          this.timer = 0;
+          this.state = 2;
+        }
+        break;
+
+      // STAYING
+      case 2:
+        this.timer+= dt;
+        this.yOff = this.displacement;
+        if(this.timer > this.stayTime){
+          this.timer = 0;
+          this.state = 3;
+        }
+        break;
+
+      // LEAVING
+      case 3:
+        this.timer+= dt;
+        this.yOff = this.displacement*tweenOut(1-(this.timer/this.outTime));
+        if(this.timer > this.outTime){
+          this.timer = 0;
+          this.state = 0;
+        }
+        break;
+    }
+  }
+
+  draw(ctx){
+
+    if(this.state == 0) return;
+
+    var scl = this.height/sprites[SPR.MONEYDISPLAY].height
+    var wid = sprites[SPR.MONEYDISPLAY].width*scl;
+    var hei = sprites[SPR.MONEYDISPLAY].height*scl;
+    var prevAlpha = ctx.globalAlpha;
+    ctx.globalAlpha = tweenOut(this.yOff/this.displacement);
+    sprites[SPR.MONEYDISPLAY].drawExt(this.x, this.y + this.yOff, 0, scl, scl, 0, 0, 0);
+    sprites[SPR.MONEY].drawExtRelative(this.x + hei/2, this.y + this.yOff + hei/2, 0, 1, 1, 0, 0.5,0.5);
+    ctx.fillStyle = "rgb(255,255,255)";
+    ctx.font = "48px Fixedsys";
+    ctx.textAlign = "left";
+    ctx.fontBaseline = "middle";
+    ctx.fillText(zeroPad(this.money, 12), this.x + hei*1.2, this.y + this.yOff + hei/2);
+
+    ctx.globalAlpha = prevAlpha;
+  }
+}
+
+
+const ACHIEVEMENT = Object.freeze(new Enum(
+  "CHEATMINESWEEPER",
+  "FIRSTTRADE",
+  "FULLMETAL",
+  "TOTAL"
+));
+
+
+
+
+class AchievementManager{
+  constructor(){
+
+    this.yOff = 0;
+    this.height = 200;
+    this.x = roomWidth/2;
+    this.y = -this.height;
+    this.displacement = this.height;
+    
+
+    this.state = 0;
+
+    this.inTime = 50;
+    this.stayTime = 400;
+    this.outTime = 50;
+
+    this.timer = 0;
+
+
+    this.displayText = "";
+    this.displayIcon = 0;
+
+    this.achievements = [];
+    for(var i = 0; i < ACHIEVEMENT.TOTAL; i++){
+      this.achievements.push(false);
+    }
+
+  }
+
+  getAchievement(type){
+    if(this.achievements[type]) return;
+
+    if(this.state == 0){
+      this.state = 1;
+      this.timer = 0;
+    } else if (this.state == 2){
+      this.timer = 0;
+    } else if (this.state == 3){
+      this.state = 1;
+      this.timer = (1-(this.timer/this.outTime))*this.inTime;
+    }
+
+    this.achievements[type] = true;
+
+    if(type == ACHIEVEMENT.CHEATMINESWEEPER){
+      this.displayIcon = 0;
+
+      if(manager.altNames){
+        this.displayText = "Cheat on Minesweeper";
+      } else {
+        this.displayText = "Trapaceando no Campo minado";
+      }
+    } else if (type == ACHIEVEMENT.FIRSTTRADE){
+      this.displayIcon = 1;
+
+      if(manager.altNames){
+        this.displayText = "Pix";
+      } else {
+        this.displayText = "Pix";
+      }
+    }else if (type == ACHIEVEMENT.FULLMETAL){
+      this.displayIcon = 2;
+
+      if(manager.altNames){
+        this.displayText = "Fullmetal Alchemist";
+      } else {
+        this.displayText = "Metalista";
+      }
+    }
+  }
+
+  update(dt){
+
       switch(this.state){
         // HIDDEN
         case 0:
@@ -426,7 +590,7 @@ class MoneyDisplay{
         // ENTERING
         case 1:
           this.timer+=dt;
-          this.yOff = 0.9*this.height*tweenOut(this.timer/this.inTime);
+          this.yOff = this.displacement*tweenOut(this.timer/this.inTime);
           if(this.timer > this.inTime){
             this.timer = 0;
             this.state = 2;
@@ -436,7 +600,7 @@ class MoneyDisplay{
         // STAYING
         case 2:
           this.timer+= dt;
-          this.yOff = 0.9*this.height;
+          this.yOff = this.displacement;
           if(this.timer > this.stayTime){
             this.timer = 0;
             this.state = 3;
@@ -446,7 +610,7 @@ class MoneyDisplay{
         // LEAVING
         case 3:
           this.timer+= dt;
-          this.yOff = 0.9*this.height*tweenOut(1-(this.timer/this.outTime));
+          this.yOff = this.displacement*tweenOut(1-(this.timer/this.outTime));
           if(this.timer > this.outTime){
             this.timer = 0;
             this.state = 0;
@@ -457,20 +621,31 @@ class MoneyDisplay{
 
   draw(ctx){
 
-    var scl = this.height/sprites[SPR.MONEYDISPLAY].height
-    var wid = sprites[SPR.MONEYDISPLAY].width*scl;
-    var hei = sprites[SPR.MONEYDISPLAY].height*scl;
+    if(this.state == 0) return;
+    var spr = sprites[SPR.ACHIEVEMENTDISPLAY];
+    var scl = this.height/spr.height
+    var wid = spr.width*scl;
+    var hei = spr.height*scl;
     var prevAlpha = ctx.globalAlpha;
-    ctx.globalAlpha = tweenOut(this.yOff/this.height);
-    sprites[SPR.MONEYDISPLAY].drawExt(this.x, this.y + this.yOff, 0, scl, scl, 0, 0, 0);
-    sprites[SPR.MONEY].drawExtRelative(this.x + hei/2, this.y + this.yOff + hei/2, 0, 1, 1, 0, 0.5,0.5);
+    ctx.globalAlpha = tweenOut(this.yOff/this.displacement);
+    spr.drawExtRelative(this.x, this.y + this.yOff, 0, scl, scl, 0, 0.5, 0);
+    var iconSpr = sprites[SPR.ACHIEVEMENTICONS];
+
+    var slotSize = 85 * scl;
+
+    var iconWid = iconSpr.width;
+    var iconScl = slotSize/iconWid;
+
+    iconSpr.drawExtRelative(this.x - wid/2 + 16*scl + slotSize/2, this.y + this.yOff + 16*scl + slotSize/2, this.displayIcon, iconScl, iconScl, 0, 0.5, 0.5);
+  
     ctx.fillStyle = "rgb(255,255,255)";
-    ctx.font = "48px Fixedsys";
+    ctx.font = "30px Fixedsys";
     ctx.textAlign = "left";
     ctx.fontBaseline = "middle";
-    ctx.fillText(zeroPad(this.money, 12), this.x + hei*1.2, this.y + this.yOff + hei/2);
+    ctx.fillText(this.displayText, this.x - wid/2 + slotSize + 32*scl, this.y + this.yOff + hei/2);
 
     ctx.globalAlpha = prevAlpha;
+    
 
 
     // ctx.fillRect(this.x, this.y + this.yOff, this.width, this.height);
@@ -1426,12 +1601,324 @@ class DrMarioGame{
 
 
 // REALLY HARD, NEEDS LOT OF DETERMINATION
+
+// PSEUDOCODE WITH MUSIC
+// WE GET A LIST OF NAMES (TO UNCOVER)
+// WE ALSO KNOW WHICH OF THOSE NAMES ARE BLUE
+// WITH THAT LIST WE SEARCH THROUGH THE HINT LIST
+// WE NEED A SCORE SYSTEM
+// IF A HINT HAVE 100% ON BLACK DISCARD IT (WHAT IF THERE ARE NO HINTS LEFT???)
+// I HAVE TO ANALIZE BASED ON PROBABILITY ORDER
+// IF A HINT IS FOR 3 NAMES, I EXPECT TO CLICK ON THE 3 WITH THE HIGHEST PROBABILITY
+// BUT WE NEED TO HAVE A ERROR MARGIN (I COULD CLICK FIRST ON A 0.2 PROBABILITY THEN ON A 0.4)
+// THE (HINT + NUM) SCORE:
+// 3 FIRST PROBABILITIES SUMMED, BUT CONSIDER THAT IF ONE BLANK OR BLACK IS IN THE MIDDLE THEY ANULLATE THE REST
+// MINUS OTHER PROBABILITIES (THAT ARE BLANKS)
+// MINUS BLACK PROBABILITY 
+
+class CodenamesCell{
+  constructor(nameId, team, opened = false){
+    this.nameId = nameId;
+    this.team = team;
+    this.opened = opened;
+  }
+}
+
 class Codenames{
   constructor(){
-    this.currentHint = null;
+   
+    this.currentHint = "";
+    this.guessNum = 0;
+
+    this.finished = false;
+    this.gameover = false;
+    this.guessing = false;
+
+    // MAP NAME ONTO GRID
+    this.nameMap = [];
+  
+    this.grid = [];
+    
+
+  }
+
+  checkFinish(){
+    for(var i = 0; i < this.grid.length; i++){
+      var cell = this.grid[i];
+      if(!cell.opened){
+        if(cell.team == 1) return false;
+      }
+    }
+    return true;
+  }
+
+  reveal(nameId){
+    var team = this.grid[this.nameMap[nameId]].team;
+    if(team == 2){
+      this.gameover = true;
+    } else if(team == 0){
+      this.guessing = false;
+    }
+
+    this.grid[this.nameMap[nameId]].opened = true;
+
+    this.guessNum--;
+
+    if(this.guessNum <= 0){
+      this.guessing = false;
+    }
+
+    if(this.checkFinish()){
+      this.finished = true;
+    } else {
+      if(!this.gameover && !this.guessing){
+        this.getHint();
+      }
+    }
+
+
+  }
+
+  getHint(){
+    var bestScore = 0;
+    var bestHintId = 0
+    var bestNum = 0;
+
+    var blueLeft = 0;
+    for(var i = 0; i < this.grid.length; i++){
+      if(this.grid[i].opened) continue;
+      if(this.grid[i].team == 1) blueLeft++;
+    }
+
+    for(var i = 0; i < nameMan.codenamesHints.length; i++){
+      for(var j = 1; j <= blueLeft; j++){
+        var score = this.evaluateHint(this.grid, nameMan.codenamesHints[i].probUnits, j);
+        //.log(score + " " + nameMan.codenamesHints[i].hint + " " + j);
+        if(score > bestScore){
+          bestScore = score;
+          bestHintId = i;
+          bestNum = j;
+        }
+      }  
+    }
+
+    var hintText = nameMan.codenamesHints[bestHintId].hint + " " + bestNum; 
+    console.log(hintText);
+    this.currentHint = hintText;
+    this.guessNum = bestNum;
+    return hintText;
+  }
+
+  getGrid(){
+    this.nameMap = [];
+    for(var i = 0; i < NAME.TOTAL; i++){
+      this.nameMap.push(-1);    }
 
     this.grid = [];
+    for(var i = 1; i < 5; i++){
+      for(var j = 3; j < 7; j++){
+        var ind = j + i*manager.cols;
+        var gridObj = manager.grid[GRID.MIDDLE][ind];
+        if(!gridObj.valid) continue;
+        if(gridObj.object.type != OBJECT.LOSANGO) continue;
+        this.grid.push(new CodenamesCell(gridObj.object.id, 0));
+        this.nameMap[gridObj.object.id] = this.grid.length-1;
+        gridObj.object.codenames();
+      } 
+    }
 
+
+
+    var totalCodenames = this.grid.length;
+
+    var blackRand = randInt(0, totalCodenames);
+    this.grid[blackRand].team = 2;
+
+    var blueNames = Math.floor(totalCodenames/3);
+    for(var i = 0; i < blueNames; i++){
+      var randInd = randInt(0, totalCodenames);
+      if(this.grid[randInd].team == 0){
+        this.grid[randInd].team = 1;
+      } else {
+        i--;
+      }
+    }
+  }
+
+  draw(ctx){
+    ctx.strokeRect();
+  }
+
+
+  // HERE COMES SOME RECURSION
+  // what is need?
+  // List with hints and 
+  
+  branchGrid(grid, cell2Open){
+    var newGrid = [];
+    for(var i = 0; i < grid.length; i++){
+      var newCell = new CodenamesCell(grid[i].nameId, grid[i].team, grid[i].opened);
+      newGrid.push(newCell);
+    }
+    newGrid[cell2Open].opened = true;
+    return newGrid;
+  }
+
+  branchUnits(units, removeId){
+    var newUnits = [];
+    for(var i = 0; i < units.length; i++){
+      var nameList = [];
+      for(var j = 0; j < units[i].nameList.length; j++){
+        nameList.push(units[i].nameList[j]);
+      }
+      var newUnit = new CodenamesProbUnit(nameList, units[i].prob);
+      newUnits.push(newUnit);
+    }
+    newUnits.splice(removeId, 1);
+    return newUnits;
+  }
+
+  evaluateHint(grid, probUnits, num){
+    var score = 0;
+
+    if(num == 0){
+      return this.evaluateGrid(grid);
+    }
+
+    var childScores = [];
+    var minScore = -10;
+    for(var i = 0 ; i < probUnits.length; i++){
+
+      var name = probUnits[i].nameList[0];
+      var mappedInd = this.nameMap[name];
+      if(mappedInd == -1 || mappedInd >= this.grid.length) continue;
+
+      var cell = this.grid[mappedInd];
+      
+      if(cell.opened) continue;
+
+      if(cell.team == 2){
+        childScores.push([minScore, probUnits[i].prob]);
+      } else if (cell.team == 0){
+        var staticScore = this.evaluateGrid(grid);
+        childScores.push([staticScore, probUnits[i].prob]);
+      } else {
+        var newUnits = this.branchUnits(probUnits, i);
+        var newGrid = this.branchGrid(grid, mappedInd);
+        var childScore = this.evaluateHint(newGrid, newUnits, num-1);
+        childScores.push([childScore, probUnits[i].prob])
+      }
+    }
+
+    if(childScores.length == 0){
+      return this.evaluateGrid(grid);
+    }
+
+    var probabilitySum = 0;
+    for(var i = 0; i < childScores.length; i++){
+      probabilitySum += childScores[i][1];
+    }
+
+    for(var i = 0; i < childScores.length; i++){
+      score += childScores[i][0]/probabilitySum;
+    }
+
+
+    return score;
+  }
+
+  evaluateGrid(grid){
+    var score = 0;
+    for(var i = 0; i < grid.length; i++){
+      if(!grid[i].opened) continue;
+      if(grid[i].team != 1) continue;
+
+      score++;
+      
+    }
+
+    return score;
+  }
+
+  hintNumScore(hint, num, walkthrough = false){
+    var score = 0;
+    var lastProb = 0;
+    var whitePenalty = 1;
+    var blackPenalty = 1;
+
+    if(walkthrough){
+      console.log(hint.hint + " " + num);
+    }
+    for(var i = 0; i < hint.probUnits.length; i++){
+      
+      var prob = hint.probUnits[i].prob;
+      var extra = ( i >= num) ? true:false;
+
+      
+      for(var j = 0; j < hint.probUnits[i].nameList.length; j++){
+
+        var name = hint.probUnits[i].nameList[j];
+        var mappedInd = this.nameMap[name];
+        if(mappedInd == -1 || mappedInd >= this.grid.length) continue;
+
+        var cell = this.grid[mappedInd];
+        
+        if(cell.opened) continue;
+
+
+        // 0 WHITE, 1 BLUE, 2 
+        if(walkthrough){
+          console.log(nameMan.persons[name].name + " [" + (prob*100) + "%]");
+        }
+
+        if(!extra){
+          if(cell.team == 0){
+            whitePenalty *= (1 - 0.5*prob);
+            score -= 0.2*prob;
+            if(walkthrough){
+              console.log("WHITE (" + whitePenalty + ")   Score " + score);
+            }
+          } else if (cell.team == 1){
+            score += prob*whitePenalty*blackPenalty;
+            if(walkthrough){
+              console.log("BLUE  Score " + score);
+            }
+          } else {
+            score -= 0.9*prob*whitePenalty;
+            blackPenalty *= (1 - 0.9*prob);
+            if(walkthrough){
+              console.log("BLACK (" + blackPenalty + ")   Score " + score);
+            }
+          }
+        } else {
+          // AFTER ALL THE NAMES INDICATED ARE SELECTED
+          // THE REST IS RESIDUAL
+          // ONLY WORDS ABOVE THE THRESHHOLD WILL BE CONSIDERED
+          if(prob + 0.2 >= lastProb){
+            if(walkthrough){
+              console.log("Extras.. ");
+            }
+            if(cell.team == 0){
+              whitePenalty *= (1 - 0.2*prob); 
+              score -= 0.2*prob;
+            } else if (cell.team == 1){
+              score += prob*whitePenalty*blackPenalty;
+            } else {
+              score -= 0.2*prob*whitePenalty;
+              blackPenalty *= (1 - 0.9*prob);
+            }
+          }
+        }
+
+        if(i < num){
+          lastProb = prob;
+        }
+      
+      }
+
+    
+    }
+    return score;
   }
 }
 

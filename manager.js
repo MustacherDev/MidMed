@@ -28,6 +28,18 @@ const GRID = Object.freeze(new Enum(
   "TOTAL"
 ));
 
+class AttachPin{
+  constructor(x, y){
+    this.x = x;
+    this.y = y;
+    this.visible = true;
+  }
+
+  draw(ctx){
+
+  }
+}
+
 class Manager {
   constructor(){
     this.losWid = 120;
@@ -53,6 +65,7 @@ class Manager {
 
     // Contains the objects in each grid slot
     this.grid = [];
+    this.pins = [];
 
     this.losangos = [];
     this.losangosGrid = [];
@@ -98,6 +111,8 @@ class Manager {
     this.moneyDisplay = new MoneyDisplay();
     this.inventory = new Inventory();
     this.bitcoinGraph = new BitcoinGraph();
+    this.achievementManager = new AchievementManager();
+    this.codenamesManager = new Codenames();
 
     this.spotlight = new Spotlight();
 
@@ -243,7 +258,11 @@ class Manager {
 
    for(var  i = 0 ; i < this.losangos.length; i++){
       if(!this.losangos[i].attached){
-        this.killLosango(i);
+        if(this.losangos[i].attached){
+          this.deattachObject(this.losangos[i].attachGridId, GRID.MIDDLE);
+        }
+  
+        this.losangos[i].inOtherplane = true;
       }
    }
 
@@ -504,6 +523,7 @@ class Manager {
 
     this.sunDisplay.update(dt);
     this.moneyDisplay.update(dt);
+    this.achievementManager.update(dt);
 
 
 
@@ -553,11 +573,15 @@ class Manager {
   drawGUI(){
     this.hdmiScreen.draw(ctx);
 
+    this.achievementManager.draw(ctx);
+    
     this.sunDisplay.draw(ctx);
 
     this.moneyDisplay.draw(ctx);
 
     this.bitcoinGraph.draw(ctx);
+
+
 
     this.spotlight.draw(ctx);
 
@@ -615,6 +639,8 @@ class Manager {
 
   exposeMinesweeper(cell){
     if(this.minesweeper.expose(cell) == -1){
+      var pos = this.getPosGrid(cell);
+      this.explosionImpulse(pos.x, pos.y, 100);
       playSound(SND.EXPLOSION);
     }
   }
@@ -1092,30 +1118,13 @@ class Manager {
       this.deattachObject(this.losangos[id].attachGridId, GRID.MIDDLE);
     }
 
-    if(this.losangosPhy[id] != null){
-      this.world.remove(this.losangosPhy[id]);
-      this.losangosPhy[id] = null;
-    }
-
-    
+    this.losangos[id].onDestroy();
     this.losangos[id].inOtherplane = true;
   }
 
   spawnLosango(id){
     if(!this.losangos[id].attached){
-      var los = this.losangos[id];
-      this.losangosPhy[id] = Physics.body('rectangle', {
-        width: los.width
-        ,height: los.height
-        ,x: los.x
-        ,y: los.y
-        ,vx: los.hspd
-        ,vy: los.vspd
-        ,cof: 0.99
-        ,restitution: 0.99
-      });
-      this.losangosPhy[id].state.angular.pos = los.angle;
-      this.world.add(this.losangosPhy[id]);
+      this.losangos[id].spawnBody();
     }
 
     this.losangos[id].inOtherplane = false;
@@ -1124,30 +1133,9 @@ class Manager {
   
   deattachLosango(id){
     const los = this.losangos[id];
+    los.attached = false;
 
-    if(this.losangosPhy[id] != null){
-      this.world.remove(this.losangosPhy[id]);
-      this.losangosPhy[id] = null;
-    }
-
-    if(los.inOtherplane){ 
-      this.losangos[id].attached = false;
-      return;
-    }
-
-    this.losangosPhy[id] = Physics.body('rectangle', {
-            width: los.width
-            ,height: los.height
-            ,x: los.x
-            ,y: los.y
-            ,vx: los.hspd + randRange(-0.1, 0.1)
-            ,vy: los.vspd + randRange(-0.1, 0.1)
-            ,cof: 0.99
-            ,restitution: 0.99
-        });
-    this.losangosPhy[id].state.angular.pos = deg2rad(45);
-    this.world.add(this.losangosPhy[id]);
-    this.losangos[id].attached = false;
+    los.deattach();
   }
 
   attachObject(obj, gridCell, grid){
@@ -1210,23 +1198,17 @@ class Manager {
 
   attachLosango(id, gridCell){
 
-    if(this.losangosPhy[id] != null){
-      this.world.remove(this.losangosPhy[id]);
-      this.losangosPhy[id] = null;
-    }
-
-    this.losangos[id].attached = true;
+    const los = this.losangos[id];
+    los.attach();
+    los.attached = true;
     this.losangosGrid[id] = gridCell;
   }
 
 
   attachObjectMouse(obj, grid){
     if(this.mouseGrid == -1 || !this.mouseGridAlarm.finished) return;
-    //console.log("TRYING TO ATTACH WITH MOUSE " + obj.type);
     this.attachObject(obj, this.mouseGrid, grid);
   }
-
-
 
   addParticles(partList){
     for(var i = 0; i < partList.length; i++){
@@ -1239,9 +1221,6 @@ class Manager {
 
 
 var manager = new Manager();
-
-
-
 
 
 

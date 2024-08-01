@@ -2,7 +2,7 @@ class NotePool {
     constructor(size) {
       this.pool = [];
       for (let i = 0; i < size; i++) {
-        const synth = new Tone.FMSynth().toDestination();
+        const synth = new Tone.AMSynth().toDestination();
         this.pool.push({ synth, isFree: true });
       }
     }
@@ -29,7 +29,7 @@ class NotePool {
   }
   
 // Usage:
-const notePool = new NotePool(10); // Create a pool of 10 synths
+const notePool = new NotePool(20); // Create a pool of 10 synths
 
 
 class MusicManager{

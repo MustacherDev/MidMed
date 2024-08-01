@@ -4,6 +4,13 @@ class Effector {
 
     }
 
+    codenamesEffects(los, rightClick){
+        if(los.isFront){
+            manager.codenamesManager.reveal(los.id);
+            los.flip(1);
+        }
+    }
+
     shopEffects(los, rightClick) {
         if (!los.isFront) {
 
@@ -47,6 +54,9 @@ class Effector {
 
         if (los.id == NAME.LUIS) {
             manager.minesweeper.exposeAll();
+            if(!manager.achievementManager.achievements[ACHIEVEMENT.CHEATMINESWEEPER]){
+                manager.achievementManager.getAchievement(ACHIEVEMENT.CHEATMINESWEEPER);
+            }
         }
         return;
     }
@@ -64,6 +74,11 @@ class Effector {
 
         if (los.shopMode) {
             this.shopEffects(los, rightClick);
+            return;
+        }
+
+        if(los.codenamesMode){
+            this.codenamesEffects(los, rightClick);
             return;
         }
 
@@ -107,17 +122,44 @@ class Effector {
                 addObject(new Bitcoin(coinX, coinY, randInt(25, 40)), OBJECT.BITCOIN);
                 playSound(SND.COINNOISE);
             }
-        } else if (los.id == NAME.NATHALIA) {
-            var row = manager.gridInd2XY(manager.losangosGrid[los.id]).y;
-            if (chance(1 - ((row / manager.rows)))) {
-                var sunX = randInt(0, roomWidth);
-                var sunY = -100;
-                addObject(new Sun(sunX, sunY), OBJECT.SUN);
 
-                manager.clickParticle();
-                playSound(SND.POP);
+        } else if (los.id == NAME.MICCHAEL) {
+            if(manager.altNames){
+                playSound(SND.AUU);
+                los.flip();
             } else {
                 los.flip();
+            }
+        } else if (los.id == NAME.SHEILA) {
+            playSound(SND.ALARM);
+            los.flip();
+        } else if (los.id == NAME.NILTON) {
+            if(manager.altNames){
+                los.flip();
+            } else {
+                playSound(SND.POLICE);
+                los.flip();
+            }
+        } else if (los.id == NAME.ARAUJO) {
+            manager.codenamesManager.getGrid();
+            manager.codenamesManager.getHint();
+            los.flip();
+        } else if (los.id == NAME.NATHALIA) {
+            if(manager.altNames){
+                playSound(SND.CLAUS);
+                los.flip();
+            } else {
+                var row = manager.gridInd2XY(manager.losangosGrid[los.id]).y;
+                if (chance(1 - ((row / manager.rows)))) {
+                    var sunX = randInt(0, roomWidth);
+                    var sunY = -100;
+                    addObject(new Sun(sunX, sunY), OBJECT.SUN);
+
+                    manager.clickParticle();
+                    playSound(SND.POP);
+                } else {
+                    los.flip();
+                }
             }
         } else if (los.id == NAME.VICTORIA) {
             if (manager.winSoundReady()) {
@@ -180,8 +222,15 @@ class Effector {
             los.blackHole();
 
         } else if (los.id == NAME.IKARO) {
-            manager.musicMode = true;
-            los.flip(4);
+            if(manager.musicMode){
+                los.headphones = false;
+                manager.musicMode = false;
+                los.flip();
+            } else {
+                los.headphones = true;
+                manager.musicMode = true;
+                los.flip();
+            }
         } else if (los.id == NAME.CAIO) {
             if (los.useAltName) {
                 //playSound(SND.FALL);

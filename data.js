@@ -35,6 +35,10 @@ const SND = Object.freeze(new Enum(
     "METALHIT1",
     "METALHIT2",
     "METALHIT3",
+    "POLICE",
+    "CLAUS",
+    "ALARM",
+    "AUU",
     "TOTAL"
 ));
 
@@ -61,7 +65,11 @@ const sndPaths = [
   "fallingRock.mp3",
   "metalHit1.mp3",
   "metalHit2.mp3",
-  "metalHit3.mp3"
+  "metalHit3.mp3",
+  "police.mp3",
+  "ClausSound.mp3",
+  "alarm.mp3",
+  "Auu.mp3"
 ];
 
 const WINSND = Object.freeze(new Enum(
@@ -103,6 +111,7 @@ sounds[SND.HIT].volume(0.25);
 sounds[SND.PAGEFLIP].volume(0.4);
 sounds[SND.EXPLOSION].volume(0.2);
 sounds[SND.GLITCHHIT].volume(0.2);
+sounds[SND.POLICE].volume(0.2);
 
 
 function playSound(soundId){
@@ -159,6 +168,10 @@ const SPR = Object.freeze(new Enum(
     "SHOPITEMS",
     "CLOSEINVENTORYBUTTON",
     "MUSICNOTES",
+    "ACHIEVEMENTDISPLAY",
+    "ACHIEVEMENTICONS",
+    "GLOW",
+    "HEADPHONES",
     "TOTAL"
 ));
 
@@ -190,7 +203,11 @@ var imgPaths = [  "bombSprite.png",
   "usbConnector.png",
   "shopItems.png",
   "closeInventory.png",
-  "musicNotes.png"
+  "musicNotes.png",
+  "Achievement.png",
+  "achievementIcons.png",
+  "Glow.png",
+  "headphones.png"
 ];
 
 var need2Load = imgPaths.length;
@@ -221,6 +238,8 @@ function loadSprites() {
         sprites[SPR.SHOPITEMS].setSubimg(32,32);
         sprites[SPR.CLOSEINVENTORYBUTTON].setSubimg(16,32);
         sprites[SPR.MUSICNOTES].setSubimg(32,32);
+        sprites[SPR.ACHIEVEMENTICONS].setSubimg(16,16);
+        sprites[SPR.BIRTHDAY].setSubimg(64, 72);
 
 
         spritesLoaded = true;

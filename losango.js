@@ -4,6 +4,8 @@
 const LSTATE = Object.freeze(new Enum(
     "MINESWEEPER",
     "SHOPMODE",
+    "BLACKHOLE",
+    "HEADPHONES",
     "NAME",
     "TOTAL"
 ));
@@ -88,6 +90,10 @@ class Losango {
     this.boxWid = (this.width + manager.losWid)/4;
     this.boxHei = (this.height + manager.losHei)/4;
 
+    this.body = null;
+    this.physical = false;
+
+
     this.holder = new Holder();
     this.canBeHeld = true;
 
@@ -125,12 +131,12 @@ class Losango {
     this.growthAlarm.pause();
 
     this.popInAlarm = new Alarm(0, 25);
-    this.popInAlarm.paused = true;
+    this.popInAlarm.pause();
     this.popOutAlarm = new Alarm(0, 200);
-    this.popOutAlarm.paused = true;
+    this.popOutAlarm.pause();
 
     this.hideLineAlarm = new Alarm(0, 25);
-    this.hideLineAlarm.paused = true;
+    this.hideLineAlarm.pause();
   
 
     this.frames = 0;
@@ -145,8 +151,15 @@ class Losango {
     this.useAltName = false;
     this.minesweeper = false;
     this.anniversary = false;
+    this.preAnniversary = false;
     this.screenMode = false;
 
+    this.codenamesMode = false;
+
+    this.headphones = false;
+
+    this.blackHolePartAlarm = new Alarm(0, 1);
+    this.blackHoleMode = false;
     this.shopMode = false;
     this.priceTag = 0;
 
@@ -165,9 +178,9 @@ class Losango {
     this.attachGridId = -1;
 
     this.inPlace = true;
-    this.attachCooldownAlarm = new Alarm(0, 300);
 
-    this.playNoteCooldownAlarm = new Alarm(0, 10);
+    this.attachCooldownAlarm = new Alarm(0, 300);
+    this.playNoteCooldownAlarm = new Alarm(0, 5);
 
     this.mouseAlarm = new Alarm(0, 50);
 
@@ -180,18 +193,17 @@ class Losango {
     // States
     this.states = [];
 
-    this.init();
-
-  }
-
-  init(){
     for(var i = 0; i < LSTATE.TOTAL; i++){
       this.states.push(null);
     }
+
   }
 
+  codenames(){
+    this.codenamesMode = true;
+  }
 
-
+ 
   popParticles(){
     var partPos = manager.getPosGrid(this.getGridId());
 
@@ -206,9 +218,18 @@ class Losango {
     }
   }
 
+  blackHoleParticles(){
+    manager.particles.push(particleBlackHole(this.x, this.y));
+  }
+
+  ghostParticles(){
+    manager.particles.push(particleGhostLos(this.x, this.y, nameMan.persons[this.id].name));
+  }
+
   musicNoteParticle(type){
     manager.particles.push(particleMusicNote(this.x, this.y, type));
   }
+
 
 
   playNote(){
@@ -223,25 +244,14 @@ class Losango {
     }
   }
 
-
-  update(dt){
-
-    if(this.inOtherplane) return;
-
-    this.hovered = false;
-
-
-    this.xSclMult = 1;
-    this.ySclMult = 1;
-    this.depth = 0;
-
-    this.frames++;
-
+  checkHover(){
     if(this.isInside(input.mouseX, input.mouseY) && manager.mode != 2){
       this.hovered = true;
       canvas.style.cursor = 'pointer';
     }
+  }
 
+  updateMovement(dt){
     if(this.attached){
       var targetPos = manager.getPosGrid(manager.losangosGrid[this.id]);
 
@@ -287,16 +297,18 @@ class Losango {
 
         this.holder.getHold(this);
 
-        // this.vspd += 0.1;
+        if(this.physical){
+          var posPhy = this.body.state.pos;
+          this.x = posPhy.x;
+          this.y = posPhy.y;
 
-        var posPhy = manager.losangosPhy[this.id].state.pos;
-        this.x = posPhy.x;
-        this.y = posPhy.y;
-
-        this.angle = (manager.losangosPhy[this.id].state.angular.pos)%(Math.PI*2);
+          this.angle = (this.body.state.angular.pos)%(Math.PI*2);
+        }
       } else {
-        manager.losangosPhy[this.id].state.pos.x = this.x;
-        manager.losangosPhy[this.id].state.pos.y = this.y;
+        if(this.body != null){
+          this.body.state.pos.x = this.x;
+          this.body.state.pos.y = this.y;
+        }
 
       
         this.holder.update(this);
@@ -309,8 +321,11 @@ class Losango {
     }
 
     if(this.holder.throwEvent){
-      manager.losangosPhy[this.id].state.pos.x = this.x;
-      manager.losangosPhy[this.id].state.pos.y = this.y;
+      if(this.body != null){
+        this.body.state.pos.x = this.x;
+        this.body.state.pos.y = this.y;
+      }
+
       manager.attachObjectMouse(this, GRID.MIDDLE);
       this.holder.throwEvent = false;
     }
@@ -329,33 +344,46 @@ class Losango {
     this.y += this.vspd*dt;
 
     this.updateBox();
+  }
+
+
+  update(dt){
+
+    if(this.inOtherplane) return;
+
+    this.hovered = false;
+
+
+    // VARIABLES THAT GET CHANGED ONLY DURING THIS UPDATE
+    // MODIFIERS OF EXISTING VARS 
+    this.xSclMult = 1;
+    this.ySclMult = 1;
+    this.depth = 0;
+
+    this.frames++;
+
+    this.checkHover();
+    this.updateMovement(dt);
 
 
 
-    this.linePerc = 0.1 + Math.cos(this.frames/40)*0.05;
-
+    // CLICKING
     if(this.hovered){
-      if(input.mouseState[0][1]){
+      if(input.mouseState[0][1] || input.mouseState[2][1]){
+        var isRightClick = false;
+        if(input.mouseState[2][1]){
+          isRightClick = true;
+        }
 
         if(this.attached){
           if(!this.flipping){
-            this.effector.effect(this, false);
-          }
-        } else {
-
-        }
-      } else {
-        if(input.mouseState[2][1]){
-
-          if(this.attached){
-            if(!this.flipping){
-              this.effector.effect(this, true);
-            }
+            this.effector.effect(this, isRightClick);
           }
         }
       }
     }
 
+    // MINESWEEPER COMMITMENT
     if(this.minesweeper){
       var gridIndex = manager.losangosGrid[this.id];
       var gridOpen = manager.minesweeper.gridOpen[gridIndex];
@@ -370,6 +398,39 @@ class Losango {
       }
     }
 
+    if(this.codenamesMode){
+
+      
+      var colors = [new Color(255,255,255), new Color(100, 100, 200), new Color(80, 80, 80)];
+      var codeId = manager.codenamesManager.nameMap[this.id];
+      if(codeId != -1){
+
+        if(manager.codenamesManager.grid[codeId].opened){
+          var team  = manager.codenamesManager.grid[codeId].team;
+
+          this.backColor.r = colors[team].r;
+          this.backColor.g = colors[team].g;
+          this.backColor.b = colors[team].b;
+        }
+
+      }
+
+      if(manager.codenamesManager.finished) this.codenamesMode = false;
+    } else {
+      this.backColor.r = 150;
+      this.backColor.g = 150;
+      this.backColor.b = 150;
+    }
+
+
+    // BLACK HOLE PARTICLES
+    if(this.blackHoleMode && !this.isFront && !this.minesweeper){
+      this.blackHolePartAlarm.update(dt);
+      if(this.blackHolePartAlarm.finished){
+        this.blackHoleParticles();
+        this.blackHolePartAlarm.restart();
+      }
+    }
 
     // NOTE PLAY COOLDOWN
     this.playNoteCooldownAlarm.update(dt);
@@ -378,6 +439,7 @@ class Losango {
     this.sneezeActor.update(dt, this);
 
 
+    // POPPING
     this.popInAlarm.update(dt);
     this.popOutAlarm.update(dt);
 
@@ -402,6 +464,8 @@ class Losango {
     this.depth += poppingPerc*(-10);
 
 
+
+    // SHOP COMMITMENT
     if(this.shopMode){
       if(!this.flipping && this.isFront){
         this.shopMode = false;
@@ -412,7 +476,6 @@ class Losango {
     // FLIPPING
     if(this.flipping){
       this.flipPhase += this.flipSpd*dt;
-
 
       // We should update the object properties as soon as it changes front-back
       if(this.flipPhase >= this.flipTargetPhase - Math.PI/2){
@@ -426,6 +489,8 @@ class Losango {
 
         this.states[LSTATE.MINESWEEPER] =  manager.minesweeper.grid[manager.losangosGrid[this.id]];
         this.states[LSTATE.SHOPMODE] = this.shopMode;
+
+        this.states[LSTATE.HEADPHONES] = this.headphones;
       }
 
       // Flipping stops when it reaches target Phase
@@ -433,12 +498,15 @@ class Losango {
         this.flipping = false;
         this.isFront = this.phaseAngleToSide(this.flipPhase);
         this.flipPhase = Math.PI * (1 - this.isFront);
-
-
       }
     }
 
+    // UPDATING LINEANIMATION
+    this.linePerc = 0.1 + Math.cos(this.frames/40)*0.05;
+    this.hideLineAlarm.update(dt);
+    // OTHER VARS ;-)
     this.isFront = this.phaseAngleToSide(this.flipPhase);
+    this.xScl = Math.cos(this.flipPhase);
 
     // Rotating/ Tilting
     if(this.rotating){
@@ -502,7 +570,7 @@ class Losango {
     }
 
 
-    this.xScl = Math.cos(this.flipPhase);
+
 
 
     if(this.screenMode){
@@ -515,7 +583,7 @@ class Losango {
       }
 
       if(!this.flipping){
-        this.inOtherplane = true;
+        this.onDestroy();
 
 
         var metalBlock = new MetalBlock(this.x, this.y);
@@ -537,13 +605,10 @@ class Losango {
           playSound(SND.POOF);
           manager.poofStart = Date.now();
         }
-        
-
-        
       }
     }
 
-    this.hideLineAlarm.update(dt);
+
 
 
     // Packet processing
@@ -648,8 +713,18 @@ class Losango {
 
     // Birthdat Hat
     if(this.anniversary){
-      sprites[SPR.BIRTHDAY].drawExtRelative(0,-this.height*0.8,0,1,1,deg2rad(0),0.5,0.5);
+      sprites[SPR.BIRTHDAY].drawExtRelative(0,-this.height*0.8, this.id,1,1,deg2rad(0),0.5,0.5);
     }
+
+    if(this.preAnniversary){
+      sprites[SPR.BIRTHDAY].drawExtRelative(0,-this.height*0.3,this.id,1,1,deg2rad(0),0.5,0.5);
+    }
+
+
+    if(this.states[LSTATE.HEADPHONES]){
+      sprites[SPR.HEADPHONES].drawExtRelative(-this.width/2,-this.height/2,0,4,4,deg2rad(0),0.5,0.5);
+    }
+
 
 
     // Drawing Losango
@@ -732,6 +807,48 @@ class Losango {
     }
 
     ctx.restore(); // Restore the original state
+  }
+
+
+  onDestroy(){
+    this.killBody();
+    this.ghostParticles();
+    this.inOtherplane = true;
+  }
+
+  killBody(){
+    if(this.body != null){
+      manager.world.remove(this.body);
+      this.body = null;
+    }
+  }
+
+  spawnBody(){
+    this.killBody();
+
+    this.body = Physics.body('rectangle', {
+      width: this.width
+      ,height: this.height
+      ,x: this.x
+      ,y: this.y
+      ,vx: this.hspd + randRange(-0.1, 0.1)
+      ,vy: this.vspd + randRange(-0.1, 0.1)
+      ,cof: 0.99
+      ,restitution: 0.99
+    });
+    this.body.state.angular.pos = deg2rad(45);
+    manager.world.add(this.body);
+  }
+
+
+  deattach(){
+    if(this.physical){
+      this.spawnBody();
+    }
+  }
+
+  attach(){
+    this.killBody();
   }
 
 

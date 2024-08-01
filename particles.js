@@ -170,14 +170,21 @@ class ParticleAnim extends Particle{
 
 
 function particleBlackHole(x, y){
-  var life = 200;
+  var life = 50;
+
+
   var part = new ParticleCircle(x, y, life);
+  var dir = randRange(0, Math.PI*2);
+  var rad = 100;
+  part.x = x + rad*Math.cos(dir);
+  part.y = y + rad*Math.sin(dir);
+
   part.radius = randInt(5, 10);
-  part.color = Color.fromHSL(0, 100, 100);
+  part.color = Color.fromHSL(0, 0, randInt(0, 100));
   part.colorSpd = new Color(0,0,0, -1/life);
   part.radiusSpd = -part.radius/life;
 
-  part.tanAcc = 0.1;
+  part.tanAcc = 0.03;
   part.radAcc = -0.1;
 
   var dir = randRange(0, deg2rad(360));
@@ -188,6 +195,8 @@ function particleBlackHole(x, y){
   part.acc = new Vector(0, 0);
   part.damp = new Vector(0.01, 0.01);
   part.depth = -10;
+
+  return part;
 }
 
 function particleSun(x, y){
@@ -235,6 +244,19 @@ function particleLock(x, y){
   part.spd = dirVec.mult(spd);
   part.acc = new Vector(0, 0);
   part.damp = new Vector(0.01, 0.01);
+  part.depth = -20;
+
+  return part;
+}
+
+function particleGhostLos(x, y, name){
+  var life = 1000;
+  var wid = manager.losWid*Math.SQRT1_2;
+  var hei = manager.losHei*Math.SQRT1_2;
+  var part = new ParticleAnim(x, y, life, new AnimationObjectGhostLos(name, wid, hei));
+  part.scl = 1;
+  part.spd.y = -2;
+
   part.depth = -20;
 
   return part;

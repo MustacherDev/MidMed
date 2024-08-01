@@ -67,9 +67,16 @@ class Person{
 
 
 class CodenamesHint{
-  constructor(hint, nameList){
+  constructor(hint, probUnits){
     this.hint = hint;
-    this.nameList = nameList;
+    this.probUnits = probUnits;
+  }
+}
+
+class CodenamesProbUnit{
+  constructor(nameList, prob){
+    this.nameList   = nameList;
+    this.prob = prob;
   }
 }
 
@@ -127,7 +134,7 @@ class NameManager{
       new Person("DENISE","DENISE", ["EUDA"], 0, 13),
       new Person("ELISIANY","ELISIANY", ["EUDA"], 28, 8),
       new Person("MARLUS","MARCUS", ["EUDA"], 9, 12),
-      new Person("BRUNELY","BRUNELY", ["EUDA"], 0, 13),
+      new Person("BRUNELY","BRUNELY", ["EUDA"], 1, 2),
       new Person("SHEILA", "SHEILA", ["SHEILA"], 4, 1),
       new Person("DIOGO","DIOGO", ["DIOGO"], 24, 1),
       new Person("SIDNEY", "KIDNEY", ["SID"], 19, 1),
@@ -166,29 +173,46 @@ class NameManager{
 
     ];
 
+    this.sortList
+
 
     this.hint = function(name, probNameList){
       var fixedList = [];
 
       for(var i = 0; i < probNameList.length; i++){
-        if(probNameList[i].length == 1){
-          fixedList.push([probNameList[i][0], 1]);
-        } else {
-          fixedList.push(probNameList[i]);
+        var prob = 1;
+        if(probNameList[i].length == 2){
+          prob = probNameList[i][1];
         }
+
+        for(var j = 0 ; j < probNameList[i][0].length; j++){
+          var nameList = [];
+          nameList.push(probNameList[i][0][j]);
+
+          var probUnit = new CodenamesProbUnit(nameList, prob);
+          fixedList.push(probUnit);
+        }
+
+
       }
 
-      return new CodenamesHint(name, probNameList);
+      fixedList.sort(function (a, b) { return b.prob - a.prob});
+
+      return new CodenamesHint(name, fixedList);
     }
+
     this.codenamesHints = [
-      this.hint("050", [[NAME.JOAS], [NAME.HENRIQUE], [NAME.SAMUEL], [NAME.MARLUS, 0.75], [NAME.ELISIANY, 0.5], [NAME.GABRIEL, 0.2]]),
-      this.hint("MULHER", [[NAME.ALICE], [NAME.ANAJU], [NAME.BRUNA], [NAME.EUDA], 
-        [NAME.ISABELLA], [NAME.MAYANNE], [NAME.MARIALUISA], [NAME.MARIANNA], [NAME.INGRID],
-        [NAME.PAULA], [NAME.THALIA], [NAME.VICTORIA], [NAME.LAIS], [NAME.LILIAN], [NAME.MELINA],
-        [NAME.MILENA], [NAME.NATHALIA], [NAME.DENISE], [NAME.ELISIANY], [NAME.BRUNELY], [NAME.SHEILA]]),
-      this.hint("ESPIRITO SANTO", [[NAME.ANDRE], [NAME.LUIS], [NAME.MAYANNE]]),
-      this.hint("ALTURA", [[NAME.LUIS], [NAME.JOATAN], [NAME.JOAS], [NAME.JVPORTO], [NAME.NILTON, 0.7], [NAME.FGOIS, 0.7], [NAME.IKARO, 0.8], [NAME.BERNAD, 0.8]]),
-      this.hint("XADREZ", [[NAME.DANTAS], [NAME.MICCHAEL], [NAME.SIDNEY, 0.9] , [NAME.HENRIQUE, 0.7], [NAME.JOAS, 0.7], [NAME.FBARRETO, 0.5], [NAME.JVPORTO, 0.7]]),
+      this.hint("050", [[[NAME.JOAS,NAME.HENRIQUE,NAME.SAMUEL], 1], [[NAME.MARLUS], 0.75], [[NAME.ELISIANY], 0.5], [[NAME.GABRIEL], 0.2]]),
+      this.hint("MULHER", [[[NAME.ALICE,NAME.ANAJU,NAME.BRUNA,NAME.EUDA, 
+        NAME.ISABELLA, NAME.MAYANNE, NAME.MARIALUISA, NAME.MARIANNA, NAME.INGRID,
+        NAME.PAULA, NAME.THALIA, NAME.VICTORIA, NAME.LAIS, NAME.LILIAN, NAME.MELINA,
+        NAME.MILENA, NAME.NATHALIA, NAME.DENISE, NAME.ELISIANY, NAME.BRUNELY, NAME.SHEILA], 1]]),
+      this.hint("ESPIRITO SANTO", [[[NAME.ANDRE, NAME.LUIS, NAME.MAYANNE], 1]]),
+      this.hint("ALTURA", [[[NAME.LUIS,NAME.JOATAN,NAME.JOAS,NAME.JVPORTO],1], [[NAME.NILTON,NAME.FGOIS], 0.7], [[NAME.IKARO,NAME.BERNAD], 0.8]]),
+      this.hint("XADREZ", [[[NAME.RAFAEL,NAME.MICCHAEL],1], [[NAME.SIDNEY], 0.9] , [[NAME.HENRIQUE,NAME.JOAS, NAME.JVPORTO], 0.7], [[NAME.FBARRETO], 0.5]]),
+      this.hint("AGE OF EMPIRES", [[[NAME.ARAUJO, NAME.RAFAEL, NAME.SAMUEL, NAME.ANDRE, NAME.MICCHAEL],1], [[NAME.JOAS,NAME.HENRIQUE], 0.7]]),
+      this.hint("CODENAMES", [[[NAME.ARAUJO,NAME.MICCHAEL,NAME.RAFAEL,NAME.FSANCHEZ,NAME.JOAS,NAME.HENRIQUE,NAME.ANDRE],1], [[NAME.FBARRETO,NAME.GABRIEL], 0.5], [[NAME.NATHALIA], 0.1]]),
+      this.hint("TERMOOO", [[[NAME.SIDNEY,NAME.NATHALIA,NAME.ANAJU],1], [[NAME.HENRIQUE,NAME.ARAUJO], 0.9], [[NAME.MARCELO], 0.8], [[NAME.RAFAEL], 0.7], [[NAME.FGOIS], 0.6]])
     ];
   }
 }

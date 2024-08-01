@@ -63,6 +63,7 @@ class AnimationObject{
 class AnimationObjectClick extends AnimationObject{
     constructor(){
         super();
+        
     }
 
     draw(x, y, xScl, yScl, angle){
@@ -90,6 +91,50 @@ class AnimationObjectClick extends AnimationObject{
         }
 
         ctx.restore();
+
+    }
+}
+
+class AnimationObjectGhostLos extends AnimationObject{
+    constructor(name, wid, hei){
+        super();
+        this.stepSpd = 0.005;
+        this.loopMode = 1;
+        this.width  = wid;
+        this.height = hei;
+        this.name = name;
+    }
+
+    draw(x, y, xScl, yScl, angle){
+
+        var angleAnim = Math.PI*2*this.progress;
+       
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(xScl, yScl);
+        ctx.rotate(angle+angleAnim);
+
+        ctx.globalAlpha = 0.4;
+
+        var colorHex = "rgb(100, 100, 100)";
+
+        // Drawing Losango
+        ctx.fillStyle = colorHex;
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+        ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+        ctx.strokeRect(-this.width / 2, -this.height / 2, this.width, this.height);
+
+        ctx.rotate(-(angle+angleAnim)); // Rotate the canvas context
+
+        ctx.font = ((isMobile) ? "18" : "14") + "px Arial";
+        ctx.fillStyle = 'black';
+        ctx.textAlign = 'center';
+
+        ctx.fillText(this.name, 0, 0);
+
+        ctx.restore(); // Restore the original state
+  
 
     }
 }

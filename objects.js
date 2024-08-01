@@ -598,6 +598,7 @@ function Bitcoin(x, y, radius) {
                 manager.addParticles(createParticlesInRect(particleSun, 50, gridObj.object.x-manager.losWid/2, gridObj.object.y-manager.losHei/2, manager.losWid, manager.losHei));
                 //manager.screenize(gridXY.x, gridXY.y);
                 manager.collectMoney(manager.bitcoinGraph.value)*8;
+                manager.achievementManager.getAchievement(ACHIEVEMENT.FIRSTTRADE);
                 this.active = false;
               }
             }
