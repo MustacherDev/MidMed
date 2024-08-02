@@ -36,7 +36,9 @@ class AttachPin{
   }
 
   draw(ctx){
+    if(!this.visible) return;
 
+    sprites[SPR.PIN].drawExt(this.x, this.y, 0, 3, 3, 0, 4, 4);
   }
 }
 
@@ -46,8 +48,15 @@ class Manager {
     this.losHei = 120;
 
     const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate()-1);
+
     const day = today.getDate();
     const month = today.getMonth() + 1; // Months are zero-indexed
+    const yDay = yesterday.getDate();
+    const yMonth = yesterday.getMonth() + 1;
+
+
     this.day = day;
     this.month = month;
 
@@ -133,6 +142,14 @@ class Manager {
     this.pageScrolled = false;
 
 
+
+    // CHESS TRANSFORMATION
+    this.chessMode = false;
+    this.chessState = 0;
+    this.pinSlideAlarm = new Alarm(0, 200);
+    this.pinSlideAlarm.pause();
+
+
     // OPENING SEQUENCE
     this.curtainSpotlight = new Spotlight();
     this.curtainSpotlight.width = 500;
@@ -186,7 +203,7 @@ class Manager {
     playSound(SND.POP);
 
     for(let i = 0; i < NAME.TOTAL; i++){
-      var pos = this.getPosGrid(i);
+      var pos = this.getBasePosGrid(i);
       this.losangos.push(new Losango(pos.x, pos.y, i));
       this.losangosGrid.push(i);
       this.losangosPhy.push(null);
@@ -195,7 +212,10 @@ class Manager {
 
       if(nameMan.persons[i].bday == this.day && nameMan.persons[i].bmonth == this.month){
         this.losangos[i].anniversary = true;
+      } else if(nameMan.persons[i].bday == this.yDay && nameMan.persons[i].bmonth == this.yMonth){
+        this.losangos[i].preAnniversary = true;
       }
+
 
       if(i >= NAME.DIOGO){
         this.losangos[i].inOtherplane = true;
@@ -210,16 +230,21 @@ class Manager {
         subGrid.push(new GridObject(i, null, 1, 1));
         subGrid[i].valid = false;
 
+
       }
 
       this.grid.push(subGrid);
+     
+    }
+    for(var i = 0; i < 50; i++){
+      var pos = this.getBasePosGrid(i);
+      this.pins.push(new AttachPin(pos.x, pos.y));
     }
 
 
     for(let i = 0; i < NAME.DIOGO; i++){
       this.losangos[i].attachGridId = i;
       this.grid[GRID.MIDDLE][i] = new GridObject(i, this.losangos[i], 1, 1);
-      
     }
 
 
@@ -430,7 +455,52 @@ class Manager {
 
     }
 
+    this.pinSlideAlarm.update(dt);
 
+    if(this.chessMode){
+      if(this.chessState == 1){
+        var perc = this.pinSlideAlarm.percentage();
+        for(var i = 0; i < this.pins.length; i++){
+          var pos = this.gridInd2XY(i);
+          var row = pos.y/2;
+          var col = pos.x;
+          var hei = this.losHei*Math.SQRT2;
+          if((col)%2 == 1){
+            this.pins[i].y = this.getBasePosGrid(i).y*(1-perc) + ((hei/2) + row*hei*2)*perc;
+            this.pins[i].x = this.getBasePosGrid(i).x*(1-perc) + ((col - 5)*(hei/2) + (roomWidth/2))*perc;
+          } else {
+            this.pins[i].y = this.getBasePosGrid(i).y*(1-perc) + row*hei*2*perc;
+            this.pins[i].x = this.getBasePosGrid(i).x*(1-perc) + ((col - 5)*(hei/2) + (roomWidth/2))*perc;
+          }
+        }
+
+        if(this.pinSlideAlarm.finished){
+          this.chessState = 2;
+        }
+      } else if(this.chessState == 2){
+
+      } else if(this.chessState == 3){
+        var perc = 1-this.pinSlideAlarm.percentage();
+        for(var i = 0; i < this.pins.length; i++){
+          var pos = this.gridInd2XY(i);
+          var row = pos.y/2;
+          var col = pos.x;
+          var hei = this.losHei*Math.SQRT2;
+          if((col)%2 == 1){
+            this.pins[i].y = this.getBasePosGrid(i).y*(1-perc) + ((hei/2) + row*hei*2)*perc;
+            this.pins[i].x = this.getBasePosGrid(i).x*(1-perc) + ((col - 5)*(hei/2) + (roomWidth/2))*perc;
+          } else {
+            this.pins[i].y = this.getBasePosGrid(i).y*(1-perc) + row*hei*2*perc;
+            this.pins[i].x = this.getBasePosGrid(i).x*(1-perc) + ((col - 5)*(hei/2) + (roomWidth/2))*perc;
+          }
+        }
+
+        if(this.pinSlideAlarm.finished){
+          this.chessState = 0;
+          this.chessMode = false;
+        }
+      }
+    }
 
 
 
@@ -564,9 +634,8 @@ class Manager {
 
     this.inventory.draw(ctx);
 
-    for(let i = 0; i < this.grid[GRID.MIDDLE].length; i++){
-      var pos = this.getPosGrid(i);
-      sprites[SPR.PIN].drawExt(pos.x, pos.y, 0, 3, 3, 0, 4, 4);
+    for(let i = 0; i < this.pins.length; i++){
+      this.pins[i].draw(ctx);
     }
   }
 
@@ -605,7 +674,15 @@ class Manager {
 
 
 
-
+  initChess(){
+    this.chessMode = true;
+    this.chessState = 1;
+    this.pinSlideAlarm.start();
+    for(var i = 0; i < this.losangos.length; i++){
+      var updatePacket = new UpdateLosango([new PropertyObject("rotating", true), new PropertyObject("isTilted", true)]);
+      this.losangos[i].updateList.push(updatePacket);
+    }
+  }
 
 
   initMinesweeper(firstId){
@@ -774,9 +851,7 @@ class Manager {
       this.attachObject(this.losangos[losangoRandomIndexes[0]], i, GRID.MIDDLE);
       losangoRandomIndexes.splice(0, 1);
 
-      var updatePacket = new UpdateLosango([
-        new PropertyObject("rotating", true),
-        new PropertyObject("isTilted", false)]);
+      var updatePacket = new UpdateLosango([]);
 
       this.losangos[i].updateList.push(updatePacket);
       updatePacket.isFront = true;
@@ -1008,9 +1083,7 @@ class Manager {
 
 
 
-
-
-  getPosGrid(ind){
+  getBasePosGrid(ind){
     var initX = this.losWid/2 + (roomWidth/2) - (this.cols*this.losWid)/2;
     var initY = this.verticalSpace;
     var ix = ind%this.cols;
@@ -1018,18 +1091,41 @@ class Manager {
     return new Vector(this.losWid*ix + initX, this.losHei*iy + initY);
   }
 
+  getPosGrid(ind){
+    if(ind < 0 || ind >= this.pins.length){
+      return new Vector(0, 0);
+    }
+    var pos = new Vector(this.pins[ind].x, this.pins[ind].y); 
+    return pos;
+  }
+
+  
+
   getMouseGrid(){
 
-    var initPos = this.getPosGrid(0);
+    
 
-    var cornerX = initPos.x - this.losWid/2;
-    var cornerY = initPos.y - this.losHei/2;
+    for(var i= 0 ; i < this.pins.length; i++){
 
-    if(pointInRect(input.mouseX, input.mouseY, cornerX, cornerY, cornerX+this.cols*this.losWid, cornerY+this.rows*this.losHei)){
-      var col = Math.floor((input.mouseX - cornerX)/this.losWid);
-      var row = Math.floor((input.mouseY - cornerY)/this.losHei);
+      var initPos = this.getPosGrid(0);
 
-      return col + row*this.cols;
+      var wid = this.losWid;
+      var hei = this.losHei;
+      var cornerX = this.pins[i].x - wid/2;
+      var cornerY = this.pins[i].y - hei/2;
+
+      var pinArea = new BoundingBox(cornerX, cornerY, wid, hei);
+
+      if(pinArea.isPointInside(input.mouseX, input.mouseY)){
+        return i;
+      }
+
+      // if(pointInRect(input.mouseX, input.mouseY, cornerX, cornerY, cornerX+this.cols*this.losWid, cornerY+this.rows*this.losHei)){
+      //   var col = Math.floor((input.mouseX - cornerX)/this.losWid);
+      //   var row = Math.floor((input.mouseY - cornerY)/this.losHei);
+
+      //   return col + row*this.cols;
+      // }
     }
     return -1;
   }

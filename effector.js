@@ -128,6 +128,12 @@ class Effector {
                 playSound(SND.AUU);
                 los.flip();
             } else {
+                if(manager.chessMode){
+                    manager.pinSlideAlarm.restart();
+                    manager.chessState = 3;
+                } else{
+                    manager.initChess();
+                }
                 los.flip();
             }
         } else if (los.id == NAME.SHEILA) {
@@ -141,6 +147,7 @@ class Effector {
                 los.flip();
             }
         } else if (los.id == NAME.ARAUJO) {
+            manager.randomizeGrid();
             manager.codenamesManager.getGrid();
             manager.codenamesManager.getHint();
             los.flip();
@@ -250,7 +257,15 @@ class Effector {
             manager.clickParticle();
             manager.glitch();
 
+        } else if (los.id == NAME.THALIA) {
+            if(los.useAltName){
+                playSound(SND.FUNICULI);
+                los.flip(6);
+            } else {
+                los.flip();
+            }
         } else if (los.id == NAME.HENRIQUE) {
+            playSound(SND.RAPAZ);
             if (manager.pageScrolled) {
                 window.scrollTo(0, 0);
                 manager.pageScrolled = false;
@@ -375,6 +390,10 @@ class Effector {
                 los.flip();
             }
         } else if (los.id == NAME.MARCELO) {
+
+            playSound(SND.AUMENTAOSOM);
+            los.flip(4);
+            return;
 
             var directions = [
                 new Vector(1, 0),

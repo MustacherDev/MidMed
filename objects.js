@@ -966,6 +966,7 @@ function MetalBlock(x, y){
       }
 
 
+      
       var targetPos = manager.getPosGrid(this.attachGridId);
 
       //this.attachCooldownAlarm.update(dt);

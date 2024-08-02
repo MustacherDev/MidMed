@@ -141,8 +141,12 @@ class Losango {
 
     this.frames = 0;
 
+    
+    this.regularFrontColor = new Color(255,255,255);
+    this.regularBackColor = new Color(200, 200, 200);
     this.frontColor = new Color(255,255,255);
     this.backColor = new Color(200, 200, 200);
+
 
     this.linePerc = 0.1;
 
@@ -201,6 +205,9 @@ class Losango {
 
   codenames(){
     this.codenamesMode = true;
+    if(!this.rotating && !this.isTilted){
+      this.rotating = true;
+    }
   }
 
  
@@ -417,9 +424,9 @@ class Losango {
 
       if(manager.codenamesManager.finished) this.codenamesMode = false;
     } else {
-      this.backColor.r = 150;
-      this.backColor.g = 150;
-      this.backColor.b = 150;
+      this.backColor.r = this.regularBackColor.r;
+      this.backColor.g = this.regularBackColor.g;
+      this.backColor.b = this.regularBackColor.b;
     }
 
 

@@ -1706,13 +1706,16 @@ class Codenames{
     console.log(hintText);
     this.currentHint = hintText;
     this.guessNum = bestNum;
+    this.guessing = true;
     return hintText;
   }
 
   getGrid(){
     this.nameMap = [];
     for(var i = 0; i < NAME.TOTAL; i++){
-      this.nameMap.push(-1);    }
+      this.nameMap.push(-1);    
+    }
+
 
     this.grid = [];
     for(var i = 1; i < 5; i++){
@@ -1733,6 +1736,7 @@ class Codenames{
 
     var blackRand = randInt(0, totalCodenames);
     this.grid[blackRand].team = 2;
+    this.finished = false;
 
     var blueNames = Math.floor(totalCodenames/3);
     for(var i = 0; i < blueNames; i++){

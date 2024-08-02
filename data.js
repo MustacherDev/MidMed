@@ -39,6 +39,9 @@ const SND = Object.freeze(new Enum(
     "CLAUS",
     "ALARM",
     "AUU",
+    "RAPAZ",
+    "AUMENTAOSOM",
+    "FUNICULI",
     "TOTAL"
 ));
 
@@ -69,7 +72,10 @@ const sndPaths = [
   "police.mp3",
   "ClausSound.mp3",
   "alarm.mp3",
-  "Auu.mp3"
+  "Auu.mp3",
+  "rapaz.mp3",
+  "AumentaOSom.mp3",
+  "funiculi.mp3"
 ];
 
 const WINSND = Object.freeze(new Enum(
