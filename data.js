@@ -42,6 +42,10 @@ const SND = Object.freeze(new Enum(
     "RAPAZ",
     "AUMENTAOSOM",
     "FUNICULI",
+    "DRUMS",
+    "BALLOONPOP1",
+    "BALLOONPOP2",
+    "DARTBLOW",
     "TOTAL"
 ));
 
@@ -75,7 +79,11 @@ const sndPaths = [
   "Auu.mp3",
   "rapaz.mp3",
   "AumentaOSom.mp3",
-  "funiculi.mp3"
+  "funiculi.mp3",
+  "drums.mp3",
+  "balloonPop1.mp3",
+  "balloonPop2.mp3",
+  "dartBlow.mp3"
 ];
 
 const WINSND = Object.freeze(new Enum(
@@ -118,6 +126,7 @@ sounds[SND.PAGEFLIP].volume(0.4);
 sounds[SND.EXPLOSION].volume(0.2);
 sounds[SND.GLITCHHIT].volume(0.2);
 sounds[SND.POLICE].volume(0.2);
+sounds[SND.AUMENTAOSOM].volume(0.4);
 
 
 function playSound(soundId){
@@ -178,6 +187,8 @@ const SPR = Object.freeze(new Enum(
     "ACHIEVEMENTICONS",
     "GLOW",
     "HEADPHONES",
+    "MINIDART",
+    "BALLOON",
     "TOTAL"
 ));
 
@@ -213,7 +224,9 @@ var imgPaths = [  "bombSprite.png",
   "Achievement.png",
   "achievementIcons.png",
   "Glow.png",
-  "headphones.png"
+  "headphones.png",
+  "darts.png",
+  "balloons.png"
 ];
 
 var need2Load = imgPaths.length;
@@ -246,6 +259,9 @@ function loadSprites() {
         sprites[SPR.MUSICNOTES].setSubimg(32,32);
         sprites[SPR.ACHIEVEMENTICONS].setSubimg(16,16);
         sprites[SPR.BIRTHDAY].setSubimg(64, 72);
+        sprites[SPR.PIN].setSubimg(8,8);
+        sprites[SPR.MINIDART].setSubimg(16, 7);
+        sprites[SPR.BALLOON].setSubimg(156, 200);
 
 
         spritesLoaded = true;

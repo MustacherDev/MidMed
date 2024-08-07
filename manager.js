@@ -28,17 +28,39 @@ const GRID = Object.freeze(new Enum(
   "TOTAL"
 ));
 
+const MANSTATE = Object.freeze(new Enum(
+  "NORMAL",
+  "MINESWEEPER",
+  "HDMI",
+  "CHESS",
+  "TOTAL"
+));
+
 class AttachPin{
   constructor(x, y){
     this.x = x;
     this.y = y;
     this.visible = true;
+    this.suitable = true;
   }
 
   draw(ctx){
     if(!this.visible) return;
 
-    sprites[SPR.PIN].drawExt(this.x, this.y, 0, 3, 3, 0, 4, 4);
+    var img = (this.suitable)? 0 : 1;
+
+    sprites[SPR.PIN].drawExt(this.x, this.y, img, 3, 3, 0, 4, 4);
+  }
+
+  update(dt){
+    if(this.x < 0 || this.x > roomWidth){
+      this.suitable = false;
+    } else if(this.y < 0 || this.y > roomHeight){
+      this.suitable = false;
+    } else {
+      this.suitable = true;
+    }
+
   }
 }
 
@@ -49,16 +71,17 @@ class Manager {
 
     const today = new Date();
     const yesterday = new Date();
+    const tomorrow = new Date();
     yesterday.setDate(today.getDate()-1);
-
-    const day = today.getDate();
-    const month = today.getMonth() + 1; // Months are zero-indexed
-    const yDay = yesterday.getDate();
-    const yMonth = yesterday.getMonth() + 1;
+    tomorrow.setDate(today.getDate()+1);
 
 
-    this.day = day;
-    this.month = month;
+    this.day = today.getDate();
+    this.month = today.getMonth() + 1;
+    this.yDay = yesterday.getDate();
+    this.yMonth = yesterday.getMonth() + 1;
+    this.tDay = tomorrow.getDate();
+    this.tMonth = tomorrow.getMonth() + 1;
 
     this.verticalSpace = this.losHei;
 
@@ -78,7 +101,6 @@ class Manager {
 
     this.losangos = [];
     this.losangosGrid = [];
-    this.losangosPhy = [];
     this.losangosAnim = [];
 
     this.minesweeper = new Minesweeper();
@@ -123,6 +145,11 @@ class Manager {
     this.achievementManager = new AchievementManager();
     this.codenamesManager = new Codenames();
 
+    this.curtainState = 1;
+    this.curtainRight = new Curtain(1);
+    this.curtainLeft = new Curtain(0);
+    this.openingManager = new OpeningSequence();
+
     this.spotlight = new Spotlight();
 
     this.quietAlarm = new Alarm(0, 2000);
@@ -146,28 +173,21 @@ class Manager {
     // CHESS TRANSFORMATION
     this.chessMode = false;
     this.chessState = 0;
-    this.pinSlideAlarm = new Alarm(0, 200);
+    this.pinSlideAlarm = new Alarm(0, 100);
     this.pinSlideAlarm.pause();
 
 
-    // OPENING SEQUENCE
-    this.curtainSpotlight = new Spotlight();
-    this.curtainSpotlight.width = 500;
-    this.curtainSpotlight.height = 500;
-    this.curtainSpotlight.screenWidth = window.innerWidth;
-    this.curtainSpotlight.screenHeight = window.innerHeight;
-    this.curtainSpotlight.x = this.curtainSpotlight.screenWidth/2;
-    this.curtainSpotlight.y = this.curtainSpotlight.screenHeight/2;
-    this.curtainSpotlight.active = true;
+    // GRID PINS ARRANGMENT MODE
+    // 0 RECTANGLE, 1 CHESS, 2 HONEY COMB
+    this.pinMode = 0; 
 
-    this.curtainsState = 1;
-    this.openingAlarm = new Alarm(0, 300);
-    this.openingCooldownAlarm = new Alarm(0, 25);
-    this.openingAlarm.paused = true;
-    this.spotWobbleAlarm = new Alarm(0, 400);
+    
+    this.drumSound = null;
 
 
-
+    // FRAME COUNT
+    
+    this.frames = 0;
 
 
 
@@ -201,18 +221,18 @@ class Manager {
 
 
     playSound(SND.POP);
+    this.drumSound = playSound(SND.DRUMS);
 
     for(let i = 0; i < NAME.TOTAL; i++){
       var pos = this.getBasePosGrid(i);
       this.losangos.push(new Losango(pos.x, pos.y, i));
       this.losangosGrid.push(i);
-      this.losangosPhy.push(null);
       this.losangosAnim.push(new LosangoAnimator());
      
 
       if(nameMan.persons[i].bday == this.day && nameMan.persons[i].bmonth == this.month){
         this.losangos[i].anniversary = true;
-      } else if(nameMan.persons[i].bday == this.yDay && nameMan.persons[i].bmonth == this.yMonth){
+      } else if(nameMan.persons[i].bday == this.tDay && nameMan.persons[i].bmonth == this.tMonth){
         this.losangos[i].preAnniversary = true;
       }
 
@@ -283,11 +303,8 @@ class Manager {
 
    for(var  i = 0 ; i < this.losangos.length; i++){
       if(!this.losangos[i].attached){
-        if(this.losangos[i].attached){
-          this.deattachObject(this.losangos[i].attachGridId, GRID.MIDDLE);
-        }
-  
         this.losangos[i].inOtherplane = true;
+        this.losangos[i].killBody();
       }
    }
 
@@ -296,6 +313,9 @@ class Manager {
 
 
   update(dt){
+
+    
+    this.frames += dt;
 
     if(this.holdingObject == null){
       this.holding = false;
@@ -327,59 +347,61 @@ class Manager {
     if(this.drMarioScreen != null){
       if(this.drMarioScreen.cartridge == NAME.BERNAD){
         if(input.keyState[KeyCodes.ArrowLeft][1]){
-          this.drMario.inputMove(-1);
+          this.drMario.inputMovePress(-1);
         }
-    
+        if(input.keyState[KeyCodes.ArrowLeft][2]){
+          this.drMario.inputMoveRelease(-1);
+        }
+        if(input.keyState[KeyCodes.ArrowLeft][0]){
+          this.drMario.inputMoveHold(-1);
+        }
+      
         if(input.keyState[KeyCodes.ArrowRight][1]){
-          this.drMario.inputMove(1);
+          this.drMario.inputMovePress(1);
         }
-
+        if(input.keyState[KeyCodes.ArrowRight][2]){
+          this.drMario.inputMoveRelease(1);
+        }
+        if(input.keyState[KeyCodes.ArrowRight][0]){
+          this.drMario.inputMoveHold(1);
+        }
+      
         if(input.keyState[KeyCodes.ArrowDown][0]){
           this.drMario.inputDown();
         }
-    
+      
         if(input.keyState[KeyCodes.Space][1]){
-          this.drMario.inputTurn();
+          this.drMario.inputTurn(0);
         }
+      
     
         this.drMario.update(dt);
       }
     }
 
+
+    for(var i = 0 ; i < this.pins.length; i++){
+      this.pins[i].update(dt);
+      if(!this.pins[i].suitable){
+        var gridObj = this.grid[GRID.MIDDLE][i]; 
+        if(gridObj.valid){
+          if(gridObj.object.type == OBJECT.LOSANGO){
+            console.log(gridObj);
+            this.deattachObject(i, GRID.MIDDLE);
+            playSound(SND.POP);
+          }
+        }
+      }
+
+    }
+
     switch(this.mode){
 
       case -1:
-        this.spotWobbleAlarm.update(dt);
-        this.openingCooldownAlarm.update(dt);
-        
-        this.openingAlarm.update(dt);
-        this.curtainSpotlight.update(dt);
-
-        if(this.spotWobbleAlarm.finished){
-          this.spotWobbleAlarm.restart();
-        }
-
-        if(this.openingAlarm.paused){
-          if(this.openingCooldownAlarm.finished){
-            if(input.mouseState[0][1]){
-              this.openingAlarm.start();
-            }
-          }
-        }
-
-        this.curtainSpotlight.x = (window.innerWidth/2) + 100*(Math.cos(this.spotWobbleAlarm.percentage()*Math.PI*2));
-        this.curtainSpotlight.y = (window.innerHeight/2) - 50 + 50*(1+Math.sin(this.spotWobbleAlarm.percentage()*Math.PI*4));
-
-        this.curtainsState = 1-tweenInOut(this.openingAlarm.percentage());
-        this.curtainSpotlight.width = 500 + 2000*this.openingAlarm.percentage();
-        this.curtainSpotlight.height = this.curtainSpotlight.width;
-
-
-        if(this.openingAlarm.finished){
+        this.openingManager.update(dt);
+        if(this.openingManager.finished){
           this.mode = 0;
-          this.curtainSpotlight.active = false;
         }
-
 
         break;
 
@@ -467,10 +489,10 @@ class Manager {
           var hei = this.losHei*Math.SQRT2;
           if((col)%2 == 1){
             this.pins[i].y = this.getBasePosGrid(i).y*(1-perc) + ((hei/2) + row*hei*2)*perc;
-            this.pins[i].x = this.getBasePosGrid(i).x*(1-perc) + ((col - 5)*(hei/2) + (roomWidth/2))*perc;
+            this.pins[i].x = this.getBasePosGrid(i).x*(1-perc) + ((hei/4) + (col - 5)*(hei/2) + (roomWidth/2))*perc;
           } else {
             this.pins[i].y = this.getBasePosGrid(i).y*(1-perc) + row*hei*2*perc;
-            this.pins[i].x = this.getBasePosGrid(i).x*(1-perc) + ((col - 5)*(hei/2) + (roomWidth/2))*perc;
+            this.pins[i].x = this.getBasePosGrid(i).x*(1-perc) + ((hei/4) + (col - 5)*(hei/2) + (roomWidth/2))*perc;
           }
         }
 
@@ -488,10 +510,10 @@ class Manager {
           var hei = this.losHei*Math.SQRT2;
           if((col)%2 == 1){
             this.pins[i].y = this.getBasePosGrid(i).y*(1-perc) + ((hei/2) + row*hei*2)*perc;
-            this.pins[i].x = this.getBasePosGrid(i).x*(1-perc) + ((col - 5)*(hei/2) + (roomWidth/2))*perc;
+            this.pins[i].x = this.getBasePosGrid(i).x*(1-perc) + ((hei/4) +(col - 5)*(hei/2) + (roomWidth/2))*perc;
           } else {
             this.pins[i].y = this.getBasePosGrid(i).y*(1-perc) + row*hei*2*perc;
-            this.pins[i].x = this.getBasePosGrid(i).x*(1-perc) + ((col - 5)*(hei/2) + (roomWidth/2))*perc;
+            this.pins[i].x = this.getBasePosGrid(i).x*(1-perc) + ((hei/4) +(col - 5)*(hei/2) + (roomWidth/2))*perc;
           }
         }
 
@@ -596,6 +618,8 @@ class Manager {
     this.achievementManager.update(dt);
 
 
+    this.curtainRight.progress = this.curtainState;
+    this.curtainLeft.progress  = this.curtainState;
 
 
 
@@ -1037,8 +1061,8 @@ class Manager {
   }
 
   breakLogo(logoObj){
-    logoObj.active = false;
-    this.particles.push(particleLogo(logoObj.x, logoObj.y));
+    logoObj.break();
+
     if(!this.logoBroken){
       for(var i = 2; i < 4; i++){
         for(var j = 3; j < 7; j++){
@@ -1210,24 +1234,26 @@ class Manager {
 
   killLosango(id){
 
+    this.losangos[id].inOtherplane = true;
     if(this.losangos[id].attached){
       this.deattachObject(this.losangos[id].attachGridId, GRID.MIDDLE);
     }
 
     this.losangos[id].onDestroy();
-    this.losangos[id].inOtherplane = true;
+ 
   }
 
   spawnLosango(id){
+    this.losangos[id].inOtherplane = false;
     if(!this.losangos[id].attached){
       this.losangos[id].spawnBody();
     }
-
-    this.losangos[id].inOtherplane = false;
   }
 
   
   deattachLosango(id){
+
+    console.log("Deattachin losango " + id);
     const los = this.losangos[id];
     los.attached = false;
 

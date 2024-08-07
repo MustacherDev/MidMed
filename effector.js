@@ -250,6 +250,10 @@ class Effector {
 
         } else if (los.id == NAME.ALICE) {
             manager.sortGrid();
+
+        } else if (los.id == NAME.LILIAN) {
+            var balloon = new Balloon(randInt(0, roomWidth), randInt(0, roomHeight), randInt(0, 4));
+            addObject(balloon, OBJECT.BALLOON);
         } else if (los.id == NAME.FGOIS) {
             manager.randomizeGrid();
         } else if (los.id == NAME.JP) {
@@ -355,7 +359,7 @@ class Effector {
 
         } else if (los.id == NAME.DANILO) {
 
-            if (los.isFront && chance(0.5) && objectLists[OBJECT.DART].length <= 1) {
+            if (los.isFront && chance(0.1) && objectLists[OBJECT.DART].length == 0) {
                 var pos = manager.getPosGrid(los.getGridId());
                 var ang = Math.random() * Math.PI * 2;
                 var spd = randRange(5, 10);
@@ -387,7 +391,14 @@ class Effector {
                     los.flip(1);
                 }
             } else {
-                los.flip();
+                for(var i = 0 ; i < 4; i++){
+                    var angle = Math.PI/4 + (Math.PI/2) * i;
+                    var miniDart = new MiniDart(los.x, los.y, i, angle);
+                    addObject(miniDart, OBJECT.MINIDART);
+                }
+                los.popInAlarm.start();
+                playSound(SND.DARTBLOW);
+                //los.effectCooldownAlarm.start(0);
             }
         } else if (los.id == NAME.MARCELO) {
 

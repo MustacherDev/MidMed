@@ -185,6 +185,7 @@ class HDMIScreen{
     if(!this.hdmi){
       if(this.glitchLevel >= this.glitchMax){
         this.hdmi = true;
+        manager.losangos[NAME.JP].connector = true;
 
         //playSound(SND.STATICHIT);
       }
@@ -1031,573 +1032,98 @@ class BitcoinGraph{
 
 
 
-// Temporary Dr Mario object
+class Curtain{
+  constructor(orientation){
 
-const DRMARIOTYPE = Object.freeze(new Enum(
-  "EMPTY",
-  "VIRUS",
-  "PILL",
-  "DOUBLEPILL",
-  "TOTAL"
-));
-
-const DRMARIOCOLOR = Object.freeze(new Enum(
-  "BLUE",
-  "GREEN",
-  "RED",
-  "TOTAL"
-));
-
-class DrMarioObj{
-  constructor(type, color, orientation = 0){
-    this.type = type;
-    this.color = color;
+    this.progress = 0;
     this.orientation = orientation;
-    this.updated = false;
-    this.destroying = false;
+
+    this.wid = 0;
+    this.hei = 0;
+  }
+
+  draw(ctx){
+
+    var curtainExtraHei = 20;
+    var curtainWid = (window.innerWidth - canvasSclX*roomWidth)/2;
+    var curtainHei = window.innerHeight + curtainExtraHei;
+    var curtainScl = curtainHei/sprites[SPR.CURTAIN].height;
+    var curtainExtraX = 20;
+  
+    var canvasSpace = window.innerWidth - curtainWid*2;
+  
+    var curtainsState = this.progress;
+  
+    
+    if(this.orientation == 0){
+      sprites[SPR.CURTAIN].drawExt(curtainWid + curtainExtraX + (canvasSpace/2)*curtainsState,-curtainExtraHei/2, 0, curtainScl, curtainScl, 0, sprites[SPR.CURTAIN].width, 0);
+    } else {
+      sprites[SPR.CURTAIN].drawExt(window.innerWidth - curtainWid - curtainExtraX - (canvasSpace/2)*curtainsState,-curtainExtraHei/2, 0, curtainScl, curtainScl, 0, 0, 0);
+    }
   }
 }
 
-class DrMarioPlayerPill{
-  constructor(color1, color2, orientation, x, y){
-    this.x = x;
-    this.y = y;
-    this.part1 = new DrMarioObj(DRMARIOTYPE.DOUBLEPILL, color1);
-    this.part2 = new DrMarioObj(DRMARIOTYPE.DOUBLEPILL, color2);
-    this.orientation = orientation;
+class CurtainManager{
+  constructor(){
+    this.curtainRight = new Curtain(0);
+    this.curtainLeft  = new Curtain(1);
   }
 }
 
-class DrMarioGame{
-  constructor(wid, hei){
-    this.wid = wid;
-    this.hei = hei;
-    this.grid = [];
-    this.nextPill = null;
-    this.playerPill = null;
+class OpeningSequence{
+  constructor(){
+    // OPENING SEQUENCE
+    this.curtainSpotlight = new Spotlight();
+    this.curtainSpotlight.width = 500;
+    this.curtainSpotlight.height = 500;
+    this.curtainSpotlight.screenWidth = window.innerWidth;
+    this.curtainSpotlight.screenHeight = window.innerHeight;
+    this.curtainSpotlight.x = this.curtainSpotlight.screenWidth/2;
+    this.curtainSpotlight.y = this.curtainSpotlight.screenHeight/2;
+    this.curtainSpotlight.active = true;
 
-    this.stepAlarm = new Alarm(0,5);
-    this.inputStepAlarm = new Alarm(0, 1);
+    this.openingAlarm = new Alarm(0, 300);
+    this.openingCooldownAlarm = new Alarm(0, 25);
+    this.openingAlarm.paused = true;
+    this.spotWobbleAlarm = new Alarm(0, 400);
 
-    this.pillSpd = 0.25;
-    this.pillStep = 0;
-
-    this.placingPill = false;
-
-    // 0 == PLACING PILL, 1 == CHECKING SEQUENCES, 2 == DESTROYING PILLS, 3 == FALLING PHYSICS
-    this.runState = 0;
-
-    this.gameover = false;
-
-    this.ready = false;
-
-    this.toMove = 0;
-    this.toTurn = 0;
-  }
-
-  init(wid, hei){
-    this.wid = wid;
-    this.hei = hei;
-    for(var i = 0; i < this.hei; i++){
-      var row = [];
-      for(var j = 0; j < this.wid; j++){
-        if(chance(0.4) && i > this.hei/2){
-          row.push(new DrMarioObj(1, randInt(0, 3)));
-        } else {
-          row.push(new DrMarioObj(0,0));
-        }
-      }
-      this.grid.push(row);
-    }
-
-    this.playerPill = new DrMarioPlayerPill(DRMARIOCOLOR.RED, DRMARIOCOLOR.BLUE, 0, 0, 0);
-    this.playerPill.x = Math.floor(this.wid/2)-1;
-    this.playerPill.y = 0;
-    this.playerPill.part1 = new DrMarioObj(DRMARIOTYPE.DOUBLEPILL, randInt(0,3));
-    this.playerPill.part2 = new DrMarioObj(DRMARIOTYPE.DOUBLEPILL, randInt(0,3));
-    this.ready = true;
-  }
-
-  placePlayer(){
-    var pill1 = this.playerPill.part1;
-    var pill2 = this.playerPill.part2;
-    var vertical = this.playerPill.orientation;
-
-    var type = pill1.type;
-    var color = pill1.color;
-
-    this.grid[this.playerPill.y][this.playerPill.x] = new DrMarioObj(pill1.type, pill1.color, vertical ? 1:0);
-    var addX = 1;
-    var addY = 0;
-    if(this.playerPill.orientation == 1){
-      addX = 0;
-      addY = -1;
-    }
-
-    if(this.playerPill.y + addY >= 0){
-      this.grid[this.playerPill.y + addY][this.playerPill.x + addX] = new DrMarioObj(pill2.type, pill2.color, (vertical ? 1:0)+2);
-    }
-
-    this.runState = 1;
-
-    this.playerPill.x = Math.floor(this.wid/2)-1;
-    this.playerPill.y = 0;
-    this.playerPill.part1 = new DrMarioObj(DRMARIOTYPE.DOUBLEPILL, randInt(0,3));
-    this.playerPill.part2 = new DrMarioObj(DRMARIOTYPE.DOUBLEPILL, randInt(0,3));
-  }
-
-  inputMove(dir){
-    if(this.runState == 0){
-      this.toMove = dir;
-    }
-  }
-
-  inputTurn(){
-    if(this.runState == 0){
-      this.toTurn = true;
-    }
-  }
-
-  inputDown(){
-    this.pillSpd = 1;
-  }
-
-  stepMove(){
-    if(this.toMove == 0) return;
-
-    this.playerPill.x += this.toMove;
-    var vertical = this.playerPill.orientation;
-
-    this.playerPill.x = clamp(this.playerPill.x, 0, this.wid-1-(1-vertical));
-
-    var xx = this.playerPill.x;
-    var yy = this.playerPill.y;
-
-    if(this.grid[yy][xx].type != DRMARIOTYPE.EMPTY){
-      this.playerPill.x -= this.toMove;
-      return;
-    }
-
-
-
-    if(vertical){
-      if(yy-1 >= 0){
-        if(this.grid[yy - 1][xx].type != DRMARIOTYPE.EMPTY){
-          this.playerPill.x -= this.toMove;
-          return;
-        }
-      }
-    } else {
-      if(this.grid[yy][xx+1].type != DRMARIOTYPE.EMPTY){
-        this.playerPill.x -= this.toMove;
-        return;
-      }
-    }
-
-
-    this.toMove = 0;
-  }
-
-  stepTurn(){
-
-    if(!this.toTurn) return;
-
-    try{
-    if(this.playerPill.orientation == 0){
-
-      if(this.checkPillCollision(this.playerPill.x, this.playerPill.y, 1)){
-        if(this.checkPillCollision(this.playerPill.x-1, this.playerPill.y, 1)){
-          this.playerPill.x --;
-          this.playerPill.orientation = 1;
-        }
-      } else {
-        this.playerPill.orientation = 1;
-      }
-
-
-
-    } else {
-
-
-      if(this.checkPillCollision(this.playerPill.x, this.playerPill.y, 0)){
-        if(this.checkPillCollision(this.playerPill.x-1, this.playerPill.y, 0)){
-          this.playerPill.x --;
-          this.playerPill.orientation = 0;
-          var temp = this.playerPill.part1;
-          this.playerPill.part1 = this.playerPill.part2;
-          this.playerPill.part2 = temp;
-        }
-      } else {
-        this.playerPill.orientation = 0;
-        var temp = this.playerPill.part1;
-        this.playerPill.part1 = this.playerPill.part2;
-        this.playerPill.part2 = temp;
-      }
-      //this.playerPill.orientation = 0;
-
-     
-    }
-    } catch{
-      console.log("AGGG");
-    }
-
-    this.toTurn = false;
-  }
-
-
-  checkPillCollision(x, y, ori){
-    var oriAdd = [new Vector(1,0), new Vector(0, -1)];
-
-    var pill1 = new Vector(x, y);
-    var pill2 = new Vector(x + oriAdd[ori].x, y + oriAdd[ori].y);
-
-
-    try{
-    if(pill1.x < 0 || pill1.x >= this.wid){
-      return true;
-    }
-
-    
-    if(pill1.y >= this.hei){
-      return true;
-    }
-
-
-    if(this.grid[pill1.y][pill1.x].type != DRMARIOTYPE.EMPTY){
-      return true;
-    }
-
-
-
-    if(pill2.x < 0 || pill2.x >= this.wid){
-      return true;
-    }
-
-    
-    if(pill2.y >= this.hei){
-      return true;
-    }
-
-    if(this.grid[pill2.y][pill2.x].type != DRMARIOTYPE.EMPTY){
-      return true;
-    }
-  } catch{
-    console.log(pill1);
-    console.log(pill2);
-  }
-
-    return false;
+    this.finished = false;
   }
 
   update(dt){
-    if(!this.ready) return;
+    this.spotWobbleAlarm.update(dt);
+    this.openingCooldownAlarm.update(dt);
+    
+    this.openingAlarm.update(dt);
+    this.curtainSpotlight.update(dt);
 
-    this.inputStepAlarm.update(dt);
-
-    if(this.inputStepAlarm.finished){
-      this.inputStepAlarm.start();
-
-      if(this.runState == 0){
-
-        this.stepMove();
-        this.stepTurn();
-      }
+    if(this.spotWobbleAlarm.finished){
+      this.spotWobbleAlarm.restart();
     }
 
-    this.stepAlarm.update(dt);
-    if(this.stepAlarm.finished){
-      this.stepAlarm.start();
-
-      if(this.runState == 0){
-
-        this.stepMove();
-        this.stepTurn();
-
-        if(this.playerPill.y == this.hei-1){
-          this.placePlayer();
-        }
-        if(this.grid[this.playerPill.y+1][this.playerPill.x].type == DRMARIOTYPE.EMPTY){
-          if(this.playerPill.orientation == 0){
-            if(this.grid[this.playerPill.y+1][this.playerPill.x+1].type == DRMARIOTYPE.EMPTY){
-              this.pillStep += this.pillSpd;
-
-              if(this.pillStep >= 1){
-                this.pillStep--;
-                this.playerPill.y++;
-              }
-
-              this.pillSpd = 0.25;
-            } else {
-              this.placePlayer();
-            }
-          } else{
-            this.pillStep += this.pillSpd;
-
-            if(this.pillStep >= 1){
-              this.pillStep--;
-              this.playerPill.y++;
-            }
-
-            this.pillSpd = 0.25;
-          }
-        } else {
-          this.placePlayer();
-        }
-      } else if (this.runState == 1){
-        var sequences = 0;
-
-        // HORIZONTAL SEQUENCES
-        for(var i = 0; i < this.hei; i++){
-          var lastColor = -1;
-          var count = 0;
-          var startIndex = -1;
-          for(var j = 0; j < this.wid; j++){
-            var type = this.grid[i][j].type;
-            var color = this.grid[i][j].color;
-
-
-
-            if(type == DRMARIOTYPE.EMPTY){
-              if(count >= 4){
-                for(var k = startIndex; k < j; k++){
-                  this.grid[i][k].destroying = true;
-                }
-                sequences++;
-              }
-
-              count = 0;
-              lastColor = -1;
-              startIndex = -1;
-
-
-              continue;
-            }
-
-            if(lastColor == -1){
-              lastColor = color;
-              count = 1;
-              startIndex = j;
-              continue;
-            } else {
-              if(lastColor == color){
-                count++;
-              } else {
-                if(count >= 4){
-                  for(var k = startIndex; k < j; k++){
-                    this.grid[i][k].destroying = true;
-                  }
-                  sequences++;
-                }
-
-                lastColor = color;
-                count = 1;
-                startIndex = j;
-
-
-              }
-            }
-          }
-
-
-          if(count >= 4){
-            for(var k = startIndex; k < this.wid; k++){
-              this.grid[i][k].destroying = true;
-            }
-            sequences++;
-          }
-        }
-
-        // VERTICAL SEQUENCES
-        for (var j = 0; j < this.wid; j++) {
-          var lastColor = -1;
-          var count = 0;
-          var startIndex = -1;
-
-          for (var i = 0; i < this.hei; i++) {
-            var type = this.grid[i][j].type;
-            var color = this.grid[i][j].color;
-
-            if (type === DRMARIOTYPE.EMPTY) {
-              if (count >= 4) {
-                for (var k = startIndex; k < i; k++) {
-                  this.grid[k][j].destroying = true;
-                }
-                sequences++;
-              }
-
-              count = 0;
-              lastColor = -1;
-              startIndex = -1;
-
-              continue;
-            }
-
-            if (lastColor === -1) {
-              lastColor = color;
-              count = 1;
-              startIndex = i;
-              continue;
-            } else {
-              if (lastColor === color) {
-                count++;
-              } else {
-                if (count >= 4) {
-                  for (var k = startIndex; k < i; k++) {
-                    this.grid[k][j].destroying = true;
-                  }
-                  sequences++;
-                }
-
-                lastColor = color;
-                count = 1;
-                startIndex = i;
-              }
-            }
-          }
-
-          if (count >= 4) {
-            for (var k = startIndex; k < this.hei; k++) {
-              this.grid[k][j].destroying = true;
-            }
-            sequences++;
-          }
-        }
-
-
-        if(sequences == 0) {
-          this.runState = 0;
-        } else {
-          this.runState = 2;
-          //console.log(this.grid);
-        }
-
-
-      } else if (this.runState == 2){
-        for(var i = 0; i < this.hei; i++){
-          for(var j = 0; j < this.wid; j++){
-            if(this.grid[i][j].destroying){
-              this.grid[i][j] = new DrMarioObj(0,0);
-            }
-          }
-        }
-
-        var or2Vec = [new Vector(1,0), new Vector(0,-1), new Vector(-1,0), new Vector(0, 1)];
-
-        for(var i = 0; i < this.hei; i++){
-          for(var j = 0; j < this.wid; j++){
-            if(this.grid[i][j].type == DRMARIOTYPE.DOUBLEPILL){
-              var vec = or2Vec[this.grid[i][j].orientation];
-
-              if(this.grid[i+vec.y][j+vec.x].type == DRMARIOTYPE.EMPTY){
-                this.grid[i][j].type = DRMARIOTYPE.PILL;
-                this.grid[i][j].orientation = 0;
-              }
-            }
-          }
-        }
-        this.runState = 3;
-      } else if (this.runState == 3){
-        // CHECKING BOTTOM FIRST
-        // FALLING SAND PHYSICS
-        var moved = false;
-        for(var i = this.hei-2; i > 0; i--){
-          for(var j = 0; j < this.wid; j++){
-            var type = this.grid[i][j].type;
-            if(type == DRMARIOTYPE.EMPTY || type == DRMARIOTYPE.VIRUS) continue;
-            if(type == DRMARIOTYPE.PILL){
-              if(this.grid[i+1][j].type == DRMARIOTYPE.EMPTY){
-                this.grid[i+1][j] = this.grid[i][j];
-                this.grid[i][j] = new DrMarioObj(DRMARIOTYPE.EMPTY,0);
-              }
-            }
-          }
-        }
-
-        // CHECK IF NEXT STEP WILL HAVE PILL FALLING UPDATES
-        for(var i = this.hei-2; i > 0; i--){
-          for(var j = 0; j < this.wid; j++){
-            var type = this.grid[i][j].type;
-            if(type == DRMARIOTYPE.EMPTY || type == DRMARIOTYPE.VIRUS) continue;
-            if(type == DRMARIOTYPE.PILL){
-              if(this.grid[i+1][j].type == DRMARIOTYPE.EMPTY){
-                moved = true;
-                break;
-              }
-            }
-          }
-        }
-
-        if(!moved) this.runState = 1;
-      }
-    }
-  }
-
-  draw(xx,yy,ww,hh){
-    var x = xx;
-    var y = yy;
-    var w = ww/this.wid;
-    var h = hh/this.hei;
-    var scl = w/sprites[SPR.DRMARIOSHEET].width;
-
-    ctx.fillStyle = "rgb(0,0,0)";
-    ctx.fillRect(x,y, ww, hh);
-
-    for(var i = 0; i < this.hei; i++){
-      for(var j = 0; j < this.wid; j++){
-        var obj = this.grid[i][j];
-
-        var type = obj.type;
-        var color = obj.color;
-        var angle = 0;
-        var extraImg = 0;
-
-        if(type == DRMARIOTYPE.DOUBLEPILL){
-          var or = obj.orientation%2;
-          angle = -(Math.PI/2)*or;
-
-          if(obj.orientation >= 2){
-            extraImg = 1;
-          }
-        }
-
-        if(obj.type != 0){
-          sprites[SPR.DRMARIOSHEET].drawExt(x+w*j +4*scl, y+h*i +4*scl, (type+extraImg-1) + color*4, scl,scl,angle,4,4);
+    if(this.openingAlarm.paused){
+      if(this.openingCooldownAlarm.finished){
+        if(input.mouseState[0][1]){
+          this.openingAlarm.start();
         }
       }
     }
 
-    var px = this.playerPill.x;
-    var py = this.playerPill.y;
-    var pill1 = this.playerPill.part1;
-    var pill2 = this.playerPill.part2;
+    this.curtainSpotlight.x = (window.innerWidth/2) + 100*(Math.cos(this.spotWobbleAlarm.percentage()*Math.PI*2));
+    this.curtainSpotlight.y = (window.innerHeight/2) - 50 + 50*(1+Math.sin(this.spotWobbleAlarm.percentage()*Math.PI*4));
 
-    var vertical = this.playerPill.orientation;
-
-    var type = pill1.type;
-    var color = pill1.color;
-
-    var angle = -(Math.PI/2)*vertical;
+    manager.curtainState = 1-tweenInOut(this.openingAlarm.percentage());
+    this.curtainSpotlight.width = 500 + 2000*this.openingAlarm.percentage();
+    this.curtainSpotlight.height = this.curtainSpotlight.width;
 
 
-    if(type != DRMARIOTYPE.EMPTY){
-      sprites[SPR.DRMARIOSHEET].drawExt(x+w*px+ 4*scl, y+h*py+ 4*scl, (type-1) + color*4, scl,scl,angle,4,4);
+    if(this.openingAlarm.finished){
+      this.curtainSpotlight.active = false;
+      this.finished = true;
     }
 
-    type = pill2.type;
-    color = pill2.color;
-
-    var addPos = new Vector(1, 0);
-    if(vertical){
-      addPos = new Vector(0, -1);
-    }
-
-    angle = -(Math.PI/2)*vertical;
-    if(type != DRMARIOTYPE.EMPTY){
-      sprites[SPR.DRMARIOSHEET].drawExt(x+w*(px+addPos.x) + 4*scl, y+h*(py+addPos.y) + 4*scl, (type) + color*4, scl,scl,angle,4,4);
-    }
   }
 }
-
 
 
 // REALLY HARD, NEEDS LOT OF DETERMINATION

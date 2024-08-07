@@ -872,6 +872,116 @@ function Dart(x, y, ang){
 }
 
 
+function MiniDart(x, y, type, angle){
+  Box.call(this, x, y, 80, 80, sprites[SPR.MINIDART]);
+  this.type = OBJECT.MINIDART;
+
+
+  this.xScl = this.width/this.sprite.width;
+  this.yScl = this.xScl;
+
+  this.xOffset = this.xScl*this.sprite.width/2;
+  this.yOffset = this.yScl*this.sprite.height/2;
+
+  this.dartType = type;
+
+  this.angle = angle;
+  this.spd = 10;
+
+  this.gravityOn = false;
+  this.canBeHeld = false;
+
+  this.depth = -1;
+
+  this.update = function(dt){
+    this.hspd = this.spd * Math.cos(this.angle);
+    this.vspd = this.spd * Math.sin(this.angle);
+
+    this.parameterStep(dt);
+
+    var margin = 50;
+    if(this.x  > roomWidth + margin || this.x < -margin){
+      this.active = false;
+    } else if(this.y  > roomHeight + margin || this.y < -margin){
+      this.active = false;
+    }
+
+    this.pushDrawList();
+  }
+
+  this.draw = function(ctx){
+    this.sprite.drawExtRelative(this.x, this.y, this.dartType, this.xScl, this.yScl, this.angle, 0.5, 0.5);
+  }
+}
+
+function Balloon(x, y, type){
+  Box.call(this, x, y, 100, 100, sprites[SPR.BALLOON]);
+  this.type = OBJECT.BALLOON;
+  this.sprite = sprites[SPR.BALLOON];
+
+  this.xScl = this.width/this.sprite.width;
+  this.yScl = this.xScl;
+
+  this.xOffset = this.xScl*this.sprite.width/2;
+  this.yOffset = this.yScl*this.sprite.height/2;
+
+  this.balloonType = type;
+
+  this.gravityOn = true;
+  this.vspdMax = 2;
+  this.gravity = -0.05;
+  this.canBeHeld = true;
+
+  this.holdingString = new RopeObject(this.x, this.y + this.height/2, randInt(3, 5), 30);
+  this.holdingString.sprite = sprites[SPR.CABLE];
+  this.holdingString.ropeImgType = 1;
+  this.holdingString.init(this.holdingString.rope.points.length -1, false, true, true);
+
+  this.angle = 0;
+
+  this.depth = -11;
+
+  this.update = function(dt){
+
+    var offset = this.height/2;
+    this.holdingString.rope.points[0].pos.x = this.x - offset * Math.cos(this.angle - Math.PI/2);
+    this.holdingString.rope.points[0].pos.y = this.y - offset * Math.sin(this.angle - Math.PI/2);
+
+    this.holdingString.update(dt);
+
+    this.updateBox(dt);
+
+
+    if(this.y < -200){
+      this.active = false;
+    }
+
+  }
+
+  this.draw = function(ctx){
+
+    var scl = this.holdingString.rope.segmentLength/this.holdingString.sprite.height;
+
+    for(var i = 0; i < objectLists[OBJECT.MINIDART].length; i++){
+      var dart = objectLists[OBJECT.MINIDART][i];
+      if(this.boundingBox.checkCollision(dart.boundingBox)){
+        this.active = false;
+        dart.active = false;
+      }
+    }
+
+
+    this.sprite.drawExtRelative(this.x, this.y, this.balloonType, this.xScl, this.yScl, this.angle, 0.5, 0.5);
+  }
+
+  this.onDestroy = function(){
+    playSound(choose([SND.BALLOONPOP1, SND.BALLOONPOP2]));
+    manager.addParticles([particleSmack(this.x, this.y)]);
+    this.holdingString.active = false;
+    this.holdingString.onDestroy();
+  }
+}
+
 
 function MotherBoard(x, y){
   Box.call(this, x, y, manager.losWid*0.75, manager.losHei*0.75, sprites[SPR.SHOPITEMS]);
@@ -1747,7 +1857,26 @@ function MedLogo(x, y){
 
   this.depth = 10;
 
+  this.breaking = false;
+  this.breakAlarm = new Alarm(0,2);
+
+  this.break = function(){
+    this.breaking = true;
+    this.breakAlarm.start();
+    manager.particles.push(particleLogo(this.x, this.y));
+  }
+
   this.update = function(dt){
+
+    if(this.breaking){
+      this.breakAlarm.update(dt);
+
+      if(this.breakAlarm.finished){
+        this.active = false;
+      }
+    }
+
+
 
 
     if(this.attached && this.attachGridId != -1){
@@ -1828,19 +1957,47 @@ function MedLogo(x, y){
 }
 
 function RopeObject(x, y, segments, segmentLen){
-  Box.call(this, x, y, 10 ,10, sprites[SPR.SUN]);
+  Box.call(this, x, y, 10 ,10, sprites[SPR.CABLE]);
   this.rope = new RopeBody(x, y, segments, segmentLen);
+  this.ropeImgSegment = [];
+
+  this.ropeImgType = 2;
   this.depth = -10;
 
+  this.init = function(segmentNum, openBegin, openEnd, randomizeMiddle){
+    this.ropeImgSegment = [];
+    for (var i = 0; i < segmentNum; i++) {
+      var imageNum = 1;
+      if(randomizeMiddle){
+        imageNum = choose([1,4,5,6]);
+      }
+      if (i == 0) {
+          imageNum = 0;
+          if(!openBegin){
+            imageNum = 3;
+          }
+      }
+      else if (i == segmentNum - 1) {
+          imageNum = 2;
+          if(!openEnd){
+            imageNum = 7;
+          }
+      }
+
+      
+      this.ropeImgSegment.push(imageNum);
+    }
+    
+  }
+
+  this.init(segments, true, true, true);
+
   this.draw = function(ctx){
+    var scl = this.rope.segmentLength/this.sprite.height;
+
     for (var i = 1; i < this.rope.points.length; i++) {
-        var imageNum = 1;
-        if (i == 1) {
-            imageNum = 0;
-        }
-        else if (i == this.rope.points.length - 1) {
-            imageNum = 2;
-        }
+
+        var imageNum = this.ropeImgSegment[i-1];
 
         var point1 = this.rope.points[i - 1].pos;
         var point2 = this.rope.points[i].pos;
@@ -1849,16 +2006,14 @@ function RopeObject(x, y, segments, segmentLen){
         ppos.x /= 2;
         ppos.y /= 2;
         var dif = point1.sub(point2);
-        var segAngle = dif.angle() + Math.PI/2;
-        this.sprite.drawExtRelative(ppos.x, ppos.y, 0, 1,1, segAngle, 0.5, 0.5);
+        var segAngle = dif.angle() - Math.PI;
+        this.sprite.drawExtRelative(ppos.x, ppos.y, imageNum + this.ropeImgType*this.sprite.imgNumX, scl,scl, segAngle, 0.5, 0.5);
     }
   }
 
   this.update = function(dt){
-
-    this.rope.points[0].pos.x = input.mouseX;
-    this.rope.points[0].pos.y = input.mouseY;
     
+    this.rope.applyForce(new Vector(0, 0.2));
     this.rope.update(dt);
 
     this.pushDrawList();
@@ -1986,6 +2141,29 @@ function USBConnector(x, y, cable){
           }
         }
 
+        if(manager.mouseGrid!=-1){
+          var gridObj = manager.grid[GRID.MIDDLE][manager.mouseGrid];
+          if(gridObj.valid){
+            if(gridObj.object.type == OBJECT.LOSANGO){
+              if(gridObj.object.connector){
+                if(gridObj.object.usbSlot.connector == null){
+                  if(this.connection.connected){
+                    if(this.connection.usbSlot != null){
+                      this.connection.usbSlot.disconnect();
+                    }
+                  }
+    
+                  gridObj.object.usbSlot.connector = this;
+                  this.connection.connected = true;
+                  this.connection.usbSlot = gridObj.object.usbSlot;
+    
+                  this.onDestroy();
+                }
+              }
+            }
+          }
+        }
+
 
         
         if(manager.inventory.boundingBox.isPointInside(input.mouseX, input.mouseY)){
@@ -2000,19 +2178,29 @@ function USBConnector(x, y, cable){
       }
     } else {
       var device = this.connection.usbSlot.device;
-      var usbPos = this.connection.usbSlot.slotPos;
-      var dir = this.connection.usbSlot.direction;
 
-      var directions = [
-        new Vector(1, 0),
-        new Vector(0, -1),
-        new Vector(-1, 0),
-        new Vector(0, 1)
-      ];
+      if(device.type == OBJECT.LOSANGO){
+        this.angle = device.connectorAng;
+        this.x = device.connectorPos.x - this.width*Math.cos(this.angle);
+        this.y = device.connectorPos.y - this.width*Math.sin(this.angle);
 
-      this.x = device.x + usbPos.x*manager.losWid + manager.losWid*0.5 + directions[dir].x*manager.losWid*0.9;
-      this.y = device.y + usbPos.y*manager.losHei + manager.losHei*0.5 + directions[dir].y*manager.losHei*0.9;
-      this.angle = (Math.PI/2)*(dir+2);
+      } else {
+        var usbPos = this.connection.usbSlot.slotPos;
+        var dir = this.connection.usbSlot.direction;
+
+        var directions = [
+          new Vector(1, 0),
+          new Vector(0, -1),
+          new Vector(-1, 0),
+          new Vector(0, 1)
+        ];
+
+        this.x = device.x + usbPos.x*manager.losWid + manager.losWid*0.5 + directions[dir].x*manager.losWid*0.9;
+        this.y = device.y + usbPos.y*manager.losHei + manager.losHei*0.5 + directions[dir].y*manager.losHei*0.9;
+        this.angle = (Math.PI/2)*(dir+2);
+      }
+
+      
     }
 
     this.boundingBox.x = this.x + Math.cos(this.angle)*this.width/2 - this.width/2;
@@ -2091,7 +2279,8 @@ function USBCable(x, y, segments, segmentLen){
   this.box1 = new USBConnector(x, y, this);
   this.box2 = new USBConnector(x + 100, y, this);
   
-  this.rope = new RopeBody(x, y, 10, 50);
+  this.rope = new RopeObject(x, y, 10, 50);
+  this.rope.ropeImgType = 0;
 
 
 
@@ -2124,18 +2313,19 @@ function USBCable(x, y, segments, segmentLen){
 
     //console.log("Ctx DrawUSBCABle " + ctx);
 
-    var scl = this.rope.segmentLength/this.sprite.height;
+
+    var scl = this.rope.rope.segmentLength/this.sprite.height;
 
     var boxes = [this.box1, this.box2];
-    var ropeExt = [0, this.rope.points.length-1];
-    var ropeInt = [1, this.rope.points.length-2];
+    var ropeExt = [0, this.rope.rope.points.length-1];
+    var ropeInt = [1, this.rope.rope.points.length-2];
     
     var subCableColors = ["rgb(150, 0, 0)", "rgb(0,150,0)", "rgb(0,0,150)"];
 
     for(var i = 0 ; i < 2; i++){
       
-      var ropeExtPos = this.rope.points[ropeExt[i]].pos.getCopy();
-      var ropeIntPos = this.rope.points[ropeInt[i]].pos.getCopy();
+      var ropeExtPos = this.rope.rope.points[ropeExt[i]].pos.getCopy();
+      var ropeIntPos = this.rope.rope.points[ropeInt[i]].pos.getCopy();
 
       var boxPos = new Vector(boxes[i].x,boxes[i].y);
       
@@ -2169,30 +2359,32 @@ function USBCable(x, y, segments, segmentLen){
       }
     }
 
-    for (var i = 1; i < this.rope.points.length; i++) {
-        var imageNum = 1;
-        if (i == 1) {
-            imageNum = 0;
-        }
-        else if (i == this.rope.points.length - 1) {
-            imageNum = 2;
-        }
+    this.rope.draw(ctx);
 
-        var point1 = this.rope.points[i - 1].pos;
-        var point2 = this.rope.points[i].pos;
+    // for (var i = 1; i < this.rope.points.length; i++) {
+    //     var imageNum = 1;
+    //     if (i == 1) {
+    //         imageNum = 0;
+    //     }
+    //     else if (i == this.rope.points.length - 1) {
+    //         imageNum = 2;
+    //     }
 
-        var ppos = point1.add(point2);
-        ppos.x /= 2;
-        ppos.y /= 2;
-        var dif = point1.sub(point2);
-        var segAngle = dif.angle() + Math.PI/2;
-        this.sprite.drawExtRelative(ppos.x, ppos.y, imageNum, scl,scl, segAngle, 0.5, 0.5);
-    }
+    //     var point1 = this.rope.points[i - 1].pos;
+    //     var point2 = this.rope.points[i].pos;
+
+    //     var ppos = point1.add(point2);
+    //     ppos.x /= 2;
+    //     ppos.y /= 2;
+    //     var dif = point1.sub(point2);
+    //     var segAngle = dif.angle() + Math.PI/2;
+    //     this.sprite.drawExtRelative(ppos.x, ppos.y, imageNum, scl,scl, segAngle, 0.5, 0.5);
+    // }
   }
 
   this.update = function(dt){
 
-    this.rope.applyForce(new Vector(0, 0.2));
+    this.rope.rope.applyForce(new Vector(0, 0.2));
 
     var xx1 = (Math.cos(this.box1.angle)*(-this.box1.xOffset*0.25));
     var yy1 = (Math.sin(this.box1.angle)*(-this.box1.yOffset*0.25));
@@ -2201,13 +2393,13 @@ function USBCable(x, y, segments, segmentLen){
     var yy2 = (Math.sin(this.box2.angle)*(-this.box2.yOffset*0.25));
 
 
-    this.rope.points[0].pos.x = this.box1.x;
-    this.rope.points[0].pos.y = this.box1.y;
-    this.rope.points[this.rope.points.length - 1].pos.x = this.box2.x;
-    this.rope.points[this.rope.points.length - 1].pos.y = this.box2.y;
+    this.rope.rope.points[0].pos.x = this.box1.x;
+    this.rope.rope.points[0].pos.y = this.box1.y;
+    this.rope.rope.points[this.rope.rope.points.length - 1].pos.x = this.box2.x;
+    this.rope.rope.points[this.rope.rope.points.length - 1].pos.y = this.box2.y;
 
-    this.box1.applyForce(this.rope.tensionForce.mult(0.02), new Vector(xx1,yy1));
-    this.box2.applyForce(this.rope.tensionForce.mult(-0.02), new Vector(xx2,yy2));
+    this.box1.applyForce(this.rope.rope.tensionForce.mult(0.02), new Vector(xx1,yy1));
+    this.box2.applyForce(this.rope.rope.tensionForce.mult(-0.02), new Vector(xx2,yy2));
 
     // this.box1.hspd += this.rope.tensionForce.x / 2;
     // this.box1.vspd += this.rope.tensionForce.y / 2;
@@ -2216,7 +2408,7 @@ function USBCable(x, y, segments, segmentLen){
 
     this.box1.update(dt);
     this.box2.update(dt);
-    this.rope.update(dt);
+    this.rope.rope.update(dt);
 
     this.pushDrawList();
   }

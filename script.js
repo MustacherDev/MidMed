@@ -61,22 +61,26 @@ function stateMenu(dt){
 
   //manager.curtainSpotlight.draw(ctx);
   ctx.restore();
+
+  manager.curtainLeft.draw(ctx);
+  manager.curtainRight.draw(ctx);
+  manager.openingManager.curtainSpotlight.draw(ctx);
   
-  var curtainExtraHei = 20;
-  var curtainWid = (window.innerWidth - canvasSclX*roomWidth)/2;
-  var curtainHei = window.innerHeight + curtainExtraHei;
-  var curtainScl = curtainHei/sprites[SPR.CURTAIN].height;
-  var curtainExtraX = 20;
+  // var curtainExtraHei = 20;
+  // var curtainWid = (window.innerWidth - canvasSclX*roomWidth)/2;
+  // var curtainHei = window.innerHeight + curtainExtraHei;
+  // var curtainScl = curtainHei/sprites[SPR.CURTAIN].height;
+  // var curtainExtraX = 20;
 
-  var canvasSpace = window.innerWidth - curtainWid*2;
+  // var canvasSpace = window.innerWidth - curtainWid*2;
 
-  var curtainsState = manager.curtainsState;
+  // var curtainsState = manager.curtainsState;
 
   
-  sprites[SPR.CURTAIN].drawExt(curtainWid + curtainExtraX + (canvasSpace/2)*curtainsState,-curtainExtraHei/2, 0, curtainScl, curtainScl, 0, sprites[SPR.CURTAIN].width, 0);
-  sprites[SPR.CURTAIN].drawExt(window.innerWidth - curtainWid - curtainExtraX - (canvasSpace/2)*curtainsState,-curtainExtraHei/2, 0, curtainScl, curtainScl, 0, 0, 0);
+  // sprites[SPR.CURTAIN].drawExt(curtainWid + curtainExtraX + (canvasSpace/2)*curtainsState,-curtainExtraHei/2, 0, curtainScl, curtainScl, 0, sprites[SPR.CURTAIN].width, 0);
+  // sprites[SPR.CURTAIN].drawExt(window.innerWidth - curtainWid - curtainExtraX - (canvasSpace/2)*curtainsState,-curtainExtraHei/2, 0, curtainScl, curtainScl, 0, 0, 0);
 
-  manager.curtainSpotlight.draw(ctx);
+
 
 }
 

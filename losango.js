@@ -91,7 +91,7 @@ class Losango {
     this.boxHei = (this.height + manager.losHei)/4;
 
     this.body = null;
-    this.physical = false;
+    this.physical = true;
 
 
     this.holder = new Holder();
@@ -137,9 +137,7 @@ class Losango {
 
     this.hideLineAlarm = new Alarm(0, 25);
     this.hideLineAlarm.pause();
-  
 
-    this.frames = 0;
 
     
     this.regularFrontColor = new Color(255,255,255);
@@ -158,6 +156,11 @@ class Losango {
     this.preAnniversary = false;
     this.screenMode = false;
 
+    this.connector = false;
+    this.connectorPos = new Vector(0,0);
+    this.connectorAng = 0;
+    this.usbSlot = new USBSlot(this,0,0,0);
+
     this.codenamesMode = false;
 
     this.headphones = false;
@@ -170,6 +173,8 @@ class Losango {
     this.inOtherplane = false;
 
     this.backItem = null;
+
+
 
 
     this.effector = new Effector();
@@ -185,6 +190,7 @@ class Losango {
 
     this.attachCooldownAlarm = new Alarm(0, 300);
     this.playNoteCooldownAlarm = new Alarm(0, 5);
+    this.effectCooldownAlarm = new Alarm(99, 100);
 
     this.mouseAlarm = new Alarm(0, 50);
 
@@ -205,7 +211,7 @@ class Losango {
 
   codenames(){
     this.codenamesMode = true;
-    if(!this.rotating && !this.isTilted){
+    if(!this.rotating && this.isTilted){
       this.rotating = true;
     }
   }
@@ -367,10 +373,13 @@ class Losango {
     this.ySclMult = 1;
     this.depth = 0;
 
-    this.frames++;
 
     this.checkHover();
     this.updateMovement(dt);
+
+    if(this.connector){
+      objectLists[OBJECT.DRAW].push(new DrawRequest(this, this.depth-11, 1));
+    }
 
 
 
@@ -384,7 +393,9 @@ class Losango {
 
         if(this.attached){
           if(!this.flipping){
-            this.effector.effect(this, isRightClick);
+            if(this.effectCooldownAlarm.finished){
+              this.effector.effect(this, isRightClick);
+            }
           }
         }
       }
@@ -406,8 +417,6 @@ class Losango {
     }
 
     if(this.codenamesMode){
-
-      
       var colors = [new Color(255,255,255), new Color(100, 100, 200), new Color(80, 80, 80)];
       var codeId = manager.codenamesManager.nameMap[this.id];
       if(codeId != -1){
@@ -441,6 +450,9 @@ class Losango {
 
     // NOTE PLAY COOLDOWN
     this.playNoteCooldownAlarm.update(dt);
+
+    // EFFECT COOLDOWN
+    this.effectCooldownAlarm.update(dt);
 
     // SNEEZING
     this.sneezeActor.update(dt, this);
@@ -509,7 +521,7 @@ class Losango {
     }
 
     // UPDATING LINEANIMATION
-    this.linePerc = 0.1 + Math.cos(this.frames/40)*0.05;
+    this.linePerc = 0.1 + Math.cos(manager.frames/40)*0.05;
     this.hideLineAlarm.update(dt);
     // OTHER VARS ;-)
     this.isFront = this.phaseAngleToSide(this.flipPhase);
@@ -670,7 +682,36 @@ class Losango {
   }
 
   drawRequest(ctx, parameter){
-    this.draw(ctx);
+    if(parameter == 1){
+      this.drawUSBSlot(ctx);
+    } else {
+      this.draw(ctx);
+    }
+  }
+
+  drawUSBSlot(ctx){ 
+    var anim = manager.losangosAnim[this.getGridId()];
+
+    var xAnim = this.x + anim.x;
+    var yAnim = this.y + anim.y;
+    var xSclAnim = this.xScl * (1+anim.xScl);
+    var ySclAnim = this.yScl * (1+anim.yScl);
+    var angAnim = this.angle + anim.angle;
+
+
+
+    ctx.save();
+    ctx.translate(xAnim, yAnim);
+    ctx.scale(xSclAnim*this.xSclMult, ySclAnim*this.ySclMult);
+    ctx.rotate(angAnim);
+
+    if(this.connector){
+      var xx = -this.width/2;
+      var yy = 0;
+      sprites[SPR.SCREENUSBSLOT].drawExtRelative(xx, yy, 0, 2,2, 0, 1, 0.5);
+    }
+
+    ctx.restore();
   }
 
 
@@ -693,6 +734,22 @@ class Losango {
     ctx.scale(xSclAnim*this.xSclMult, ySclAnim*this.ySclMult);
     ctx.rotate(angAnim);
 
+
+    var xRot = -(this.width/2)*Math.cos(angAnim);
+    var yRot = -(this.width/2)*Math.sin(angAnim);
+    xRot *= xSclAnim*this.xSclMult;
+    yRot *= ySclAnim*this.ySclMult;
+    xRot += xAnim;
+    yRot += yAnim;
+
+    this.connectorPos = new Vector(xRot, yRot);
+
+    if(this.xScl < 0){
+      this.connectorAng = -angAnim+Math.PI; 
+    } else {
+      this.connectorAng = angAnim;
+    }
+
     var resultColor = (this.isFront > 0) ? this.frontColor.copy() : this.backColor.copy();
 
     if(this.hovered || (!manager.winSoundReady() && this.id == NAME.VICTORIA)){
@@ -709,7 +766,11 @@ class Losango {
       perc *= (1 - this.hideLineAlarm.percentage());
     }
 
-    ctx.fillStyle = "rgb(200, 200, 200)";
+    var cooldownColor = Math.floor(this.effectCooldownAlarm.percentage()*200);
+    ctx.fillStyle = "rgb(200," + cooldownColor + "," +cooldownColor+")";
+    
+
+
     if(this.attached){
       ctx.fillRect(-this.width / (2+2*perc), -this.height / (2-2*perc), this.width*(1-perc), 2);
       ctx.fillRect(-this.width / (2+2*perc), +this.height / (2-2*perc) -2, this.width*(1-perc), 2);
@@ -731,6 +792,12 @@ class Losango {
     if(this.states[LSTATE.HEADPHONES]){
       sprites[SPR.HEADPHONES].drawExtRelative(-this.width/2,-this.height/2,0,4,4,deg2rad(0),0.5,0.5);
     }
+
+    // if(this.connector){
+    //   var xx = -this.width/2;
+    //   var yy = 0;
+    //   sprites[SPR.SCREENUSBSLOT].drawExtRelative(xx, yy, 0, 2,2, 0, 1, 0.5);
+    // }
 
 
 
@@ -849,8 +916,10 @@ class Losango {
 
 
   deattach(){
-    if(this.physical){
+    if(this.physical && !this.inOtherplane){
       this.spawnBody();
+    } else {
+      this.killBody();
     }
   }
 

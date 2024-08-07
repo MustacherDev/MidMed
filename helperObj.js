@@ -20,6 +20,8 @@ const OBJECT = Object.freeze(new Enum(
     "USBCABLE",
     "MOTHERBOARD",
     "USBCONNECTOR",
+    "MINIDART",
+    "BALLOON",
     "TOTAL"
 ));
 

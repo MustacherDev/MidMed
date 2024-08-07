@@ -201,6 +201,31 @@ class NameManager{
       return new CodenamesHint(name, fixedList);
     }
 
+    // this.opositeHint = function(name, hint){
+    //   var fixedList = [];
+
+    //   for(var i = 0; i < probNameList.length; i++){
+    //     var prob = 1;
+    //     if(probNameList[i].length == 2){
+    //       prob = probNameList[i][1];
+    //     }
+
+    //     for(var j = 0 ; j < probNameList[i][0].length; j++){
+    //       var nameList = [];
+    //       nameList.push(probNameList[i][0][j]);
+
+    //       var probUnit = new CodenamesProbUnit(nameList, prob);
+    //       fixedList.push(probUnit);
+    //     }
+
+
+    //   }
+
+    //   fixedList.sort(function (a, b) { return b.prob - a.prob});
+
+    //   return new CodenamesHint(name, fixedList);
+    // }
+
     this.codenamesHints = [
       this.hint("050", [[[NAME.JOAS,NAME.HENRIQUE,NAME.SAMUEL], 1], [[NAME.MARLUS], 0.75], [[NAME.ELISIANY], 0.5], [[NAME.GABRIEL], 0.2]]),
       this.hint("MULHER", [[[NAME.ALICE,NAME.ANAJU,NAME.BRUNA,NAME.EUDA, 
@@ -212,9 +237,8 @@ class NameManager{
       this.hint("XADREZ", [[[NAME.RAFAEL,NAME.MICCHAEL],1], [[NAME.SIDNEY], 0.9] , [[NAME.HENRIQUE,NAME.JOAS, NAME.JVPORTO], 0.7], [[NAME.FBARRETO], 0.5]]),
       this.hint("AGE OF EMPIRES", [[[NAME.ARAUJO, NAME.RAFAEL, NAME.SAMUEL, NAME.ANDRE, NAME.MICCHAEL],1], [[NAME.JOAS,NAME.HENRIQUE], 0.7]]),
       this.hint("CODENAMES", [[[NAME.ARAUJO,NAME.MICCHAEL,NAME.RAFAEL,NAME.FSANCHEZ,NAME.JOAS,NAME.HENRIQUE,NAME.ANDRE],1], [[NAME.FBARRETO,NAME.GABRIEL], 0.5], [[NAME.NATHALIA], 0.1]]),
-      this.hint("TERMOOO", [[[NAME.SIDNEY,NAME.NATHALIA,NAME.ANAJU],1], [[NAME.HENRIQUE,NAME.ARAUJO], 0.9], [[NAME.MARCELO], 0.8], [[NAME.RAFAEL], 0.7], [[NAME.FGOIS], 0.6]])
-      //this.hint("")
-   
+      this.hint("TERMOOO", [[[NAME.SIDNEY,NAME.NATHALIA,NAME.ANAJU],1], [[NAME.HENRIQUE,NAME.ARAUJO], 0.9], [[NAME.MARCELO], 0.8], [[NAME.RAFAEL], 0.7], [[NAME.FGOIS], 0.6]]),
+      this.hint("SEM OCULOS", [[[NAME.GABRIEL, NAME.ANAJU, NAME.MICCHAEL, NAME.FSANCHEZ, NAME.JP, NAME.JVROCHA, NAME.MELINA, NAME.INGRID, NAME.PAULA, NAME.ISRAEL, NAME.ELISIANY, NAME.ARAUJO, NAME.DIOGO, NAME.MARLUS], 1], [[NAME.SAMUEL], 0.9], [[NAME.MARCELO, NAME.JOATAN, NAME.FBARRETO], 0.6]])
     ];
   }
 }

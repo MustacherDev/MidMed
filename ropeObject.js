@@ -23,7 +23,7 @@ function RopeBody(x, y, segments, segmentLen){
     
     this.tensionForce = new Vector(0,0);
 
-    for (var i = 0; i < segments; i++) {
+    for (var i = 0; i < segments+1; i++) {
         var part = new VerletParticle();
         part.pos = new Vector(x, y + segmentLen*i);
         part.prevPos = new Vector(x, y + segmentLen*i);
@@ -90,7 +90,7 @@ function RopeBody(x, y, segments, segmentLen){
 
 
         // Apply constraints
-        for (var i = 0; i < 100; i++) {
+        for (var i = 0; i < 200; i++) {
             // for (var j = 0; j < this.fixedConstraints.length; j++) {
             //     this.applyFixedConstraint(points[fixedConstraints[j].particleIndex], fixedConstraints[j].pos);
             // }

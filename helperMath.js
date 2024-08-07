@@ -150,3 +150,18 @@ function normalizeAngle(ang) {
   }
   return angle;
 }
+
+function transformPoint(x, y, ctx) {
+  const matrix = ctx.getTransform(); // Get the current transformation matrix
+  const a = matrix.a;
+  const b = matrix.b;
+  const c = matrix.c;
+  const d = matrix.d;
+  const e = matrix.e;
+  const f = matrix.f;
+
+  const xPrime = a * x + c * y + e;
+  const yPrime = b * x + d * y + f;
+
+  return new Vector(xPrime - camX, yPrime - camY);
+}
