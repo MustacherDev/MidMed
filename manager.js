@@ -239,6 +239,7 @@ class Manager {
 
       if(i >= NAME.DIOGO){
         this.losangos[i].inOtherplane = true;
+        this.losangos[i].attached = false;
       }
     }
 
@@ -285,7 +286,7 @@ class Manager {
        ,this.worldEdgebounce
    ]);
 
-   var screen = new BlockScreen(100, 100, 4, 3);
+   var screen = new BlockScreen(100, 100, 3, 3);
    //addObject(screen, OBJECT.SCREEN);
 
 
@@ -1155,6 +1156,21 @@ class Manager {
   }
 
 
+
+  summonLosango(id, x = (roomWidth/2), y = (roomHeight/2)){
+    this.losangos[id].x = x;
+    this.losangos[id].y = y;
+    this.spawnLosango(id);
+
+    if(this.losangos[id].attachGridId != -1){
+      this.deattachObject(this.losangos[id].attachGridId,  GRID.MIDDLE);
+    }
+
+    playSound(SND.POOF);
+    var wid = manager.losWid;
+    var hei = manager.losHei;
+    this.addParticles(createParticlesInRect(particleLock, 20, x-wid/2, y-hei/2, wid, hei));
+  }
 
 
 

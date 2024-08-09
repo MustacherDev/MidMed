@@ -46,6 +46,8 @@ const SND = Object.freeze(new Enum(
     "BALLOONPOP1",
     "BALLOONPOP2",
     "DARTBLOW",
+    "BLIP",
+    "SEQUENCE",
     "TOTAL"
 ));
 
@@ -83,7 +85,9 @@ const sndPaths = [
   "drums.mp3",
   "balloonPop1.mp3",
   "balloonPop2.mp3",
-  "dartBlow.mp3"
+  "dartBlow.mp3",
+  "blip.mp3",
+  "sequence.mp3"
 ];
 
 const WINSND = Object.freeze(new Enum(
@@ -189,6 +193,7 @@ const SPR = Object.freeze(new Enum(
     "HEADPHONES",
     "MINIDART",
     "BALLOON",
+    "DRWIN",
     "TOTAL"
 ));
 
@@ -226,7 +231,8 @@ var imgPaths = [  "bombSprite.png",
   "Glow.png",
   "headphones.png",
   "darts.png",
-  "balloons.png"
+  "balloons.png",
+  "drWin.png"
 ];
 
 var need2Load = imgPaths.length;
@@ -262,6 +268,7 @@ function loadSprites() {
         sprites[SPR.PIN].setSubimg(8,8);
         sprites[SPR.MINIDART].setSubimg(16, 7);
         sprites[SPR.BALLOON].setSubimg(156, 200);
+        sprites[SPR.DRWIN].setSubimg(64,64);
 
 
         spritesLoaded = true;

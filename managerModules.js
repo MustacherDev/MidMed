@@ -513,7 +513,7 @@ class AchievementManager{
   constructor(){
 
     this.yOff = 0;
-    this.height = 200;
+    this.height = 120;
     this.x = roomWidth/2;
     this.y = -this.height;
     this.displacement = this.height;
@@ -528,7 +528,12 @@ class AchievementManager{
     this.timer = 0;
 
 
-    this.displayText = "";
+    this.displayText = [];
+    for(var i = 0 ; i < 3; i++){
+      this.displayText.push("");
+    }
+
+    
     this.displayIcon = 0;
 
     this.achievements = [];
@@ -557,25 +562,38 @@ class AchievementManager{
       this.displayIcon = 0;
 
       if(manager.altNames){
-        this.displayText = "Cheat on Minesweeper";
+        this.displayText[0] = "";
+        this.displayText[1] = "Cheat on";
+        this.displayText[2] = "Minesweeper";
       } else {
-        this.displayText = "Trapaceando no Campo minado";
+        this.displayText[0] = "Trapaceando";
+        this.displayText[1] = "no Campo Minado";
+        this.displayText[2] = "";
       }
     } else if (type == ACHIEVEMENT.FIRSTTRADE){
       this.displayIcon = 1;
 
       if(manager.altNames){
-        this.displayText = "Pix";
+        this.displayText[0] = "$$$";
+        this.displayText[1] = "PIX";
+        this.displayText[2] = "$$$";
       } else {
-        this.displayText = "Pix";
+        this.displayText[0] = "R$ R$ R$";
+        this.displayText[1] = "PIX";
+        this.displayText[2] = "R$ R$ R$";
       }
     }else if (type == ACHIEVEMENT.FULLMETAL){
       this.displayIcon = 2;
 
       if(manager.altNames){
-        this.displayText = "Fullmetal Alchemist";
+        this.displayText[0] = "";
+        this.displayText[1] = "Fullmetal Alchemist";
+        this.displayText[2] = "";
       } else {
         this.displayText = "Metalista";
+        this.displayText[0] = "";
+        this.displayText[1] = "METALISTA";
+        this.displayText[2] = "";
       }
     }
   }
@@ -642,13 +660,14 @@ class AchievementManager{
     ctx.fillStyle = "rgb(255,255,255)";
     ctx.font = "30px Fixedsys";
     ctx.textAlign = "left";
-    ctx.fontBaseline = "middle";
-    ctx.fillText(this.displayText, this.x - wid/2 + slotSize + 32*scl, this.y + this.yOff + hei/2);
+    ctx.textBaseline = "top";
+    
+    for(var i = 0 ; i < 3; i++){
+      ctx.fillText(this.displayText[i], this.x - wid/2 + slotSize + 32*scl, this.y + this.yOff + (hei/3)*i);
+    }
 
     ctx.globalAlpha = prevAlpha;
     
-
-
     // ctx.fillRect(this.x, this.y + this.yOff, this.width, this.height);
     // ctx.fillStyle = "rgb(0,0,0)";
     // ctx.fillRect(this.x, this.y + this.yOff, this.width, this.height);

@@ -90,7 +90,7 @@ class Effector {
 
         // Normal Effects
         if (los.id == NAME.WILLISTON) {
-            if (chance(0.2)) {
+            if (chance(0.01)) {
                 los.sneezeActor.sneezing = true;
                 return;
             }

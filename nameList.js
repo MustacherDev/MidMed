@@ -51,6 +51,9 @@ const NAME = Object.freeze(new Enum(
     "SHEILA",
     "DIOGO",
     "SIDNEY",
+    "GIULIA",
+    "ROBERTA",
+    "WALTER",
     "TOTAL"
 ));
 
@@ -138,6 +141,9 @@ class NameManager{
       new Person("SHEILA", "SHEILA", ["SHEILA"], 4, 1),
       new Person("DIOGO","DIOGO", ["DIOGO"], 24, 1),
       new Person("SIDNEY", "KIDNEY", ["SID"], 19, 1),
+      new Person("GIULIA","GIULIA", ["GIULIA"], 0, 13),
+      new Person("ROBERTA", "BETERRABA", ["REBECCA"], 6, 12),
+      new Person("WALTER","WATER", ["AGUA"], 17, 11)
     ];
 
 

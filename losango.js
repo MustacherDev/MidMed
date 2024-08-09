@@ -29,16 +29,16 @@ class SneezeActor{
 
         if(this.sneezeWait <= 0){
           this.sneezeTries++;
-          this.sneezePauseTime = this.sneezeTimer + randInt(20, 50)*this.sneezeTries;
+          this.sneezePauseTime = this.sneezeTimer + randInt(20, 40)*this.sneezeTries;
         }
       } else {
         this.sneezeTimer+=2*dt;
 
         if(this.sneezeTimer > this.sneezePauseTime){
-          this.sneezeWait = randInt(20, 50);
+          this.sneezeWait = randInt(20, 40);
         }
 
-        if(this.sneezeTimer > 200){
+        if(this.sneezeTimer > 175){
           playSound(SND.SNEEZE);
           manager.explosionImpulse(los.x, los.y, 100);
           this.sneezing = false;
