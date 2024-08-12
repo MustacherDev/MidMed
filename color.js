@@ -40,12 +40,19 @@ class Color {
 
     // Convert RGB to hexadecimal string
     toHex() {
-        return "#" + ((1 << 24) + (this.r << 16) + (this.g << 8) + this.b).toString(16).slice(1);
+        var r = Math.floor(this.r);
+        var b = Math.floor(this.b);
+        var g = Math.floor(this.g);
+        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
     }
 
     // Convert RGB to CSS string
     toCSS() {
-        return `rgba(${this.r}, ${this.g}, ${this.b}, ${this.a})`;
+        var r = Math.floor(this.r);
+        var b = Math.floor(this.b);
+        var g = Math.floor(this.g);
+        var a = this.a;
+        return `rgba(${r}, ${g}, ${b}, ${a})`;
     }
 
     // Static method to create Color instance from hexadecimal string
@@ -90,6 +97,21 @@ class Color {
 
     copy(){
       return new Color(this.r, this.g, this.b, this.a);
+    }
+
+    setWithColor(color){
+        this.r = color.r;
+        this.g = color.g;
+        this.b = color.b;
+        this.a = color.a;
+    }
+
+    diff(color){
+        return new Color(this.r - color.r, this.g - color.g, this.b - color.b, this.a - color.a);
+    }
+
+    add(color){
+        return new Color(this.r + color.r, this.g + color.g, this.b + color.b, this.a + color.a);
     }
 
 

@@ -52,6 +52,15 @@ function Vector(x, y) {
       this.y = Math.sin(ang);
     }
 
+    this.rotate = function(ang){
+      const cosTheta = Math.cos(ang);
+      const sinTheta = Math.sin(ang);
+      var xRot = this.x*cosTheta - this.y*sinTheta;
+      var yRot = this.x*sinTheta + this.y*cosTheta;
+      this.x = xRot;
+      this.y = yRot;
+    }
+
     this.getCopy = function(){
       return new Vector(this.x, this.y);
     }
@@ -151,6 +160,14 @@ function normalizeAngle(ang) {
   return angle;
 }
 
+function rotatePoint(x, y, ang) {
+  const cosTheta = Math.cos(ang);
+  const sinTheta = Math.sin(ang);
+  var xRot = x*cosTheta - y*sinTheta;
+  var yRot = x*sinTheta + y*cosTheta;
+  return new Vector(xRot, yRot);
+}
+
 function transformPoint(x, y, ctx) {
   const matrix = ctx.getTransform(); // Get the current transformation matrix
   const a = matrix.a;
@@ -164,4 +181,14 @@ function transformPoint(x, y, ctx) {
   const yPrime = b * x + d * y + f;
 
   return new Vector(xPrime - camX, yPrime - camY);
+}
+
+function phaseAngleToSide(angle) {
+  // Normalize the angle to the range [0, 2*Pi]
+  angle = angle % (2 * Math.PI);
+  if (angle < 0) {
+    angle += 2 * Math.PI;
+  }
+
+  return (angle > Math.PI / 2 && angle <= 3 * Math.PI / 2) ? false : true;
 }

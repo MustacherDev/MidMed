@@ -119,3 +119,74 @@ checkPageFocus();
 
 // Listen for visibility changes
 window.addEventListener("visibilitychange", checkPageFocus);
+
+
+class Camera {
+  constructor(x, y, scale, ang){
+    this.x = x;
+    this.y = y;
+    this.xOff = 0;
+    this.yOff = 0;
+    // X AND Y THAT GET SET TO 0 EACH FRAME
+    this.xAdd = 0;
+    this.yAdd = 0;
+
+    this.xAddTemp = 0;
+    this.yAddTemp = 0;
+
+    this.scale = scale;
+    this.angle = ang;
+    this.width = roomWidth;
+    this.height = roomHeight;
+  }
+
+  worldPos(canvasX, canvasY){
+    var dx = (canvasX);
+    var dy = (canvasY);
+  
+    var vec = new Vector(dx, dy);
+
+    vec.x -= + this.width/2;
+    vec.y -= + this.height/2;
+
+    vec.x /= this.scale;
+    vec.y /= this.scale;
+
+    vec.rotate(-this.angle);
+
+    vec.x += this.x + this.xOff + this.xAdd;
+    vec.y += this.y + this.yOff + this.yAdd;
+
+    return vec;
+    
+  }
+
+  addPos(x, y){
+    this.xAddTemp += x;
+    this.yAddTemp += y;
+  }
+
+  lateUpdate(dt){
+    this.xAdd = this.xAddTemp;
+    this.yAdd = this.yAddTemp;
+    this.xAddTemp = 0;
+    this.yAddTemp = 0;
+  }
+
+  applyTransform(ctx){
+    ctx.translate(this.width/2, this.height/2);
+    ctx.rotate(this.angle);
+    ctx.scale(this.scale, this.scale);
+    ctx.translate(-this.x -this.xOff - this.xAdd, -this.y - this.yOff - this.yAdd);
+  }
+
+  removeTransform(ctx){
+    // NOT RIGHT
+    ctx.translate(this.width/2, this.height/2);
+    ctx.scale(1/this.scale, 1/this.scale);
+    ctx.rotate(-this.angle);
+    ctx.translate(-this.x - this.xOff, -this.y - this.yOff);
+  }
+}
+
+var mainCam = new Camera(roomWidth/2, roomHeight/2, 1, 0);

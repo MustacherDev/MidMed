@@ -22,15 +22,45 @@ function stateMenu(dt){
   ctx.save();
   ctx.translate(canvasOffsetX, canvasOffsetY);
   ctx.scale(canvasSclX, canvasSclY);
-  ctx.translate(camX, camY);
+  mainCam.applyTransform(ctx);
 
   musicBox.play(dt);
 
-  //scaleCanvasContent();
-
-
+  // BLACK BACKGROUND
   ctx.fillStyle = "rgb(0,0,0)";
   ctx.fillRect(0,0,roomWidth, roomHeight);
+
+  if(input.keyState[KeyCodes.KeyZ][0]){
+    mainCam.scale += 0.01;
+  }
+
+  if(input.keyState[KeyCodes.KeyX][0]){
+    mainCam.scale -= 0.01;
+  }
+
+  if(input.keyState[KeyCodes.KeyA][0]){
+    mainCam.x -= 20;
+  }
+
+  if(input.keyState[KeyCodes.KeyD][0]){
+    mainCam.x += 20;
+  }
+
+  if(input.keyState[KeyCodes.KeyW][0]){
+    mainCam.y -= 20;
+  }
+
+  if(input.keyState[KeyCodes.KeyS][0]){
+    mainCam.y += 20;
+  }
+
+  if(input.keyState[KeyCodes.KeyQ][0]){
+    mainCam.angle -= 0.01;
+  }
+
+  if(input.keyState[KeyCodes.KeyE][0]){
+    mainCam.angle += 0.01;
+  }
 
   manager.update(dt);
 
@@ -58,30 +88,14 @@ function stateMenu(dt){
     ctx.fillRect(0,0,roomWidth, roomHeight);
   }
 
-
-  //manager.curtainSpotlight.draw(ctx);
   ctx.restore();
 
   manager.curtainLeft.draw(ctx);
   manager.curtainRight.draw(ctx);
   manager.openingManager.curtainSpotlight.draw(ctx);
-  
-  // var curtainExtraHei = 20;
-  // var curtainWid = (window.innerWidth - canvasSclX*roomWidth)/2;
-  // var curtainHei = window.innerHeight + curtainExtraHei;
-  // var curtainScl = curtainHei/sprites[SPR.CURTAIN].height;
-  // var curtainExtraX = 20;
-
-  // var canvasSpace = window.innerWidth - curtainWid*2;
-
-  // var curtainsState = manager.curtainsState;
-
-  
-  // sprites[SPR.CURTAIN].drawExt(curtainWid + curtainExtraX + (canvasSpace/2)*curtainsState,-curtainExtraHei/2, 0, curtainScl, curtainScl, 0, sprites[SPR.CURTAIN].width, 0);
-  // sprites[SPR.CURTAIN].drawExt(window.innerWidth - curtainWid - curtainExtraX - (canvasSpace/2)*curtainsState,-curtainExtraHei/2, 0, curtainScl, curtainScl, 0, 0, 0);
 
 
-
+  mainCam.lateUpdate(dt);
 }
 
 

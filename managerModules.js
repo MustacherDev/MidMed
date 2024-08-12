@@ -98,7 +98,7 @@ class Minesweeper {
     for(var i = 0; i < this.grid.length; i++){
       if(this.gridOpen[i] == true) continue;
 
-      this.gridOpenTiming[i] = (i%this.cols)*10;
+      this.gridOpenTiming[i] = 5 + (i%this.cols)*10;
     }
   }
 
@@ -141,6 +141,87 @@ class Minesweeper {
   }
 }
 
+class JoystickButton{
+  constructor(x, y, wid, hei, type){
+    this.x = x;
+    this.y = y;
+    this.width = wid;
+    this.height = hei;
+
+    this.clickBox = new BoundingBox(this.x, this.y, this.width, this.height);
+    this.clickBox.xOffset = this.width/2;
+    this.clickBox.yOffset = this.height/2;
+
+    this.hovered = false;
+
+    this.pressed = false;
+    this.released = false;
+    this.clicking = false;
+
+    this.type = type;
+  }
+
+  update(x, y){
+    this.hovered = false;
+
+    this.pressed = false;
+    this.released = false;
+    this.clicking = false;
+
+
+    var joyX = x || 0;
+    var joyY = y || 0;
+
+    this.clickBox.x = joyX + this.x;
+    this.clickBox.y = joyY + this.y;
+
+
+    if(this.clickBox.isPointInside(input.mouseX, input.mouseY)){
+      this.hovered = true;
+    }
+
+    if(this.hovered){
+      if(input.mouseState[0][0]){
+        this.clicking = true;
+      }
+
+      if(input.mouseState[0][1]){
+        this.pressed = true;
+      }
+
+      if(input.mouseState[0][2]){
+        this.released = true;    
+      }
+    }
+  }
+
+  draw(ctx, x, y){
+    var joyX = x || 0;
+    var joyY = y || 0;
+
+    var xx = this.x + joyX;
+    var yy = this.y + joyY;
+
+    var spr = sprites[SPR.JOYBUTTONS];
+
+    var xScl = spr.width/this.width;
+    var yScl = spr.height/this.height;
+
+    sprites[SPR.JOYBUTTONS].drawExtRelative(xx, yy, this.type, xScl, yScl, 0, 0.5, 0.5);
+  }
+}
+
+class ScreenJoystick{
+  constructor(){
+    this.x = 0;
+    this.y = 0;
+    
+    this.buttons = [];
+
+    this.buttonsState = [];
+  }
+}
+
 class HDMIScreen{
   constructor(){
     this.whiteBars = [];
@@ -149,24 +230,25 @@ class HDMIScreen{
     this.hdmi = false;
     this.barTick = 0;
 
+    this.state = 0;
+
 
     this.reconnectTime = 500;
     this.reconnectTimer = 0;
     this.reconnectLag = 0;
     this.reconnectLagTimer = 0;
     this.reconnectStatus = 0;
+
+    this.joystick = new ScreenJoystick();
   }
 
   glitch(){
     this.glitchLevel += 20;
     if(chance(this.glitchLevel/this.glitchMax)){
       var barNum = 1 + randInt(1, 3);
-      
-      //if(chance(this.glitchLevel/this.glitchMax)){
-        playSound(SND.GLITCHHIT);
-      //} else {
-      //  
-      //}
+    
+      playSound(SND.GLITCHHIT);
+
       for(var i = 0; i < barNum; i++){
         if(this.whiteBars.length > 5) break;
         var barY = randInt(0, roomHeight);
@@ -185,9 +267,8 @@ class HDMIScreen{
     if(!this.hdmi){
       if(this.glitchLevel >= this.glitchMax){
         this.hdmi = true;
+        this.state = 1;
         manager.losangos[NAME.JP].connector = true;
-
-        //playSound(SND.STATICHIT);
       }
     }
 
@@ -204,6 +285,7 @@ class HDMIScreen{
       if(this.reconnectTimer > this.reconnectTime){
         this.hdmi = false;
         this.reconnectTimer = 0;
+        this.state = 0;
       } else {
 
         if(this.reconnectLag <= 0){
@@ -224,54 +306,54 @@ class HDMIScreen{
         this.reconnectTimer += dt;
       }
     }
+
   }
 
   draw(ctx){
-    ctx.fillStyle = "rgb(255,255,255)";
 
-    for(var i = 0; i < this.whiteBars.length;i++){
-      ctx.fillRect(0,this.whiteBars[i].x, roomWidth, this.whiteBars[i].y);
-    }
+    if(this.state == 0){
+      ctx.fillStyle = "rgb(255,255,255)";
 
-    if(this.hdmi){
-
-
-
-
-      ctx.fillStyle = "rgb(0,0,255)";
-      ctx.fillRect(0,0,roomWidth, roomHeight);
-
-      ctx.fillStyle = "rgb(0,0,230)";
-      var screenLines = 100;
-      var lineSpace = roomHeight/screenLines;
-      for(var i = 0; i < screenLines; i++){
-        ctx.fillRect(0, i*lineSpace, roomWidth, 2);
+      for(var i = 0; i < this.whiteBars.length; i++){
+        ctx.fillRect(0,this.whiteBars[i].x, roomWidth, this.whiteBars[i].y);
       }
+    } else if(this.state == 1){
 
-      var barWid = roomWidth/2;
-      var barHei = 120;
+      if(this.hdmi){
+        ctx.fillStyle = "rgb(0,0,255)";
+        ctx.fillRect(0,0,roomWidth, roomHeight);
 
-      var barX = roomWidth/2 - barWid/2;
-      var barY = roomHeight/2 - barHei/2;
+        ctx.fillStyle = "rgb(0,0,230)";
+        var screenLines = 100;
+        var lineSpace = roomHeight/screenLines;
+        for(var i = 0; i < screenLines; i++){
+          ctx.fillRect(0, i*lineSpace, roomWidth, 2);
+        }
 
-      ctx.fillStyle = "rgb(255,255,255)";
-      ctx.fillRect(barX-2, barY-2, barWid+4, barHei+4);
-      ctx.fillStyle = "rgb(0,0,0)";
-      ctx.fillRect(barX, barY, barWid, barHei);
+        var barWid = roomWidth/2;
+        var barHei = 120;
 
-      ctx.fillStyle = "rgb(255,255,255)";
-      var noSignalText = (manager.altNames) ? "No signal." : "Sem sinal.";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.font = '40px Arial';
-      ctx.fillText(noSignalText, roomWidth/2, roomHeight/2);
+        var barX = roomWidth/2 - barWid/2;
+        var barY = roomHeight/2 - barHei/2;
 
-      ctx.fillStyle = "rgb(0,0,0)";
-      ctx.fillRect(40, roomHeight - 40, roomWidth - 60, 20);
-      ctx.fillStyle = "rgb(255,255,255)";
-      ctx.fillRect(40, roomHeight - 40, (roomWidth - 60)*this.reconnectStatus, 20);
+        ctx.fillStyle = "rgb(255,255,255)";
+        ctx.fillRect(barX-2, barY-2, barWid+4, barHei+4);
+        ctx.fillStyle = "rgb(0,0,0)";
+        ctx.fillRect(barX, barY, barWid, barHei);
 
+        ctx.fillStyle = "rgb(255,255,255)";
+        var noSignalText = (manager.altNames) ? "No signal." : "Sem sinal.";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = '40px Arial';
+        ctx.fillText(noSignalText, roomWidth/2, roomHeight/2);
 
+        ctx.fillStyle = "rgb(0,0,0)";
+        ctx.fillRect(40, roomHeight - 40, roomWidth - 60, 20);
+        ctx.fillStyle = "rgb(255,255,255)";
+        ctx.fillRect(40, roomHeight - 40, (roomWidth - 60)*this.reconnectStatus, 20);
+      }
+    } else if (this.state == 2){
       if(manager.drMarioPlaying){
         var wid = manager.drMario.wid;
         var hei = manager.drMario.hei;
@@ -291,6 +373,10 @@ class HDMIScreen{
         manager.drMario.draw(roomWidth/2 - finalWid/2, 0, finalWid, finalHei);
       }
     }
+
+
+
+    
   }
 }
 
@@ -377,8 +463,8 @@ class SunDisplay{
     sprites[SPR.SUN].drawExtRelative(this.x + wid/2, this.y + this.yOff + wid/2, 0, 1, 1, 0, 0.5,0.5);
     ctx.fillStyle = "rgb(255,255,255)";
     ctx.font = "48px Fixedsys";
-    ctx.fontAlign = "center";
-    ctx.fontBaseline = "middle";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
     ctx.fillText(this.sun, this.x + wid/2, this.y + this.yOff + this.height*0.8);
 
     ctx.globalAlpha = prevAlpha;
@@ -491,7 +577,7 @@ class MoneyDisplay{
     ctx.fillStyle = "rgb(255,255,255)";
     ctx.font = "48px Fixedsys";
     ctx.textAlign = "left";
-    ctx.fontBaseline = "middle";
+    ctx.textBaseline = "middle";
     ctx.fillText(zeroPad(this.money, 12), this.x + hei*1.2, this.y + this.yOff + hei/2);
 
     ctx.globalAlpha = prevAlpha;
@@ -514,7 +600,7 @@ class AchievementManager{
 
     this.yOff = 0;
     this.height = 120;
-    this.x = roomWidth/2;
+    this.x = roomWidth/4;
     this.y = -this.height;
     this.displacement = this.height;
     
@@ -562,25 +648,25 @@ class AchievementManager{
       this.displayIcon = 0;
 
       if(manager.altNames){
-        this.displayText[0] = "";
-        this.displayText[1] = "Cheat on";
+        this.displayText[0] = "Cheat";
+        this.displayText[1] = "on";
         this.displayText[2] = "Minesweeper";
       } else {
         this.displayText[0] = "Trapaceando";
-        this.displayText[1] = "no Campo Minado";
-        this.displayText[2] = "";
+        this.displayText[1] = "no";
+        this.displayText[2] = "Campo Minado";
       }
     } else if (type == ACHIEVEMENT.FIRSTTRADE){
       this.displayIcon = 1;
 
       if(manager.altNames){
-        this.displayText[0] = "$$$";
-        this.displayText[1] = "PIX";
-        this.displayText[2] = "$$$";
+        this.displayText[0] = "";
+        this.displayText[1] = "PIX $$$";
+        this.displayText[2] = "";
       } else {
-        this.displayText[0] = "R$ R$ R$";
-        this.displayText[1] = "PIX";
-        this.displayText[2] = "R$ R$ R$";
+        this.displayText[0] = "";
+        this.displayText[1] = "PIX R$";
+        this.displayText[2] = "";
       }
     }else if (type == ACHIEVEMENT.FULLMETAL){
       this.displayIcon = 2;
@@ -590,7 +676,6 @@ class AchievementManager{
         this.displayText[1] = "Fullmetal Alchemist";
         this.displayText[2] = "";
       } else {
-        this.displayText = "Metalista";
         this.displayText[0] = "";
         this.displayText[1] = "METALISTA";
         this.displayText[2] = "";
@@ -1144,6 +1229,44 @@ class OpeningSequence{
   }
 }
 
+class ScreenShaker{
+  constructor() {
+    this.intensity = 0;
+    this.duration = 0;
+    this.elapsedTime = 0;
+    this.shaking = false;
+  }
+
+  startShake(intensity, duration) {
+    this.intensity = intensity;
+    this.duration = duration;
+    this.elapsedTime = 0;
+    this.shaking = true;
+  }
+
+  update(dt, camera) {
+    if (this.shaking) {
+      this.elapsedTime += dt;
+      if (this.elapsedTime >= this.duration) {
+        this.shaking = false;
+        this.intensity = 0;
+      } else {
+        // Calculate shake offset based on intensity, elapsed time, and frequency
+        const t = this.elapsedTime / this.duration;
+        const amplitude = this.intensity * (1 - t); 
+        const angle = Math.random() * Math.PI * 2;
+        const offsetX = amplitude * Math.cos(angle);
+        const offsetY = amplitude * Math.sin(angle);
+
+        // Apply offset to camera or game world
+        camera.addPos(offsetX,offsetY);
+      }
+    }
+  }
+}
+
+
+
 
 // REALLY HARD, NEEDS LOT OF DETERMINATION
 
@@ -1183,6 +1306,8 @@ class Codenames{
     this.nameMap = [];
   
     this.grid = [];
+
+    this.colors = [new Color(255,255,255), new Color(100, 100, 200), new Color(80, 80, 80)];
     
 
   }
@@ -1201,6 +1326,7 @@ class Codenames{
     var team = this.grid[this.nameMap[nameId]].team;
     if(team == 2){
       this.gameover = true;
+      this.finished = true;
     } else if(team == 0){
       this.guessing = false;
     }
@@ -1221,7 +1347,13 @@ class Codenames{
       }
     }
 
-
+    if(this.finished){
+      var finishText = "GAME WON!";
+      if(this.gameover){
+        finishText = "GAMEOVER";
+      }
+      manager.particles.push(particleCodenamesHint(roomWidth/2, roomHeight/2, finishText));
+    }
   }
 
   getHint(){
@@ -1238,7 +1370,6 @@ class Codenames{
     for(var i = 0; i < nameMan.codenamesHints.length; i++){
       for(var j = 1; j <= blueLeft; j++){
         var score = this.evaluateHint(this.grid, nameMan.codenamesHints[i].probUnits, j);
-        //.log(score + " " + nameMan.codenamesHints[i].hint + " " + j);
         if(score > bestScore){
           bestScore = score;
           bestHintId = i;
@@ -1252,10 +1383,18 @@ class Codenames{
     this.currentHint = hintText;
     this.guessNum = bestNum;
     this.guessing = true;
+
+    manager.particles.push(particleCodenamesHint(roomWidth/2, roomHeight/2, hintText));
+
     return hintText;
   }
 
   getGrid(){
+    this.gameover = false;
+    this.finished = false;
+    this.guessing = false;
+    this.guessNum = 0;
+
     this.nameMap = [];
     for(var i = 0; i < NAME.TOTAL; i++){
       this.nameMap.push(-1);    
@@ -1281,7 +1420,6 @@ class Codenames{
 
     var blackRand = randInt(0, totalCodenames);
     this.grid[blackRand].team = 2;
-    this.finished = false;
 
     var blueNames = Math.floor(totalCodenames/3);
     for(var i = 0; i < blueNames; i++){
@@ -1470,6 +1608,40 @@ class Codenames{
     return score;
   }
 }
+
+// class DataVisualizer{
+//   constructor(){
+//     this.x = 0;
+//     this.y = 0;
+//     this.width = 100;
+//     this.height = 100;
+//     this.textLines = [];
+//     this.lastObj = null;
+//   }
+
+//   getObjectData(obj){
+//     if(this.lastObj === obj) return;
+
+//     this.textLines = [];
+//     if(obj.type == OBJECT.LOSANGO){
+//       this.textLines.push("x:" + obj.x + " y:" + obj.y);
+//       this.textLines.push("ang:" + obj.angle);
+//       this.textLines.push("CdName:" + obj.codenamesMode);
+//       this.textLines.push("Hover:" + obj.hovered);
+//       this.textLines.push("Front:" + obj.flipActor.isFront);
+//     }
+//   } 
+
+//   update(dt){
+
+//   }
+
+//   draw(ctx){
+
+//   }
+
+
+// }
 
 
 

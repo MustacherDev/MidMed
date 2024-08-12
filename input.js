@@ -104,6 +104,9 @@ function Input() {
     this.mouseX = 0;
     this.mouseY = 0;
 
+    this.mouseViewX = 0;
+    this.mouseViewY = 0;
+
     this.mouseCanvasX = 0;
     this.mouseCanvasY = 0;
 
@@ -152,8 +155,11 @@ canvas.addEventListener("mousemove", function (event) {
   if(isMobile) return;
   input.mouseCanvasX = event.offsetX;
   input.mouseCanvasY = event.offsetY;
-  input.mouseX = ((input.mouseCanvasX -canvasOffsetX)/canvasSclX)-camX;
-  input.mouseY = ((input.mouseCanvasY -canvasOffsetY)/canvasSclY)-camY;
+  input.mouseViewX = ((input.mouseCanvasX -canvasOffsetX)/canvasSclX);
+  input.mouseViewY = ((input.mouseCanvasY -canvasOffsetY)/canvasSclY);
+  var worldPos = mainCam.worldPos(input.mouseViewX, input.mouseViewY);
+  input.mouseX = worldPos.x;
+  input.mouseY = worldPos.y;
 });
 
 canvas.addEventListener("mousedown", function (event) {
@@ -192,8 +198,13 @@ function handleTouchStart(event) {
      input.mouseState[0][1] = true;
    }, 5); //
     input.mouseState[0][2] = false; // Ensure clean click (down -> up)
-    input.mouseX = ((input.touchX - canvasOffsetX) / canvasSclX)-camX;
-    input.mouseY = ((input.touchY - canvasOffsetY) / canvasSclY)-camY;
+    input.mouseCanvasX = input.touchX;
+    input.mouseCanvasY = input.touchY;
+    input.mouseViewX = ((input.mouseCanvasX -canvasOffsetX)/canvasSclX);
+    input.mouseViewY = ((input.mouseCanvasY -canvasOffsetY)/canvasSclY);
+    var worldPos = mainCam.worldPos(input.mouseViewX, input.mouseViewY);
+    input.mouseX = worldPos.x;
+    input.mouseY = worldPos.y;
   }
 }
 
@@ -224,8 +235,13 @@ function handleTouchMove(event) {
     input.touchY = event.touches[0].clientY;
 
     if(isMobile){
-      input.mouseX = ((input.touchX -canvasOffsetX)/canvasSclX) - camX;
-      input.mouseY = ((input.touchY -canvasOffsetY)/canvasSclY) - camY;
+      input.mouseCanvasX = input.touchX;
+      input.mouseCanvasY = input.touchY;
+      input.mouseViewX = ((input.mouseCanvasX -canvasOffsetX)/canvasSclX);
+      input.mouseViewY = ((input.mouseCanvasY -canvasOffsetY)/canvasSclY);
+      var worldPos = mainCam.worldPos(input.mouseViewX, input.mouseViewY);
+      input.mouseX = worldPos.x;
+      input.mouseY = worldPos.y;
     }
 }
 

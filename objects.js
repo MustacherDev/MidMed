@@ -35,7 +35,6 @@ function BoundingBox(x, y, width, height) {
     this.show = function () {
         // Draw the rectangle border
         ctx.strokeStyle = "rgb(255, 0, 0)";
-        //ctx.lineWidth = 2;
         ctx.strokeRect(this.x - this.xOffset, this.y - this.yOffset, this.width, this.height);
     };
 }
@@ -45,9 +44,6 @@ class BoundingArea{
   constructor(){
     this.areas = [];
   }
-
-
-
   checkCollision(otherBoundingBox) {
 
     if(otherBoundingBox instanceof BoundingArea){
@@ -595,7 +591,7 @@ function Bitcoin(x, y, radius) {
           if(gridObj.valid){
             if(gridObj.object.type == OBJECT.LOSANGO){
               if(gridObj.object.id == NAME.LAIS){
-                manager.addParticles(createParticlesInRect(particleSun, 50, gridObj.object.x-manager.losWid/2, gridObj.object.y-manager.losHei/2, manager.losWid, manager.losHei));
+                manager.addParticles(createParticlesInRect(particleSun, 5, gridObj.object.x-manager.losWid/2, gridObj.object.y-manager.losHei/2, manager.losWid, manager.losHei));
                 //manager.screenize(gridXY.x, gridXY.y);
                 manager.collectMoney(manager.bitcoinGraph.value)*8;
                 manager.achievementManager.getAchievement(ACHIEVEMENT.FIRSTTRADE);
@@ -648,6 +644,7 @@ function Rock(x, y, width, height) {
     if(!isHorizontal){
       manager.rockHit(spd);
       stopSound(SND.FALLINGROCK);
+      manager.screenShaker.startShake(5, 20);
     }
   }
 
@@ -672,6 +669,9 @@ function Rock(x, y, width, height) {
           playSound(SND.HIT);
           playSound(SND.METALHIT3);
           stopSound(SND.FALLINGROCK);
+
+          manager.screenShaker.startShake(10, 30);
+
           var parts = createParticlesInRect(particleLock, 50, this.x - this.xOffset, this.y - this.yOffset + this.height/1.5, this.width, this.height);
 
           manager.addParticles(parts);
@@ -740,7 +740,7 @@ function Sun(x, y){
     if(this.hovered){
       if(input.mouseState[0][1]){
         this.active = false;
-        var partNum = randInt(8, 12);
+        var partNum = randInt(2, 5);
         var partPlaces = placesInRect(partNum, this.x - this.width/2, this.y- this.height/2, this.width, this.height);
         manager.addParticles(createParticleWithPlaces(particleSun, partPlaces));
 
@@ -1461,15 +1461,16 @@ function BlockScreen(x, y, blocksX, blocksY){
   this.powerOn = false;
 
   this.cartridge = null;
-  this.lastCartridge = null;
+  //this.lastCartridge = null;
   this.cartridgeUpdated = true;
   this.cartridgePos = new Vector(0,0);
 
 
   this.checkCartridgeAlarm = new Alarm(0, 100);
 
-  this.turnOnAlarm = new Alarm(0, 50);
-  this.turnOffAlarm = new Alarm(0,50);
+  this.turnOnAlarm = new Alarm(0, 50, true);
+  this.turnOffAlarm = new Alarm(0,50, true);
+  this.turningOnoff = false;
 
 
   // Temporary DRMARIO
@@ -1481,6 +1482,82 @@ function BlockScreen(x, y, blocksX, blocksY){
     objectLists[OBJECT.DRAW].push(new DrawRequest(this, this.depth, 1));
   }
 
+  this.turnOn = function(){
+    if(this.turningOnoff || this.powerOn) return;
+
+    this.turnOnAlarm.start();
+    this.turningOnoff = true;
+  }
+
+  this.turnOff = function(){
+    if(this.turningOnoff || !this.powerOn) return;
+
+    this.turnOffAlarm.start();
+    this.turningOnoff = true;
+  }
+
+  this.fetchCartridge = function(){
+
+    if(!this.attached) return ;
+
+    if(!this.hasCartridgeSlot){
+      return;
+    }
+
+    var cartridge = this.checkCartridge();
+
+    if(this.turningOnoff) return;
+
+    if(this.powerOn){
+      if(cartridge != this.cartridge){
+        this.turnOff();
+      }
+    } else {
+      if(cartridge != null){
+        this.cartridge = cartridge;
+        this.turnOn();
+      }
+    }
+  
+  }
+
+  this.checkBubble = function(){
+    var gridPos = manager.gridInd2XY(this.attachGridId);
+
+    if(!manager.checkValidGridPos(gridPos.x + 1, gridPos.y - 1)){
+      return false;
+    }
+
+    var gridObj = manager.grid[GRID.MIDDLE][manager.gridXY2Ind(gridPos.x + 1, gridPos.y - 1)];
+
+    if(!gridObj.valid){
+      return false;
+    }
+    return true;
+  }
+
+  this.checkCartridge = function(){
+    if(!this.attached) return null;
+
+    var gridPos = manager.gridInd2XY(this.attachGridId);
+
+    if(!manager.checkValidGridPos(gridPos.x + 1, gridPos.y - 1)){
+      return null;
+    }
+
+    var gridObj = manager.grid[GRID.MIDDLE][manager.gridXY2Ind(gridPos.x + 1, gridPos.y - 1)];
+
+    if(!gridObj.valid){
+      return null;
+    }
+
+    if(gridObj.object.type != OBJECT.LOSANGO){
+      return null;
+    }
+
+    return gridObj.object.id;
+  }
+
 
   this.update = function(dt){
 
@@ -1488,31 +1565,42 @@ function BlockScreen(x, y, blocksX, blocksY){
 
     this.checkCartridgeAlarm.update(dt);
 
-
-    if(!this.attached){
-      if(this.checkCartridgeAlarm.finished){
-        this.cartridge = null;
-        this.checkCartridgeAlarm.start();
+    if(this.checkCartridgeAlarm.finished){
+      if(!this.attached){
+        if(this.powerOn){
+          this.turnOff();
+        }
+      } else {
+        this.fetchCartridge();
       }
+      this.checkCartridgeAlarm.start();
     }
 
     if(this.powerOn){
-      if(this.cartridge == null){
-        this.turnOffAlarm.update(dt);
+      this.turnOffAlarm.update(dt);
 
-        if(this.turnOffAlarm.finished){
-          this.powerOn = false;
-          this.turnOffAlarm.restart();
+      if(this.turnOffAlarm.finished){
+        this.powerOn = false;
+        this.turningOnoff = false;
+        this.turnOffAlarm.stop();
+
+        var cartridge = this.checkCartridge();
+        if(cartridge != null){
+          this.cartridge = cartridge;
+          if(this.cartridge == NAME.BERNAD){
+            manager.startDrMario(this, this.bottleWid, this.bottleHei);
+          }
+          this.turnOn();
         }
       }
     } else {
-      if(this.cartridge != null){
-        this.turnOnAlarm.update(dt);
+      
+      this.turnOnAlarm.update(dt);
 
-        if(this.turnOnAlarm.finished){
-          this.powerOn = true;
-          this.turnOnAlarm.restart();
-        }
+      if(this.turnOnAlarm.finished){
+        this.powerOn = true;
+        this.turningOnoff = false;
+        this.turnOnAlarm.stop();
       }
     }
 
@@ -1520,46 +1608,13 @@ function BlockScreen(x, y, blocksX, blocksY){
 
       this.depth = -5;
 
-
-      // CHECKING CARTRIDGE
-      if(this.checkCartridgeAlarm.finished){
-        if(this.cartridgeUpdated && this.hasCartridgeSlot){
-          var gridPos = manager.gridInd2XY(this.attachGridId);
-          if(manager.checkValidGridPos(gridPos.x + 1, gridPos.y - 1)){
-            var gridObj = manager.grid[GRID.MIDDLE][manager.gridXY2Ind(gridPos.x + 1, gridPos.y - 1)];
-            if(gridObj.valid){
-              if(gridObj.object.type == OBJECT.LOSANGO){
-                this.cartridge = gridObj.object.id;
-                this.lastCartridge = this.cartridge;
-                if(this.cartridge == NAME.BERNAD){
-                  manager.startDrMario(this, this.bottleWid, this.bottleHei);
-                }
-
-              } else {
-                this.cartridge = null;
-              }
-            } else {
-              this.cartridge = null;
-            }
-          } else {
-            this.cartridge = null;
-          }
-        }
-        this.checkCartridgeAlarm.start();
-      }
-
-
       this.gravityOn = false;
 
       var targetPos = manager.getPosGrid(this.attachGridId);
       targetPos.x -= manager.losWid/2;
       targetPos.y -= manager.losHei/2;
 
-      //this.attachCooldownAlarm.update(dt);
-
       if(Math.abs(targetPos.x - this.x) + Math.abs(targetPos.y - this.y) < 5){
-
-        //if(this.attachCooldownAlarm.finished){
           if(!this.inPlace){
             this.hspd = 0;
             this.vspd = 0;
@@ -1583,7 +1638,6 @@ function BlockScreen(x, y, blocksX, blocksY){
               this.y += dir.y/10;
             }
           }
-        //}
       } else {
         this.inPlace = false;
         var pos = new Vector(this.x, this.y);
@@ -1716,8 +1770,8 @@ function BlockScreen(x, y, blocksX, blocksY){
   this.draw = function(){
 
 
-    if(this.lastCartridge != null ){
-      if(this.cartridge != null){
+    if(this.cartridge != null ){
+      if(this.checkBubble()){
         sprites[SPR.BUBBLE].drawExt(this.cartridgePos.x, this.cartridgePos.y, 0, this.xScl*1.2, this.yScl*1.2, 0, 32,32);
       }
     }
@@ -1786,7 +1840,7 @@ function BlockScreen(x, y, blocksX, blocksY){
       
 
 
-      if(this.lastCartridge != null ){
+      if(this.cartridge != null ){
 
         if(this.attachGridId != -1){
           this.cartridgePos = manager.getPosGrid(this.attachGridId - manager.cols + 1);
@@ -1809,7 +1863,7 @@ function BlockScreen(x, y, blocksX, blocksY){
         ctx.beginPath();
         ctx.rect(clipX, clipY, clipWid*clipHPerc, clipHei*clipVPerc);
         ctx.clip();
-        switch(this.lastCartridge){
+        switch(this.cartridge){
           case 12:
             sprites[SPR.BANNERS].drawExtRelative(xx, yy, 0, this.xScl, this.yScl, 0,0.5,0.5);
           break;
@@ -1825,6 +1879,21 @@ function BlockScreen(x, y, blocksX, blocksY){
           break;
           case 11:
             sprites[SPR.BANNERS].drawExtRelative(xx, yy, 4, this.xScl, this.yScl, 0,0.5,0.5);
+          break;
+          case NAME.NATHALIA:
+            sprites[SPR.BANNERS].drawExtRelative(xx, yy, 5, this.xScl, this.yScl, 0,0.5,0.5);
+          break;
+          case NAME.DANILO:
+            sprites[SPR.BANNERS].drawExtRelative(xx, yy, 6, this.xScl, this.yScl, 0,0.5,0.5);
+          break;
+          case NAME.MARLUS:
+            sprites[SPR.BANNERS].drawExtRelative(xx, yy, 7, this.xScl, this.yScl, 0,0.5,0.5);
+          break;
+          case NAME.LAIS:
+            sprites[SPR.BANNERS].drawExtRelative(xx, yy, 8, this.xScl, this.yScl, 0,0.5,0.5);
+          break;
+          case NAME.MATHEUS:
+            sprites[SPR.BANNERS].drawExtRelative(xx, yy, 9, this.xScl, this.yScl, 0,0.5,0.5);
           break;
           case 4:
             manager.drMario.draw(this.x, this.y, this.hTileNum*manager.losWid, this.vTileNum*manager.losHei);
@@ -2412,5 +2481,103 @@ function USBCable(x, y, segments, segmentLen){
 
     this.pushDrawList();
   }
+
+}
+
+function ShadeRay(x, y, ang, scl, life){
+  this.x = x;
+  this.y = y;
+  this.ang = ang;
+  this.angSpd = randRange(-0.02, 0.02);
+  this.scl = scl;
+  this.lifeMax = life;
+  this.life = life;
+  this.active = true;
+
+  this.init = function(x, y, ang, scl, life){
+    this.x = x;
+    this.y = y;
+    this.ang = ang;
+    this.angSpd = randRange(-0.02, 0.02);
+    this.scl = scl;
+    this.lifeMax = life;
+    this.life = life;
+    this.active = true;
+  }
+
+  this.draw = function(ctx){
+    if(!this.active) return;
+
+    var alpha = ctx.globalAlpha;
+    const progress = this.life/this.lifeMax;
+    const third = 1 / 3;
+    var thisAlpha = 1;
+    if (progress < third) {
+      thisAlpha = tweenIn(progress*3);
+    } else if (progress < third * 2) {
+      thisAlpha = 1;
+    } else {
+      thisAlpha = tweenIn(1 - (progress - third * 2) * 3);
+    }
+
+    ctx.globalAlpha = thisAlpha;
+    sprites[SPR.SHADE].drawExtRelative(this.x, this.y, 0, this.scl, this.scl, this.ang, 0.5, 0.5);
+    ctx.globalAlpha= alpha;
+  }
+
+  this.update = function(dt){
+    if(this.life > 0){
+      this.ang += this.angSpd*dt;
+      this.life -= dt;
+    } else {
+      this.active = false;
+    }
+    
+  }
+
+
+}
+
+
+function BlackHole(x, y, scl){
+  this.x = x;
+  this.y = y;
+  this.scl = scl;
+
+  this.ang = 0;
+  this.angSpd = 0.01;
+
+  this.shadeRays = [];
+  this.rayNum = 10;
+  for(var i = 0; i < this.rayNum; i++){
+    var ray = new ShadeRay(this.x, this.y, deg2rad(randInt(0,360)), this.scl, randInt(0, 100));
+    this.shadeRays.push(ray);
+  }
+  
+
+  this.update = function(dt){
+    for(var i = 0; i < this.shadeRays.length; i++){
+      var ray = this.shadeRays[i];
+      if(ray.active){
+        ray.update(dt);
+      } else {
+        ray.init(this.x, this.y, deg2rad(randInt(0,360)), this.scl, randInt(50, 100));
+      }
+    }
+
+    this.ang += this.angSpd*dt;
+  }
+
+  this.draw = function(ctx){
+
+
+    for(var i = 0; i < this.shadeRays.length; i++){
+      var ray = this.shadeRays[i];
+      ray.draw(ctx);
+    }
+
+    sprites[SPR.BLACKHOLE].drawExtRelative(this.x, this.y, 0, this.scl*2, this.scl*2, this.ang, 0.5, 0.5);
+  }
+  
 
 }

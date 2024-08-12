@@ -1,12 +1,12 @@
 
 
 class Alarm {
-  constructor(start, end){
+  constructor(start, end, paused = false){
     this.timer = start;
     this.time = end;
     this.timeInit = end;
     this.finished = false;
-    this.paused = false;
+    this.paused = paused;
     this.loop = false;
   }
 

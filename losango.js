@@ -10,6 +10,11 @@ const LSTATE = Object.freeze(new Enum(
     "TOTAL"
 ));
 
+const LOSMETHOD = Object.freeze(new Enum(
+  "TILT",
+  "TOTAL"
+));
+
 class SneezeActor{
   constructor(){
     this.sneezing = false;
@@ -61,6 +66,168 @@ class SneezeActor{
 
   }
 }
+
+class FlipActor{
+  constructor(){
+    this.flipping = false;
+    this.phase = 0;
+    this.targetPhase = 0;
+    this.normalSpd = 0.1;
+    this.spd = this.normalSpd;
+    this.isFront = true;
+    this.isHFlip = true;
+
+    this.freeMoveSpd = 0;
+    this.freeMoveSpdMax = 10;
+    this.freeMoveDamp = 0.02;
+
+    this.lastFront = false;
+
+    this.flipped = false;
+  }
+
+  startFlip(flipAmount = 2, flipSnap = true,  flipSpd = this.normalSpd){
+    this.spd = flipSpd;
+    this.flipping = true;
+
+    if(flipSnap){
+      this.targetPhase = (this.phase - (this.phase%(Math.PI))) + flipAmount * Math.PI;
+    } else{
+      this.targetPhase = this.phase + flipAmount * Math.PI;
+    }
+
+    this.freeMoveSpd = 0;
+  }
+
+  update(dt, los){
+
+    this.flipped = false;
+
+
+    this.isFront = phaseAngleToSide(this.phase);
+
+    // FLIPPING
+    if(this.flipping){
+      this.phase += this.spd*dt;
+
+      this.isFront = phaseAngleToSide(this.phase);
+      if(this.isFront != this.lastFront){
+        this.flipped = true;
+      // We should update the object properties as soon as it changes front-back
+      // if(this.flipPhase >= this.flipTargetPhase - Math.PI/2){
+      }
+
+      // Flipping stops when it reaches target Phase
+      if(this.phase >= this.targetPhase){
+        this.flipping = false;
+        this.isFront = phaseAngleToSide(this.phase);
+        //this.phase = Math.PI * (1 - this.isFront);
+        this.phase = this.targetPhase%(Math.PI*2);
+      }
+    } else {
+      this.freeMoveSpd *= Math.pow(1-this.freeMoveDamp,dt);
+      this.freeMoveSpd = clamp(this.freeMoveSpd, -this.freeMoveSpdMax, this.freeMoveSpdMax);
+      this.phase += this.freeMoveSpd*dt;
+    }
+
+    this.lastFront = this.isFront;
+  }
+}
+
+class TiltActor{
+  constructor(){
+    this.tilting = false;
+    this.spd = 0.025;
+    this.isTilted = true;
+
+    this.freeMoveSpd = 0;
+    this.freeMoveSpdMax = 10;
+    this.freeMoveDamp = 0.02;
+  }
+
+  startTilt(){
+    this.tilting = true;
+  }
+
+  update(dt, los){
+     // Rotating/ Tilting
+     if(this.tilting){
+      if(this.isTilted){
+        los.angle -= this.spd*dt;
+        if(los.angle <= 0){
+          this.isTilted = false;
+          this.tilting = false;
+          los.angle = 0;
+        }
+      } else {
+        los.angle += this.spd*dt;
+        if(los.angle >= deg2rad(45)){
+          this.isTilted = true;
+          this.tilting = false;
+          los.angle = deg2rad(45);
+        }
+      }
+    } else {
+      this.freeMoveSpd *= Math.pow(1-this.freeMoveDamp,dt);
+      this.freeMoveSpd = clamp(this.freeMoveSpd, -this.freeMoveSpdMax, this.freeMoveSpdMax);
+      los.angle += this.freeMoveSpd*dt;
+    }
+  }
+}
+
+class ColorActor{
+  constructor(color){
+    this.baseColor = new Color(0,0,0,0);
+    this.baseColor.setWithColor(color);
+    this.color = new Color(0,0,0,0);
+    this.color.setWithColor(color);
+
+    this.phasing = false;
+    this.phaseStartColor = new Color(0,0,0,0);
+    this.phaseEndColor = new Color(0,0,0,0);
+    this.phaseDiffColor = new Color(0,0,0,0);
+    this.phaseTimer = new Alarm(0, 100, true);
+  }
+
+  reset(){
+    this.color.setWithColor(this.baseColor);
+  }
+
+  setColor(color){
+    this.color.setWithColor(color);
+  }
+
+  setRGB(r, g, b, a = 1){
+    this.color.r = r;
+    this.color.g = g;
+    this.color.b = b;
+    this.color.a = a;
+  }
+
+  startPhase(startColor, endColor, time){
+    this.phasing = true;
+    this.phaseStartColor = startColor.copy();
+    this.phaseEndColor = endColor.copy();
+    this.phaseDiffColor = this.phaseEndColor.diff(this.phaseStartColor);
+    this.phaseTimer.timeInit = time;
+    this.phaseTimer.start();
+  }
+
+  update(dt, los){
+    if(this.phasing){
+      this.phaseTimer.update(dt);
+      var progress = this.phaseTimer.percentage();
+      var progressColor = this.phaseDiffColor.mult(progress).add(this.phaseStartColor);
+      this.setColor(progressColor);
+
+      if(this.phaseTimer.finished){
+        this.setColor(this.phaseEndColor);
+        this.phaseTimer.stop();
+        this.phasing = false;
+      }
+    }
+  }
+}
  
 
 class Losango {
@@ -105,16 +272,8 @@ class Losango {
     this.clickingBox.yOffset = this.boxHei/2;
 
 
-    this.flipping = false;
-    this.flipPhase = 0;
-    this.flipTargetPhase = 0;
-    this.flipSpd = 0.1;
-    this.isFront = false;
-    this.isHFlip = true;
 
-    this.rotating = false;
-    this.rotateSpd = 0.025;
-    this.isTilted = true;
+
 
     this.scaling = false;
     this.isFullScale = false;
@@ -123,6 +282,8 @@ class Losango {
     this.extraScale = 1;
 
     this.sneezeActor = new SneezeActor();
+    this.flipActor = new FlipActor();
+    this.tiltActor = new TiltActor();
 
     this.shrinked = false;
     this.shrinkAlarm = new Alarm(0, 100);
@@ -138,13 +299,11 @@ class Losango {
     this.hideLineAlarm = new Alarm(0, 25);
     this.hideLineAlarm.pause();
 
-
-    
-    this.regularFrontColor = new Color(255,255,255);
-    this.regularBackColor = new Color(200, 200, 200);
     this.frontColor = new Color(255,255,255);
     this.backColor = new Color(200, 200, 200);
 
+    this.frontColorActor = new ColorActor(this.frontColor);
+    this.backColorActor = new ColorActor(this.backColor);
 
     this.linePerc = 0.1;
 
@@ -167,6 +326,9 @@ class Losango {
 
     this.blackHolePartAlarm = new Alarm(0, 1);
     this.blackHoleMode = false;
+    this.blackHole = new BlackHole(0, 0, 2);
+
+
     this.shopMode = false;
     this.priceTag = 0;
 
@@ -182,6 +344,7 @@ class Losango {
 
     this.updatePacket = null;
     this.updateList = [];
+    this.flipsTillUpdate = 0;
 
     this.attached = true;
     this.attachGridId = -1;
@@ -211,8 +374,21 @@ class Losango {
 
   codenames(){
     this.codenamesMode = true;
-    if(!this.rotating && this.isTilted){
-      this.rotating = true;
+    if(!this.tiltActor.tilting && this.tiltActor.isTilted){
+      this.tiltActor.tilting = true;
+    }
+
+    this.frontColorActor.startPhase(this.frontColorActor.color, new Color(245, 215, 180), 200);
+  }
+
+  endCodenames(){
+    this.codenamesMode = false;
+    this.frontColorActor.startPhase(this.frontColorActor.color, this.frontColorActor.baseColor, 200);
+    this.backColorActor.reset();
+    if(this.flipActor.isFront){
+      this.flip(2);
+    } else {
+      this.flip(1);
     }
   }
 
@@ -234,6 +410,8 @@ class Losango {
   blackHoleParticles(){
     manager.particles.push(particleBlackHole(this.x, this.y));
   }
+
+
 
   ghostParticles(){
     manager.particles.push(particleGhostLos(this.x, this.y, nameMan.persons[this.id].name));
@@ -392,7 +570,7 @@ class Losango {
         }
 
         if(this.attached){
-          if(!this.flipping){
+          if(!this.flipActor.flipping){
             if(this.effectCooldownAlarm.finished){
               this.effector.effect(this, isRightClick);
             }
@@ -407,44 +585,53 @@ class Losango {
       var gridOpen = manager.minesweeper.gridOpen[gridIndex];
       var gridValue = manager.minesweeper.grid[gridIndex];
 
-      if(!this.flipping){
-        if(gridOpen && this.isFront){
+      if(!this.flipActor.flipping){
+        if(gridOpen && this.flipActor.isFront){
           this.flip(1);
-        } else if (gridValue != this.states[LSTATE.MINESWEEPER] && !this.isFront && this.attached){
+        } else if (gridValue != this.states[LSTATE.MINESWEEPER] && !this.flipActor.isFront && this.attached){
           this.flip(1);
         }
       }
     }
 
     if(this.codenamesMode){
-      var colors = [new Color(255,255,255), new Color(100, 100, 200), new Color(80, 80, 80)];
+      
       var codeId = manager.codenamesManager.nameMap[this.id];
       if(codeId != -1){
 
         if(manager.codenamesManager.grid[codeId].opened){
           var team  = manager.codenamesManager.grid[codeId].team;
-
-          this.backColor.r = colors[team].r;
-          this.backColor.g = colors[team].g;
-          this.backColor.b = colors[team].b;
+          this.backColorActor.setColor(manager.codenamesManager.colors[team]);
         }
-
       }
-
-      if(manager.codenamesManager.finished) this.codenamesMode = false;
-    } else {
-      this.backColor.r = this.regularBackColor.r;
-      this.backColor.g = this.regularBackColor.g;
-      this.backColor.b = this.regularBackColor.b;
     }
 
-
     // BLACK HOLE PARTICLES
-    if(this.blackHoleMode && !this.isFront && !this.minesweeper){
+    if(this.blackHoleMode && !this.flipActor.isFront && !this.minesweeper){
       this.blackHolePartAlarm.update(dt);
       if(this.blackHolePartAlarm.finished){
         this.blackHoleParticles();
         this.blackHolePartAlarm.restart();
+      }
+
+      this.blackHole.update(dt);
+
+      for(var i = 0; i < objectLists[OBJECT.BITCOIN].length; i++){
+        var coin = objectLists[OBJECT.BITCOIN][i];
+
+        var vec = new Vector(this.x-coin.x, this.y-coin.y);
+        var dist = vec.mag();
+        if(dist < 1000){
+          var distClamp = clamp(dist, 0.001, 1000);
+          var force = 0.05/(distClamp/1000);
+          if(dist < 10){
+            force = -force;
+          }
+          vec = vec.unit().mult(force);
+
+          coin.hspd += vec.x;
+          coin.vspd += vec.y;
+        } 
       }
     }
 
@@ -457,6 +644,12 @@ class Losango {
     // SNEEZING
     this.sneezeActor.update(dt, this);
 
+
+    // COLOR CHANGING
+    this.frontColorActor.update(dt, this);
+    this.backColorActor.update(dt, this);
+    this.frontColor.setWithColor(this.frontColorActor.color);
+    this.backColor.setWithColor(this.backColorActor.color);
 
     // POPPING
     this.popInAlarm.update(dt);
@@ -486,65 +679,14 @@ class Losango {
 
     // SHOP COMMITMENT
     if(this.shopMode){
-      if(!this.flipping && this.isFront){
+      if(!this.flipActor.flipping && this.flipActor.isFront){
         this.shopMode = false;
       }
     }
 
 
-    // FLIPPING
-    if(this.flipping){
-      this.flipPhase += this.flipSpd*dt;
+    
 
-      // We should update the object properties as soon as it changes front-back
-      if(this.flipPhase >= this.flipTargetPhase - Math.PI/2){
-        if(this.updatePacket != null){
-          for(var i = 0; i < this.updatePacket.propertyList.length; i++){
-            var prop = this.updatePacket.propertyList[i];
-            this[prop.propertyName] = prop.value;
-          }
-          this.updatePacket = null;
-        }
-
-        this.states[LSTATE.MINESWEEPER] =  manager.minesweeper.grid[manager.losangosGrid[this.id]];
-        this.states[LSTATE.SHOPMODE] = this.shopMode;
-
-        this.states[LSTATE.HEADPHONES] = this.headphones;
-      }
-
-      // Flipping stops when it reaches target Phase
-      if(this.flipPhase >= this.flipTargetPhase){
-        this.flipping = false;
-        this.isFront = this.phaseAngleToSide(this.flipPhase);
-        this.flipPhase = Math.PI * (1 - this.isFront);
-      }
-    }
-
-    // UPDATING LINEANIMATION
-    this.linePerc = 0.1 + Math.cos(manager.frames/40)*0.05;
-    this.hideLineAlarm.update(dt);
-    // OTHER VARS ;-)
-    this.isFront = this.phaseAngleToSide(this.flipPhase);
-    this.xScl = Math.cos(this.flipPhase);
-
-    // Rotating/ Tilting
-    if(this.rotating){
-      if(this.isTilted){
-        this.angle -= this.rotateSpd*dt;
-        if(this.angle <= 0){
-          this.isTilted = false;
-          this.rotating = false;
-          this.angle = 0;
-        }
-      } else {
-        this.angle += this.rotateSpd*dt;
-        if(this.angle >= deg2rad(45)){
-          this.isTilted = true;
-          this.rotating = false;
-          this.angle = deg2rad(45);
-        }
-      }
-    }
 
     // Full Scaling
     if(this.scaling){
@@ -593,15 +735,15 @@ class Losango {
 
 
     if(this.screenMode){
-      if(this.isTilted && !this.rotating){
-        this.rotating = true;
+      if(this.tiltActor.isTilted && !this.tiltActor.tilting){
+        this.tiltActor.tilting = true;
       }
 
       if(!this.isFullScale && !this.scaling){
         this.scaling = true;
       }
 
-      if(!this.flipping){
+      if(!this.flipActor.flipping){
         this.onDestroy();
 
 
@@ -628,26 +770,76 @@ class Losango {
     }
 
 
+    // UPDATING LINEANIMATION
+    this.linePerc = 0.1 + Math.cos(manager.frames/40)*0.05;
+    this.hideLineAlarm.update(dt);
 
+    this.xScl = Math.cos(this.flipActor.phase);
+
+    this.tiltActor.update(dt, this);
+    this.flipActor.update(dt, this);
 
     // Packet processing
-    if(!this.flipping){
+
+
+    if(this.flipActor.flipped){
+      if(this.updatePacket != null){
+        
+        if(this.flipsTillUpdate <= 1){
+          for(var i = 0; i < this.updatePacket.actionList.length; i++){
+            var act = this.updatePacket.actionList[i];
+            if(act.type == 0){
+              this[act.propertyName] = act.value;
+            } else {
+              this.methodProcesser(act.methodId, act.params);
+            }
+          }
+          this.updatePacket = null;
+        } else {
+          this.flipsTillUpdate--;
+        }
+      }
+
+      this.states[LSTATE.MINESWEEPER] =  manager.minesweeper.grid[manager.losangosGrid[this.id]];
+      this.states[LSTATE.SHOPMODE] = this.shopMode;
+
+      this.states[LSTATE.HEADPHONES] = this.headphones;
+    }
+
+
+    if(!this.flipActor.flipping){
       if(this.updateList.length > 0){
         if(this.updateList[0].waitTime > 0){
           this.updateList[0].waitTime -= dt;
         } else {
           this.updatePacket = this.updateList.shift();
-          this.startFlipping();
-          this.flipAmount = (this.isFront == this.updatePacket.isFront) ? 2 : 1;
-          this.flipTargetPhase = this.flipPhase + Math.PI * this.flipAmount;
+          
+          var flipAmount = (this.flipActor.isFront == this.updatePacket.isFront) ? 2 : 1;
+          this.flipsTillUpdate = flipAmount;
+          this.flip(flipAmount);
         }
       }
     }
   }
 
+  tilt(endState){
+    this.tiltActor.tilting = true;
+    this.tiltActor.isTilted = endState;
+  }
+
+  methodProcesser(methodId, params){
+    switch(methodId){
+      case LOSMETHOD.TILT:
+        this.tilt(params[0]);
+      break;
+    }
+  }
+
+
+
   shop(){
-    if(!this.flipping){
-      if(this.isFront){
+    if(!this.flipActor.flipping){
+      if(this.flipActor.isFront){
         
         var obj = null;
         if(this.id == NAME.JVROCHA){
@@ -677,7 +869,7 @@ class Losango {
     }
   }
 
-  blackHole(){
+  startBlackHole(){
     this.blackHoleMode = true;
   }
 
@@ -750,7 +942,7 @@ class Losango {
       this.connectorAng = angAnim;
     }
 
-    var resultColor = (this.isFront > 0) ? this.frontColor.copy() : this.backColor.copy();
+    var resultColor = (this.flipActor.isFront > 0) ? this.frontColor.copy() : this.backColor.copy();
 
     if(this.hovered || (!manager.winSoundReady() && this.id == NAME.VICTORIA)){
       resultColor = resultColor.mult(0.75);
@@ -810,7 +1002,7 @@ class Losango {
 
 
     // Drawing Losango Contents
-    if(this.isFront){
+    if(this.flipActor.isFront){
       ctx.rotate(-angAnim); // Rotate the canvas context
 
       ctx.font = ((isMobile) ? "18" : "14") + "px Arial";
@@ -849,6 +1041,11 @@ class Losango {
         ctx.rotate(-angAnim); // Rotate the canvas context
         ctx.scale(-1, 1); // Scale the x-axis
 
+
+        if(this.blackHoleMode){
+          this.blackHole.draw(ctx);
+        }
+
         if(this.backItem != null){
           this.backItem.x = 0;
           this.backItem.y = 0;
@@ -866,6 +1063,7 @@ class Losango {
           ctx.fillStyle = 'green';
           ctx.textAlign = 'center';
           //ctx.fillRect();
+          sprites[SPR.PRICETAG].drawExtRelative(0, 40, 0, 2, 2, 0, 0.5, 0.5);
           ctx.fillText(this.priceTag, 0, 40);
           ctx.fillStyle = 'black';
 
@@ -937,27 +1135,19 @@ class Losango {
       manager.pageSlipStart = Date.now();
     }
  
-    this.flipping = true;
-   
+    this.flipActor.flipping = true;
   }
 
-  flip(flipAmount = 2){
+  flip(flipAmount = 2, flipSnap = true, flipSpd = this.flipActor.normalSpd){
     this.startFlipping();
-    this.flipping = true;
-    this.flipAmount = flipAmount;
-    this.flipTargetPhase = this.flipPhase + this.flipAmount * Math.PI;
+    this.flipActor.startFlip(flipAmount, flipSnap, flipSpd);
+    //this.flipActor.flipping = true;
+    //this.flipAmount = flipAmount;
+    //this.flipTargetPhase = this.phase + this.flipAmount * Math.PI;
   }
 
 
-  phaseAngleToSide(angle) {
-    // Normalize the angle to the range [0, 2*Pi)
-    angle = angle % (2 * Math.PI);
-    if (angle < 0) {
-      angle += 2 * Math.PI;
-    }
 
-    return (angle > Math.PI / 2 && angle <= 3 * Math.PI / 2) ? false : true;
-  }
 
 
   isInside(x, y){

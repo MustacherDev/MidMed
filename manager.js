@@ -144,6 +144,7 @@ class Manager {
     this.bitcoinGraph = new BitcoinGraph();
     this.achievementManager = new AchievementManager();
     this.codenamesManager = new Codenames();
+    this.screenShaker = new ScreenShaker();
 
     this.curtainState = 1;
     this.curtainRight = new Curtain(1);
@@ -286,7 +287,7 @@ class Manager {
        ,this.worldEdgebounce
    ]);
 
-   var screen = new BlockScreen(100, 100, 3, 3);
+   var screen = new BlockScreen(100, 100, 3, 4);
    //addObject(screen, OBJECT.SCREEN);
 
 
@@ -317,6 +318,8 @@ class Manager {
 
     
     this.frames += dt;
+
+    this.screenShaker.update(dt, mainCam);
 
     if(this.holdingObject == null){
       this.holding = false;
@@ -387,7 +390,6 @@ class Manager {
         var gridObj = this.grid[GRID.MIDDLE][i]; 
         if(gridObj.valid){
           if(gridObj.object.type == OBJECT.LOSANGO){
-            console.log(gridObj);
             this.deattachObject(i, GRID.MIDDLE);
             playSound(SND.POP);
           }
@@ -473,7 +475,7 @@ class Manager {
         break;
 
       case 2:
-        if(!this.hdmiScreen.hdmi) this.mode = 0;
+        if(this.hdmiScreen.state == 0) this.mode = 0;
         break;
 
     }
@@ -562,13 +564,13 @@ class Manager {
 
     this.inventory.update(dt);
     if(this.inventory.state == 1){
-      camY = -this.inventory.height*this.inventory.inAlarm.percentage();
+      mainCam.y = mainCam.height/2 +this.inventory.height*this.inventory.inAlarm.percentage();
     } else if(this.inventory.state == 3){
-      camY = -this.inventory.height*(1-this.inventory.outAlarm.percentage());
+      mainCam.y = mainCam.height/2 +this.inventory.height*(1-this.inventory.outAlarm.percentage());
     } else if(this.inventory.state == 2){
-      camY = -this.inventory.height;
+      mainCam.y = mainCam.height/2 + this.inventory.height;
     } else {
-      camY = 0;
+      mainCam.y = mainCam.height/2 ;
     }
 
     this.world.step();
@@ -704,7 +706,7 @@ class Manager {
     this.chessState = 1;
     this.pinSlideAlarm.start();
     for(var i = 0; i < this.losangos.length; i++){
-      var updatePacket = new UpdateLosango([new PropertyObject("rotating", true), new PropertyObject("isTilted", true)]);
+      var updatePacket = new UpdateLosango([new MethodCallObject(LOSMETHOD.TILT, [true])]);
       this.losangos[i].updateList.push(updatePacket);
     }
   }
@@ -721,7 +723,7 @@ class Manager {
     this.minesweeper.init(firstId);
 
     for(var i = 0; i < this.losangos.length; i++){
-      var updatePacket = new UpdateLosango([new PropertyObject("minesweeper", true), new PropertyObject("rotating", true), new PropertyObject("isTilted", true)]);
+      var updatePacket = new UpdateLosango([new PropertyObject("minesweeper", true), new MethodCallObject(LOSMETHOD.TILT, [true])]);
       this.losangos[i].updateList.push(updatePacket);
       this.losangos[i].open = false;
 
@@ -753,8 +755,7 @@ class Manager {
     for(var i = 0; i < this.losangos.length; i++){
       var updatePacket = new UpdateLosango([
         new PropertyObject("minesweeper", false),
-        new PropertyObject("rotating", true),
-        new PropertyObject("isTilted", false)]);
+        new MethodCallObject(LOSMETHOD.TILT, [true])]);
 
       this.losangos[i].updateList.push(updatePacket);
       updatePacket.isFront = true;
@@ -825,8 +826,7 @@ class Manager {
       this.attachObject(this.losangos[nameMan.orderPattern[this.sortPattern][i]], i, GRID.MIDDLE);
 
       var updatePacket = new UpdateLosango([
-        new PropertyObject("rotating", true),
-        new PropertyObject("isTilted", false)]);
+        new MethodCallObject(LOSMETHOD.TILT, [false])]);
 
       this.losangos[i].updateList.push(updatePacket);
       updatePacket.isFront = true;
@@ -946,8 +946,8 @@ class Manager {
               gridObj.object.scaling = true;
             }
 
-            if(gridObj.object.isTilted && !gridObj.object.rotating){
-              gridObj.object.rotating = true;
+            if(gridObj.object.tiltActor.isTilted && !gridObj.object.tiltActor.tilting){
+              gridObj.object.tiltActor.tilting = true;
             }
           }
         }
@@ -1079,6 +1079,21 @@ class Manager {
     }
   }
 
+  finishCodenames(){
+    this.codenamesManager.finished = true;
+  }
+
+  cleanCodenames(){
+    for(var i = 0 ; i < this.losangos.length; i++){
+      var los = this.losangos[i];
+      if(!los.inOtherplane){
+        if(los.codenamesMode){
+          los.endCodenames();
+        }
+      }
+    }
+  }
+
   glitch(){
     this.hdmiScreen.glitch();
   }
@@ -1093,6 +1108,7 @@ class Manager {
     this.moneyAmount += amount;
     this.moneyDisplay.money = this.moneyAmount;
     this.moneyDisplay.updateMoney();
+    playSound(SND.CASHREGISTER);
   }
 
   winSoundReady(){
@@ -1268,8 +1284,6 @@ class Manager {
 
   
   deattachLosango(id){
-
-    console.log("Deattachin losango " + id);
     const los = this.losangos[id];
     los.attached = false;
 
@@ -1365,14 +1379,24 @@ var manager = new Manager();
 
 class PropertyObject{
   constructor(propertyName, value){
+    this.type = 0;
     this.propertyName = propertyName;
     this.value = value;
   }
 }
 
+class MethodCallObject{
+  constructor(methodId, params){
+    this.type = 1;
+    this.methodId = methodId;
+    this.params = params;
+  }
+}
+
 class UpdateLosango{
-  constructor(propertyList){
-    this.propertyList = propertyList;
+  constructor(actionList){
+    
+    this.actionList = actionList;
     this.isFront = true;
     this.waitTime = 0;
   }

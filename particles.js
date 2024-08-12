@@ -107,6 +107,63 @@ class ParticleCircle extends Particle{
   }
 }
 
+
+class ParticleText extends Particle{
+  constructor(x, y, life, text, color){
+    super(x, y, life);
+    
+    this.font = "Fixedsys";
+    this.fontSize = 18;
+
+    this.text = text;
+    this.color = color;
+
+    this.scl = 1;
+    this.sclSpd = 0;
+
+    this.alphaMode = 0;
+  }
+
+  textStep(dt){
+  }
+
+  draw() {
+
+    ctx.font = this.fontSize + "px " + this.font;
+
+    var ratio = (this.life/this.lifeMax);
+
+    var scl = this.scl;
+
+    var alpha = 1;
+    if(this.alphaMode == 1){
+      alpha = tweenIn(ratio);
+    } else if (this.alphaMode == 2){
+      alpha = tweenIn(1-Math.abs((ratio*2)-1));
+    }
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.scale(scl, scl);
+    ctx.fillStyle = "rgba(0,0,0,"+ alpha +")";
+    ctx.fillText(this.text, 2, 2);
+    ctx.fillStyle = "rgba(255, 255, 255, " + alpha + ")";
+    ctx.fillText(this.text, 0, 0);
+    ctx.restore();
+  }
+
+  update(dt){
+    if(this.life > 0){
+      this.baseStep(dt);
+      this.textStep(dt);
+    } else {
+      this.active = false;
+    }
+  }
+}
+
 class ParticleSprite extends Particle{
   constructor(x, y, life, sprite){
     super(x, y, life);
@@ -119,11 +176,23 @@ class ParticleSprite extends Particle{
     this.yOffset = 0;
     this.img = 0;
     this.imgSpd = 0;
+
+    this.alpha = 1;
+    this.alphaMode = 0;
   }
 
   spriteStep(dt){
     this.img += this.imgSpd*dt;
     this.scl += this.sclSpd*dt;
+
+    var ratio = this.life/this.lifeMax;
+
+    this.alpha = 1;
+    if(this.alphaMode == 1){
+      this.alpha = tweenIn(ratio);
+    } else if (this.alphaMode == 2){
+      this.alpha = tweenIn(1-Math.abs((ratio*2)-1));
+    }
   }
 
   update(dt){
@@ -136,7 +205,10 @@ class ParticleSprite extends Particle{
   }
 
   draw(){
+    var alpha = ctx.glbbalAlpha;
+    ctx.globalAlpha = this.alpha;
     this.sprite.drawExt(this.x, this.y, Math.floor(this.img)%this.sprite.imgNum , this.scl, this.scl, this.angle, this.xOffset, this.yOffset);
+    ctx.globalAlpha = alpha;
   }
 }
 
@@ -200,12 +272,39 @@ function particleBlackHole(x, y){
 }
 
 function particleSun(x, y){
+  var life = 50;
+  var part = new ParticleSprite(x, y, life, sprites[SPR.SHINEPARTICLE]);
+
+  part.scl = 3;
+  part.xOffset = part.sprite.width/2;
+  part.yOffset = part.sprite.height/2;
+  part.img = randInt(0, part.sprite.imgNum);
+  part.imgSpd = -(part.img)/life;
+
+  part.depth = -20;
+
+  return part;
+}
+
+function particleSoundWave(x, y, dir){
   var life = 100;
-  var part = new ParticleCircle(x, y, life);
-  part.radius = randInt(2, 5);
-  part.color = new Color(randInt(200, 255), randInt(200, 255), 0, 1);
-  part.colorSpd = new Color(0,0,0, -1/life);
-  part.radiusSpd = -part.radius/life;
+  var part = new ParticleSprite(x, y, life, sprites[SPR.SOUNDWAVE]);
+
+  part.scl = 1.2;
+  var spd = 1;
+  part.spd.x = Math.cos(dir)*spd;
+  part.spd.y = Math.sin(dir)*spd;
+  part.angle = dir;
+  part.damp.x = 0.02;
+  part.damp.y = 0.02;
+
+
+  part.xOffset = 0;
+  part.yOffset = part.sprite.height/2;
+  part.alphaMode = 1;
+
+  part.depth = -20;
+
   return part;
 }
 
@@ -245,6 +344,20 @@ function particleLock(x, y){
   part.acc = new Vector(0, 0);
   part.damp = new Vector(0.01, 0.01);
   part.depth = -20;
+
+  return part;
+}
+
+function particleCodenamesHint(x, y, hint){
+  var life = 500;
+  var part = new ParticleText(x, y, life, hint, "rgb(255,255,255)");
+  
+  part.scl = 4;
+  part.alphaMode = 1;
+  part.spd.y = -5;
+  part.damp.y = 0.05; 
+  part.depth = -20;
+
 
   return part;
 }

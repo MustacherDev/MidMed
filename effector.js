@@ -5,17 +5,22 @@ class Effector {
     }
 
     codenamesEffects(los, rightClick){
-        if(los.isFront){
-            manager.codenamesManager.reveal(los.id);
-            los.flip(1);
+
+        if(manager.codenamesManager.finished) {
+            los.endCodenames();
+        } else {
+            if(los.flipActor.isFront){
+                manager.codenamesManager.reveal(los.id);
+                los.flip(1);
+            }
         }
     }
 
     shopEffects(los, rightClick) {
-        if (!los.isFront) {
+        if (!los.flipActor.isFront) {
 
             if (manager.moneyAmount >= los.priceTag) {
-                manager.moneyAmount -= los.priceTag;
+                manager.collectMoney(-los.priceTag);
 
                 var pos = manager.getPosGrid(los.getGridId());
                 los.backItem.x = pos.x;
@@ -34,6 +39,7 @@ class Effector {
         } else {
 
             los.shopMode = false;
+            los.backItem = null;
             los.flip(2);
         }
     }
@@ -137,6 +143,26 @@ class Effector {
                 los.flip();
             }
         } else if (los.id == NAME.SHEILA) {
+            for(var i = 0 ; i < 4; i++){
+                var ang = Math.PI/4 + i*Math.PI/2;
+                var xx = Math.cos(ang) * los.width/4;
+                var yy = Math.sin(ang) * los.height/4;
+                console.log(xx +" " + los.x);
+                manager.particles.push(particleSoundWave(los.x + xx, los.y + yy, ang));
+            }
+            if(!manager.losangos[NAME.ISRAEL].inOtherplane){
+                var otherLos = manager.losangos[NAME.ISRAEL];
+                var dx = otherLos.x - los.x;
+                var dy = otherLos.y - los.y;
+                var dist = distance(dx, dy);
+
+                if(dist <= 350){
+                    manager.quietAlarm.start();
+                    otherLos.popInAlarm.start();
+                }
+
+
+            }
             playSound(SND.ALARM);
             los.flip();
         } else if (los.id == NAME.NILTON) {
@@ -147,6 +173,8 @@ class Effector {
                 los.flip();
             }
         } else if (los.id == NAME.ARAUJO) {
+            manager.finishCodenames();
+            manager.cleanCodenames();
             manager.randomizeGrid();
             manager.codenamesManager.getGrid();
             manager.codenamesManager.getHint();
@@ -226,7 +254,7 @@ class Effector {
                 }
             }
             los.flip(1);
-            los.blackHole();
+            los.startBlackHole();
 
         } else if (los.id == NAME.IKARO) {
             if(manager.musicMode){
@@ -243,18 +271,26 @@ class Effector {
                 //playSound(SND.FALL);
                 manager.fall();
             } else {
+
+                los.flipActor.freeMoveSpd += 0.05;
+                //los.flip(0.2, false, 0.1);
+                
                 if (input.mouseState[0][1]) {
                     manager.clickParticle();
                 }
             }
 
         } else if (los.id == NAME.ALICE) {
+            manager.finishCodenames();
+            manager.cleanCodenames();
             manager.sortGrid();
 
         } else if (los.id == NAME.LILIAN) {
             var balloon = new Balloon(randInt(0, roomWidth), randInt(0, roomHeight), randInt(0, 4));
             addObject(balloon, OBJECT.BALLOON);
         } else if (los.id == NAME.FGOIS) {
+            manager.finishCodenames();
+            manager.cleanCodenames();
             manager.randomizeGrid();
         } else if (los.id == NAME.JP) {
             playSound(SND.KNOCK);
@@ -359,7 +395,7 @@ class Effector {
 
         } else if (los.id == NAME.DANILO) {
 
-            if (los.isFront && chance(0.1) && objectLists[OBJECT.DART].length == 0) {
+            if (los.flipActor.isFront && chance(0.1) && objectLists[OBJECT.DART].length == 0) {
                 var pos = manager.getPosGrid(los.getGridId());
                 var ang = Math.random() * Math.PI * 2;
                 var spd = randRange(5, 10);
@@ -371,7 +407,7 @@ class Effector {
                 los.backItem = dart;
 
                 los.flip(1);
-            } else if (!los.isFront) {
+            } else if (!los.flipActor.isFront) {
                 if (los.backItem != null) {
 
                     if (los.backItem.type == OBJECT.DART) {

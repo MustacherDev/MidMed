@@ -48,6 +48,7 @@ const SND = Object.freeze(new Enum(
     "DARTBLOW",
     "BLIP",
     "SEQUENCE",
+    "CASHREGISTER",
     "TOTAL"
 ));
 
@@ -87,7 +88,8 @@ const sndPaths = [
   "balloonPop2.mp3",
   "dartBlow.mp3",
   "blip.mp3",
-  "sequence.mp3"
+  "sequence.mp3",
+  "cashRegister.mp3"
 ];
 
 const WINSND = Object.freeze(new Enum(
@@ -131,14 +133,12 @@ sounds[SND.EXPLOSION].volume(0.2);
 sounds[SND.GLITCHHIT].volume(0.2);
 sounds[SND.POLICE].volume(0.2);
 sounds[SND.AUMENTAOSOM].volume(0.4);
+sounds[SND.BLIP].volume(0.5);
+sounds[SND.SEQUENCE].volume(0.2);
 
 
 function playSound(soundId){
-  //if(sounds[soundId].paused || sounds[soundId].currentTime > 0){
-   // sounds[soundId].pause();
-   // sounds[soundId].currentTime = 0;
   return sounds[soundId].play();
-  //}
 }
 
 function pauseSound(soundId){
@@ -194,6 +194,11 @@ const SPR = Object.freeze(new Enum(
     "MINIDART",
     "BALLOON",
     "DRWIN",
+    "PRICETAG",
+    "SHADE",
+    "SHINEPARTICLE",
+    "SOUNDWAVE",
+    "BLACKHOLE",
     "TOTAL"
 ));
 
@@ -232,7 +237,12 @@ var imgPaths = [  "bombSprite.png",
   "headphones.png",
   "darts.png",
   "balloons.png",
-  "drWin.png"
+  "drWin.png",
+  "priceTag.png",
+  "Shade.png",
+  "ShineParticle.png",
+  "soundWave.png",
+  "blackHole.png"
 ];
 
 var need2Load = imgPaths.length;
@@ -269,6 +279,8 @@ function loadSprites() {
         sprites[SPR.MINIDART].setSubimg(16, 7);
         sprites[SPR.BALLOON].setSubimg(156, 200);
         sprites[SPR.DRWIN].setSubimg(64,64);
+        sprites[SPR.SHINEPARTICLE].setSubimg(16,16);
+
 
 
         spritesLoaded = true;

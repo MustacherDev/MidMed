@@ -61,7 +61,7 @@ class DrMarioGame {
         this.fillHeight = 0;
 
 
-        this.stepAlarm = new Alarm(0, 5);
+        this.stepAlarm = new Alarm(0, 4);
 
         this.horizontalTurboAlarm = new Alarm(0, 15);
         this.horizontalTurboMoveCooldown = new Alarm(0, 4);
@@ -75,12 +75,12 @@ class DrMarioGame {
         this.winSprAlarm = new Alarm(0,50);
         this.winSprImg = 0;
 
-        this.sequenceWaitAlarm = new Alarm(0,2);
+        this.sequenceWaitAlarm = new Alarm(0,1);
 
         this.pillNormalSpd = 0.1;
-        this.pillFastSpd = 2;
+        this.pillFastSpd = 3;
 
-        this.gravitySpd = 0.5;
+        this.gravitySpd = 0.6;
 
         this.pillSpd = this.pillNormalSpd;
 
@@ -177,9 +177,11 @@ class DrMarioGame {
     }
 
     inputMovePress(dir) {
-        if (this.runState != 0) return;
+       
 
         this.horizontalTurboAlarm.start();
+
+        if (this.runState != 0) return;
         this.stepMove(dir);
     }
 
