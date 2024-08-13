@@ -108,12 +108,26 @@ class Effector {
             }
 
             manager.altNames = !manager.altNames;
+            var willAlt = manager.altNames;
+
+            var willEvent = EventCreate.altname(willAlt)
+            var willUpdatePacket = willEvent.wrap();
+            willUpdatePacket.isFront = true;
+            manager.losangos[NAME.WILLISTON].updateList.push(willUpdatePacket);
+
             for (var i = 0; i < manager.losangos.length; i++) {
                 var id = manager.losangos[i].id;
+
+                if(id == NAME.WILLISTON) continue;
+
                 if (nameMan.persons[id].altName != nameMan.persons[id].name) {
-                    var updatePacket = new UpdateLosango([new PropertyObject("useAltName", manager.altNames)]);
-                    updatePacket.isFront = true;
-                    manager.losangos[i].updateList.push(updatePacket);
+                    if(manager.losangos[i].useAltName != willAlt){
+                        //var updatePacket = new UpdateLosango([new PropertyObject("useAltName", manager.altNames)]);
+                        var event = EventCreate.altname(willAlt)
+                        var updatePacket = event.wrap();
+                        updatePacket.isFront = true;
+                        manager.losangos[i].updateList.push(updatePacket);
+                    }
                 }
             }
         } else if (los.id == NAME.LUIS) {
@@ -147,7 +161,6 @@ class Effector {
                 var ang = Math.PI/4 + i*Math.PI/2;
                 var xx = Math.cos(ang) * los.width/4;
                 var yy = Math.sin(ang) * los.height/4;
-                console.log(xx +" " + los.x);
                 manager.particles.push(particleSoundWave(los.x + xx, los.y + yy, ang));
             }
             if(!manager.losangos[NAME.ISRAEL].inOtherplane){

@@ -10,10 +10,40 @@ const LSTATE = Object.freeze(new Enum(
     "TOTAL"
 ));
 
-const LOSMETHOD = Object.freeze(new Enum(
+const LEVENT = Object.freeze(new Enum(
   "TILT",
+  "ALTNAME",
+  "STARTMINESWEEPER",
+  "ENDMINESWEEPER",
+  "SCREENMODE",
   "TOTAL"
 ));
+
+class EventCreate{
+  
+  static tilt(state){
+    return new EventObject(LEVENT.TILT, [state]);
+  }
+
+  static altname(state){
+    return new EventObject(LEVENT.ALTNAME, [state]);
+  }
+
+  static startMinesweeper(){
+    return new EventObject(LEVENT.STARTMINESWEEPER, []);
+  }
+
+  static endMinesweeper(){
+    return new EventObject(LEVENT.ENDMINESWEEPER, []);
+  }
+
+  static screenMode(state = true){
+    return new EventObject(LEVENT.SCREENMODE, [state]);
+  }
+
+
+
+}
 
 class SneezeActor{
   constructor(){
@@ -139,29 +169,35 @@ class TiltActor{
     this.tilting = false;
     this.spd = 0.025;
     this.isTilted = true;
+    this.tiltTarget = 0;
+    
+    this.angle = 0;
 
     this.freeMoveSpd = 0;
-    this.freeMoveSpdMax = 10;
+    this.freeMoveSpdMax = 1;
     this.freeMoveDamp = 0.02;
   }
 
   startTilt(){
     this.tilting = true;
+    this.tiltTarget = (this.angle - (this.angle % deg2rad(90))) + (this.isTilted?0:1)*deg2rad(45);
+    this.freeMoveSpd = 0;
   }
 
   update(dt, los){
      // Rotating/ Tilting
+
      if(this.tilting){
       if(this.isTilted){
         los.angle -= this.spd*dt;
-        if(los.angle <= 0){
+        if(los.angle <= this.tiltTarget){
           this.isTilted = false;
           this.tilting = false;
           los.angle = 0;
         }
       } else {
         los.angle += this.spd*dt;
-        if(los.angle >= deg2rad(45)){
+        if(los.angle >= this.tiltTarget){
           this.isTilted = true;
           this.tilting = false;
           los.angle = deg2rad(45);
@@ -172,6 +208,8 @@ class TiltActor{
       this.freeMoveSpd = clamp(this.freeMoveSpd, -this.freeMoveSpdMax, this.freeMoveSpdMax);
       los.angle += this.freeMoveSpd*dt;
     }
+
+    this.angle = los.angle;
   }
 }
 
@@ -791,7 +829,7 @@ class Losango {
             if(act.type == 0){
               this[act.propertyName] = act.value;
             } else {
-              this.methodProcesser(act.methodId, act.params);
+              this.eventProcesser(act.event, act.params);
             }
           }
           this.updatePacket = null;
@@ -822,15 +860,27 @@ class Losango {
     }
   }
 
-  tilt(endState){
+  tilt(startState){
     this.tiltActor.tilting = true;
-    this.tiltActor.isTilted = endState;
+    this.tiltActor.isTilted = startState;
   }
 
-  methodProcesser(methodId, params){
-    switch(methodId){
-      case LOSMETHOD.TILT:
+  eventProcesser(eventId, params){
+    switch(eventId){
+      case LEVENT.TILT:
         this.tilt(params[0]);
+      break;
+      case LEVENT.ALTNAME:
+        this.useAltName = params[0];
+      break;
+      case LEVENT.STARTMINESWEEPER:
+        this.minesweeper = true;
+      break;
+      case LEVENT.ENDMINESWEEPER:
+        this.minesweeper = false;
+      break;
+      case LEVENT.SCREENMODE:
+        this.screenMode = params[0];
       break;
     }
   }

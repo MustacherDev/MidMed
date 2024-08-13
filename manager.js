@@ -706,7 +706,8 @@ class Manager {
     this.chessState = 1;
     this.pinSlideAlarm.start();
     for(var i = 0; i < this.losangos.length; i++){
-      var updatePacket = new UpdateLosango([new MethodCallObject(LOSMETHOD.TILT, [true])]);
+      
+      var updatePacket = new UpdateLosango([EventCreate.tilt(true)]);
       this.losangos[i].updateList.push(updatePacket);
     }
   }
@@ -723,7 +724,10 @@ class Manager {
     this.minesweeper.init(firstId);
 
     for(var i = 0; i < this.losangos.length; i++){
-      var updatePacket = new UpdateLosango([new PropertyObject("minesweeper", true), new MethodCallObject(LOSMETHOD.TILT, [true])]);
+      var eventMine = EventCreate.startMinesweeper();
+      var eventTilt = EventCreate.tilt(true);
+
+      var updatePacket = new UpdateLosango([eventMine, eventTilt]);
       this.losangos[i].updateList.push(updatePacket);
       this.losangos[i].open = false;
 
@@ -753,9 +757,13 @@ class Manager {
     this.exposingMinesweeper = false;
 
     for(var i = 0; i < this.losangos.length; i++){
-      var updatePacket = new UpdateLosango([
-        new PropertyObject("minesweeper", false),
-        new MethodCallObject(LOSMETHOD.TILT, [true])]);
+      var eventMine = EventCreate.endMinesweeper();
+      var eventTilt = EventCreate.tilt(true);
+
+      var updatePacket = new UpdateLosango([eventMine, eventTilt]);
+      // var updatePacket = new UpdateLosango([
+      //   new PropertyObject("minesweeper", false),
+      //   new EventObject(LEVENT.TILT, [true])]);
 
       this.losangos[i].updateList.push(updatePacket);
       updatePacket.isFront = true;
@@ -826,10 +834,11 @@ class Manager {
       this.attachObject(this.losangos[nameMan.orderPattern[this.sortPattern][i]], i, GRID.MIDDLE);
 
       var updatePacket = new UpdateLosango([
-        new MethodCallObject(LOSMETHOD.TILT, [false])]);
+        new EventObject(LEVENT.TILT, [false])]);
+      updatePacket.isFront = true;
 
       this.losangos[i].updateList.push(updatePacket);
-      updatePacket.isFront = true;
+      
 
     }
 
@@ -937,8 +946,8 @@ class Manager {
 
         if(gridObj.valid){
           if(gridObj.object.type == OBJECT.LOSANGO){
-            var prop = new PropertyObject("screenMode", true);
-            var packet = new UpdateLosango([prop]);
+            var event = EventCreate.screenMode(true);
+            var packet = event.wrap();
             packet.isFront = false;
             packet.waitTime = (i + j)*10;
             gridObj.object.updateList.push(packet);
@@ -1376,7 +1385,7 @@ var manager = new Manager();
 
 
 
-
+// OBSOLETE
 class PropertyObject{
   constructor(propertyName, value){
     this.type = 0;
@@ -1385,11 +1394,15 @@ class PropertyObject{
   }
 }
 
-class MethodCallObject{
-  constructor(methodId, params){
+class EventObject{
+  constructor(eventId, params){
     this.type = 1;
-    this.methodId = methodId;
+    this.event = eventId;
     this.params = params;
+  }
+
+  wrap(){
+    return new UpdateLosango([this]);
   }
 }
 
