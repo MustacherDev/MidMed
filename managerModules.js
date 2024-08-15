@@ -1191,7 +1191,24 @@ class OpeningSequence{
     this.openingAlarm.paused = true;
     this.spotWobbleAlarm = new Alarm(0, 400);
 
+    this.curtainLeft = null;
+    this.curtainRight = null;
+
+    this.drumSound = null;
+
     this.finished = false;
+  }
+
+  turnOn(){
+    playSound(SND.SWITCHFLIPLOUD);
+    //this.drumSound = playSound(SND.DRUMS);
+    this.curtainLeft = new CurtainObject(roomWidth*0.25, -100);
+    this.curtainRight = new CurtainObject(roomWidth*0.75, -100);
+  }
+
+  draw(ctx){
+    this.curtainRight.draw(ctx);
+    this.curtainLeft.draw(ctx);
   }
 
   update(dt){
@@ -1211,6 +1228,12 @@ class OpeningSequence{
           this.openingAlarm.start();
         }
       }
+    } else {
+      this.curtainLeft.compressEyelets(10*dt, true);
+      this.curtainLeft.x -= 4*dt;
+      this.curtainRight.compressEyelets(10*dt, false);
+      this.curtainRight.x += 4*dt;
+
     }
 
     this.curtainSpotlight.x = (window.innerWidth/2) + 100*(Math.cos(this.spotWobbleAlarm.percentage()*Math.PI*2));
@@ -1224,7 +1247,11 @@ class OpeningSequence{
     if(this.openingAlarm.finished){
       this.curtainSpotlight.active = false;
       this.finished = true;
+      //stopSound(this.drumSound);
     }
+
+    //this.curtainLeft.update(dt);
+    //this.curtainRight.update(dt);
 
   }
 }

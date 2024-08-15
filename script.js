@@ -31,11 +31,11 @@ function stateMenu(dt){
   ctx.fillRect(0,0,roomWidth, roomHeight);
 
   if(input.keyState[KeyCodes.KeyZ][0]){
-    mainCam.scale += 0.01;
+    mainCam.scale += 0.01*mainCam.scale;
   }
 
   if(input.keyState[KeyCodes.KeyX][0]){
-    mainCam.scale -= 0.01;
+    mainCam.scale -= 0.01*mainCam.scale;
   }
 
   if(input.keyState[KeyCodes.KeyA][0]){
@@ -73,7 +73,7 @@ function stateMenu(dt){
   drawList(OBJECT.DRAW);
 
 
-  manager.drawGUI();
+
 
   objectLists[OBJECT.DRAW] = [];
   cleanAllLists();
@@ -88,11 +88,29 @@ function stateMenu(dt){
     ctx.fillRect(0,0,roomWidth, roomHeight);
   }
 
+  //manager.openingManager.draw(ctx);
+
   ctx.restore();
+
+  
+  ctx.save();
+  ctx.translate(canvasOffsetX, canvasOffsetY);
+  ctx.scale(canvasSclX, canvasSclY);
+
+
+
+
+  manager.drawGUI();
+  ctx.restore();
+
+ 
 
   manager.curtainLeft.draw(ctx);
   manager.curtainRight.draw(ctx);
+
   manager.openingManager.curtainSpotlight.draw(ctx);
+
+
 
 
   mainCam.lateUpdate(dt);

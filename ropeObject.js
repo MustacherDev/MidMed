@@ -14,6 +14,105 @@ class VerletDistanceConstraint {
     }
 }
 
+function ClothBody(x, y, horizontalSegments, verticalSegments, segmentHLen, segmentVLen){
+    this.segmentHLength = segmentHLen;
+    this.segmentVLength = segmentVLen;
+
+    this.points = [];
+    this.pointForces = [];
+    this.distanceConstraints = [];
+
+    this.errorTolerated = 0;
+
+    this.hSegments = horizontalSegments;
+    this.vSegments = verticalSegments;
+
+    for (var i = 0; i < this.vSegments+1; i++) {
+        var pointRow = [];
+        var pointForcesRow = [];
+        for (var j = 0; j < this.hSegments+1; j++) {
+            var part = new VerletParticle();
+            part.pos = new Vector(x + this.segmentHLength*j, y + this.segmentVLength*i);
+            part.prevPos = new Vector(x + this.segmentHLength*j, y + this.segmentVLength*i);
+            pointRow.push(part);
+            pointForcesRow.push(new Vector(0, 0));
+
+            if(i != 0){
+                var distConstrain = new VerletDistanceConstraint(new Vector(j, i-1), new Vector(j, i), this.segmentVLength);
+                this.distanceConstraints.push(distConstrain);
+            }
+
+            if(j != 0){
+                var distConstrain = new VerletDistanceConstraint(new Vector(j-1, i), new Vector(j, i), this.segmentHLength);
+                this.distanceConstraints.push(distConstrain);
+            }
+        }
+        this.points.push(pointRow);
+        this.pointForces.push(pointForcesRow);
+    }
+    
+    
+      
+    this.verletIntegration = function(particle, acceleration, dt) {
+        var temp = particle.pos.getCopy();
+        particle.pos = particle.pos.add((particle.pos.sub(particle.prevPos))).add(acceleration.mult((dt * dt)));
+        particle.prevPos = temp;
+    }
+    
+    this.applyDistanceConstraint = function(particle1, particle2, len) {
+        var delta = particle1.pos.sub(particle2.pos);
+        var currentDistance = delta.mag();
+        var error = (currentDistance - len);
+        var errorFactor = error / currentDistance;
+
+        if(Math.abs(error)/len > this.errorTolerated){
+            particle1.pos = particle1.pos.sub(delta.mult(0.5 * errorFactor));
+            particle2.pos = particle2.pos.add(delta.mult(0.5 * errorFactor));
+        }
+    }
+
+    this.applyForce = function(force){
+        for (var i = 0; i < this.pointForces.length; i++) {
+            for (var j = 0; j < this.pointForces[i].length; j++) {
+                this.pointForces[i][j].x += force.x;
+                this.pointForces[i][j].y += force.y;
+            }
+        }
+    }
+    
+    this.update = function(dt){
+
+        // Update positions using Verlet integration
+        for (var i = 0; i < this.points.length; i++) {
+            for (var j = 0; j < this.points[i].length; j++) {
+                this.verletIntegration(this.points[i][j], this.pointForces[i][j], dt);
+            }
+        }
+
+
+        // Apply constraints
+
+        var iter = 5;
+        for (var i = 0; i < iter; i++) {
+
+            for (var j = 0; j < this.distanceConstraints.length; j++) {
+                var point1  = this.points[this.distanceConstraints[j].index1.y][this.distanceConstraints[j].index1.x];
+                var point2  = this.points[this.distanceConstraints[j].index2.y][this.distanceConstraints[j].index2.x];
+                var restLen = this.distanceConstraints[j].restLength;
+                this.applyDistanceConstraint(point1, point2, restLen);
+            }
+        }
+
+
+        for (var i = 0; i < this.pointForces.length; i++) {
+            for (var j = 0; j < this.pointForces[i].length; j++) {
+            this.pointForces[i][j].x = 0;
+            this.pointForces[i][j].y = 0;
+            }
+        }
+    }
+}
+
 function RopeBody(x, y, segments, segmentLen){
     this.segmentLength = segmentLen;
 

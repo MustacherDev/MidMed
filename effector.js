@@ -122,10 +122,10 @@ class Effector {
 
                 if (nameMan.persons[id].altName != nameMan.persons[id].name) {
                     if(manager.losangos[i].useAltName != willAlt){
-                        //var updatePacket = new UpdateLosango([new PropertyObject("useAltName", manager.altNames)]);
                         var event = EventCreate.altname(willAlt)
                         var updatePacket = event.wrap();
                         updatePacket.isFront = true;
+                        updatePacket.waitTime = randInt(0, 50);
                         manager.losangos[i].updateList.push(updatePacket);
                     }
                 }
@@ -299,7 +299,7 @@ class Effector {
             manager.sortGrid();
 
         } else if (los.id == NAME.LILIAN) {
-            var balloon = new Balloon(randInt(0, roomWidth), randInt(0, roomHeight), randInt(0, 4));
+            var balloon = new Balloon(randInt(0, roomWidth), randInt(roomHeight, roomHeight*2), randInt(0, 4));
             addObject(balloon, OBJECT.BALLOON);
         } else if (los.id == NAME.FGOIS) {
             manager.finishCodenames();

@@ -182,12 +182,8 @@ class Manager {
     // 0 RECTANGLE, 1 CHESS, 2 HONEY COMB
     this.pinMode = 0; 
 
-    
-    this.drumSound = null;
-
 
     // FRAME COUNT
-    
     this.frames = 0;
 
 
@@ -220,9 +216,8 @@ class Manager {
   init(){
     this.bitcoinGraph.init();
 
-
-    playSound(SND.POP);
-    this.drumSound = playSound(SND.DRUMS);
+    this.openingManager.turnOn();
+ 
 
     for(let i = 0; i < NAME.TOTAL; i++){
       var pos = this.getBasePosGrid(i);
@@ -297,6 +292,9 @@ class Manager {
    
    var motherBoard = new MotherBoard(10, 10);
    //addObject(motherBoard, OBJECT.MOTHERBOARD);
+
+   var cloth = new ClothObject(roomWidth/2, roomHeight/2, 60, 10, 20, 100);
+   //addObject(cloth, OBJECT.CLOTH);
 
    var midPos = this.getPosGrid(23);
    var midmedlogo = new MedLogo(midPos.x - this.losWid/2, midPos.y - this.losHei/2);
@@ -790,7 +788,12 @@ class Manager {
 
       for(var i = 0 ; i < this.grid[GRID.MIDDLE].length; i++){
         if(!this.grid[GRID.MIDDLE][i].valid) continue;
-        if(this.grid[GRID.MIDDLE][i].object.type != OBJECT.LOSANGO) continue;
+        var obj = this.grid[GRID.MIDDLE][i].object;
+        if(obj.type != OBJECT.LOSANGO) continue;
+        if(obj.id == NAME.SAMUEL) {
+          //obj.popInAlarm.start();
+          continue;
+        }
 
         var dir = new Vector(0,0);
         var amp = spd*randRange(0, 0.2);

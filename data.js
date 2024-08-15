@@ -49,6 +49,7 @@ const SND = Object.freeze(new Enum(
     "BLIP",
     "SEQUENCE",
     "CASHREGISTER",
+    "SWITCHFLIPLOUD",
     "TOTAL"
 ));
 
@@ -89,8 +90,40 @@ const sndPaths = [
   "dartBlow.mp3",
   "blip.mp3",
   "sequence.mp3",
-  "cashRegister.mp3"
+  "cashRegister.mp3",
+  "switchFlipLoud.mp3"
 ];
+
+
+
+
+
+
+for(var i = 0 ; i < sndPaths.length; i++){
+  sounds.push(new Howl({src:["Sounds/" + sndPaths[i]]}));
+}
+
+sounds[SND.HIT].volume(0.25);
+sounds[SND.PAGEFLIP].volume(0.4);
+sounds[SND.EXPLOSION].volume(0.2);
+sounds[SND.GLITCHHIT].volume(0.2);
+sounds[SND.POLICE].volume(0.2);
+sounds[SND.AUMENTAOSOM].volume(0.4);
+sounds[SND.BLIP].volume(0.5);
+sounds[SND.SEQUENCE].volume(0.2);
+
+
+function playSound(soundId){
+  return sounds[soundId].play();
+}
+
+function pauseSound(soundId){
+  sounds[soundId].pause();
+}
+
+function stopSound(soundId){
+  sounds[soundId].stop();
+}
 
 const WINSND = Object.freeze(new Enum(
   "CLASHROYALE",
@@ -121,33 +154,6 @@ const winSndPaths = [
   "YOU WIN.mp3"
 ];
 
-
-
-for(var i = 0 ; i < sndPaths.length; i++){
-  sounds.push(new Howl({src:["Sounds/" + sndPaths[i]]}));
-}
-
-sounds[SND.HIT].volume(0.25);
-sounds[SND.PAGEFLIP].volume(0.4);
-sounds[SND.EXPLOSION].volume(0.2);
-sounds[SND.GLITCHHIT].volume(0.2);
-sounds[SND.POLICE].volume(0.2);
-sounds[SND.AUMENTAOSOM].volume(0.4);
-sounds[SND.BLIP].volume(0.5);
-sounds[SND.SEQUENCE].volume(0.2);
-
-
-function playSound(soundId){
-  return sounds[soundId].play();
-}
-
-function pauseSound(soundId){
-  sounds[soundId].pause();
-}
-
-function stopSound(soundId){
-  sounds[soundId].stop();
-}
 
 for(var i = 0 ; i < winSndPaths.length; i++){
   winSounds.push(new Audio("Sounds/Win/" + winSndPaths[i]));

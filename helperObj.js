@@ -17,11 +17,13 @@ const OBJECT = Object.freeze(new Enum(
     "MIDMEDLOGO",
     "PANEL",
     "ROPE",
+    "CLOTH",
     "USBCABLE",
     "MOTHERBOARD",
     "USBCONNECTOR",
     "MINIDART",
     "BALLOON",
+    "CURTAIN",
     "TOTAL"
 ));
 

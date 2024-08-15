@@ -23,6 +23,16 @@ function BoundingBox(x, y, width, height) {
       return pointInRect(x, y, this.x - this.xOffset, this.y - this.yOffset, this.x - this.xOffset + this.width, this.y - this.yOffset + this.height);
     }
 
+    this.updatePos = function(x, y){
+      this.x = x;
+      this.y = y;
+    }
+
+    this.setOffset = function(xOff, yOff){
+      this.xOffset = xOff;
+      this.yOffset = yOff;
+    }
+
     this.add = function(x, y){
       var bb = new BoundingBox(this.x + x,this.y + y,this.width,this.height);
       bb.xOffset = this.xOffset;
@@ -236,85 +246,6 @@ function SleepText(x, y){
 
 
 
-function Block(x, y, wid, hei) {
-    GameObject.call(this, x, y, sprites[SPR.BOMB]);
-
-    this.width = wid;
-    this.height = hei;
-    this.centerX = 0;
-    this.centerY = 0;
-
-    this.x1 = this.x - this.centerX;
-    this.x2 = this.x - this.centerX + this.width;
-    this.y1 = this.y - this.centerY;
-    this.y2 = this.y - this.centerY + this.height;
-
-    this.weight = 1;
-
-
-    //   pos =  x1, y1, x2, y2
-    //this.pos = [0, 0, wid, hei];
-
-    this.show = function () {
-        this.strokeBounds();
-    }
-
-    this.strokeBounds = function () {
-        ctx.strokeStyle = "rgb(0,0,0)";
-        ctx.strokeRect(this.x - this.centerX, this.y - this.centerY, this.width, this.height);
-    }
-
-    this.updatePos = function () {
-        // Updates Bounding Points
-        this.x1 = this.x - this.centerX;
-        this.x2 = this.x - this.centerX + this.width;
-        this.y1 = this.y - this.centerY;
-        this.y2 = this.y - this.centerY + this.height;
-    }
-
-    this.update = function () {
-        this.x += this.hspd;
-        this.y += this.vspd;
-
-        this.vspd += 0.1;
-
-        this.hspd = clamp(this.hspd, -40, 40);
-        this.vspd = clamp(this.vspd, -40, 40);
-
-        if (this.x + this.width > width) {
-            this.x = width - this.width;
-            this.hspd *= -0.9;
-
-        } else if (this.x < 0) {
-            this.x = 0;
-            this.hspd *= -0.9;
-        }
-
-        if (this.y + this.height > height) {
-            this.y = height - this.height;
-            this.vspd *= -0.9;
-        } else if (this.y < 0) {
-            this.y = 0;
-            this.vspd *= -0.9;
-        }
-
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 class Holder{
   constructor(){
@@ -378,7 +309,7 @@ class Holder{
 
 
 function Box(x, y, width, height, sprite) {
-    Block.call(this, x, y, width, height);
+
     GameObject.call(this, x, y, sprite);
 
     this.type = OBJECT.BLOCK;
@@ -389,15 +320,19 @@ function Box(x, y, width, height, sprite) {
     this.xOffset = 0;
     this.yOffset = 0;
 
-    this.boundingBox = new BoundingBox(this.x  -this.xOffset, this.y -this.yOffset, this.width, this.height);
+    this.boundingBox = new BoundingBox(this.x, this.y, this.width, this.height);
+    this.boundingBox.xOffset = this.xOffset;
+    this.boundingBox.yOffset = this.yOffset;
+
+    this.clickBox    = new BoundingBox(this.x, this.y, this.width, this.height);
+    this.clickBox.xOffset = this.xOffset;
+    this.clickBox.yOffset = this.yOffset;
 
     this.hovered = false;
 
-    this.prevX = 0;
-    this.prevY = 0;
-
     this.hspdMax = 20;
     this.vspdMax = 20;
+    this.angSpdMax = 1;
 
     this.angDamp = 0.99;
     this.linDamp = 0.999;
@@ -406,22 +341,21 @@ function Box(x, y, width, height, sprite) {
     this.hLoss = 0.9;
 
     this.gravityOn = true;
-    this.gravity = 0.1;
+    this.gravity = new Vector(0, 0.1);
 
     this.rotateOnCollision = true;
 
     this.hacc = 0;
     this.vacc = 0;
 
-    this.floorY = roomHeight;
+    // EAST, NORTH, WEST, SOUTH
+    this.roomLimitsActive = [true, false, true, true];
+    this.roomLimits       = [roomWidth, 0, 0, roomHeight];
 
     this.onGround = false;
 
     this.holder = new Holder();
     this.canBeHeld = true;
-
-
-    this.tick = 0;
 
     this.draw = function (ctx) {
         this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, this.ang, this.xOffset/this.xScl, this.yOffset/this.yScl);
@@ -430,35 +364,35 @@ function Box(x, y, width, height, sprite) {
 
     this.parameterStep = function(dt){
 
-      this.hacc = 0;
-      this.vacc = 0;
-
 
       if(this.gravityOn){
-        this.vacc += this.gravity;
+        this.hacc += this.gravity.x;
+        this.vacc += this.gravity.y;
       }
 
       this.hspd += this.hacc*dt;
       this.vspd += this.vacc*dt;
 
-      this.hspd *= Math.pow(this.linDamp, dt);
-      this.vspd *= Math.pow(this.linDamp, dt);
-
-      this.hspd = clamp(this.hspd, -this.hspdMax, this.hspdMax);
-      this.vspd = clamp(this.vspd, -this.vspdMax, this.vspdMax);
-      this.angSpd = clamp(this.angSpd, -0.5, 0.5);
-
+      this.hspd   *= Math.pow(this.linDamp, dt);
+      this.vspd   *= Math.pow(this.linDamp, dt);
       this.angSpd *= Math.pow(this.angDamp, dt);
 
-      this.prevX = this.x;
-      this.prevY = this.y;
+      this.hspd   = clamp(this.hspd, -this.hspdMax, this.hspdMax);
+      this.vspd   = clamp(this.vspd, -this.vspdMax, this.vspdMax);
+      this.angSpd = clamp(this.angSpd, -this.angSpdMax, this.angSpdMax);
 
-      this.x += this.hspd*dt;
-      this.y += this.vspd*dt;
+      this.x   += this.hspd*dt;
+      this.y   += this.vspd*dt;
       this.ang += this.angSpd*dt;
 
       this.boundingBox.x = this.x - this.xOffset;
       this.boundingBox.y = this.y - this.yOffset;
+
+      this.boundingBox.updatePos(this.x, this.y);
+      this.clickBox.updatePos(this.x, this.y);
+
+      this.hacc = 0;
+      this.vacc = 0;
 
     }
 
@@ -471,7 +405,7 @@ function Box(x, y, width, height, sprite) {
         this.parameterStep(dt);
 
         this.hovered = false;
-        if(this.boundingBox.isPointInside(input.mouseX, input.mouseY)){
+        if(this.clickBox.isPointInside(input.mouseX, input.mouseY)){
           this.hovered = true;
         }
 
@@ -479,44 +413,70 @@ function Box(x, y, width, height, sprite) {
 
         // Wall Collisions
         if (!this.holder.holded) {
-            this.tick++;
 
-            if (this.x - this.xOffset + this.width> roomWidth) {
+          if(this.roomLimitsActive[0]){
+            if (this.x - this.xOffset + this.width > this.roomLimits[0]) {
               this.collisionAction(true, this.hspd);
 
-              this.x = roomWidth - this.width + this.xOffset;
+              this.x = this.roomLimits[0] - this.width + this.xOffset;
 
               if(this.rotateOnCollision){
                 this.angSpd += this.vspd / 40;
               }
               this.hspd *= -this.hLoss;
-            } else if (this.x - this.xOffset < 0) {
+            } 
+          }
+
+          if(this.roomLimitsActive[2]){
+            if (this.x - this.xOffset < this.roomLimits[2]) {
               this.collisionAction(true, this.hspd);
 
-              this.x = this.xOffset;
+              this.x = this.roomLimits[2] + this.xOffset;
+
               if(this.rotateOnCollision){
                 this.angSpd += this.vspd / 40;
               }
               this.hspd *= -this.hLoss;
             }
+          }
 
-
-            if (this.y - this.yOffset + this.height  > this.floorY) {
-              if (Math.abs(this.vspd) > Math.abs(this.gravity * 3)) {
+          if(this.roomLimitsActive[1]){
+            if (this.y - this.yOffset < this.roomLimits[1]) {
+              if (Math.abs(this.vspd) > Math.abs(this.gravity.y * 3)) {
                 this.collisionAction(false, this.vspd);
                 if(this.rotateOnCollision){
                   this.angSpd += this.hspd / 40;
                 }
               }
 
-              this.y = this.floorY -this.height + this.yOffset;
+              this.y = this.roomLimits[1] + this.yOffset;
               this.vspd *= -this.vLoss;
               this.hspd *= this.linDamp;
             }
+          }
+
+          if(this.roomLimitsActive[3]){
+            if (this.y - this.yOffset + this.height  > this.roomLimits[3]) {
+              if (Math.abs(this.vspd) > Math.abs(this.gravity.y * 3)) {
+                this.collisionAction(false, this.vspd);
+                if(this.rotateOnCollision){
+                  this.angSpd += this.hspd / 40;
+                }
+              }
+
+              this.y = this.roomLimits[3] -this.height + this.yOffset;
+              this.vspd *= -this.vLoss;
+              this.hspd *= this.linDamp;
+            }
+          } 
         }
 
-        if(this.y -this.yOffset + this.height + 1 > this.floorY){
-          this.onGround = true;
+        if(this.roomLimitsActive[3]){
+          if(this.y -this.yOffset + this.height + 1 > this.roomLimits[3]){
+            this.onGround = true;
+          } else {
+            this.onGround = false;
+          }
         } else {
           this.onGround = false;
         }
@@ -544,6 +504,9 @@ function Ball(x, y, radius, sprite) {
     this.xOffset = radius;
     this.yOffset = radius;
 
+    this.boundingBox.setOffset(this.xOffset, this.yOffset);
+    this.clickBox.setOffset(this.xOffset, this.yOffset);
+
     this.r = radius;
 }
 
@@ -557,6 +520,10 @@ function Bitcoin(x, y, radius) {
   this.yOffset = radius;
   this.hovered = false;
 
+  this.boundingBox.setOffset(this.xOffset, this.yOffset);
+  this.clickBox.setOffset(this.xOffset, this.yOffset);
+
+
   this.hLoss = 0.4;
   this.vLoss = 0.4;
 
@@ -565,7 +532,7 @@ function Bitcoin(x, y, radius) {
   this.collisionAction = function(isHorizontal, velocity){
     var spd =  Math.abs(velocity);
     if(spd > 2){
-      if(spd > 5){
+      if(spd > 6){
         playSound(SND.COINHIT);
       } else {
         playSound(SND.COINHIT2);
@@ -581,7 +548,6 @@ function Bitcoin(x, y, radius) {
       if(manager.inventory.boundingBox.isPointInside(input.mouseX, input.mouseY)){
         manager.inventory.attachObjectMouse(this);
       } else {
-        //manager.attachObjectMouse(this, GRID.FRONT);
         var pos = manager.getMouseGrid();
         var gridXY = manager.gridInd2XY(pos);
         if(manager.checkValidGridPos(gridXY.x, gridXY.y)){
@@ -592,7 +558,7 @@ function Bitcoin(x, y, radius) {
             if(gridObj.object.type == OBJECT.LOSANGO){
               if(gridObj.object.id == NAME.LAIS){
                 manager.addParticles(createParticlesInRect(particleSun, 5, gridObj.object.x-manager.losWid/2, gridObj.object.y-manager.losHei/2, manager.losWid, manager.losHei));
-                //manager.screenize(gridXY.x, gridXY.y);
+                
                 manager.collectMoney(manager.bitcoinGraph.value)*8;
                 manager.achievementManager.getAchievement(ACHIEVEMENT.FIRSTTRADE);
                 this.active = false;
@@ -622,10 +588,13 @@ function Rock(x, y, width, height) {
   this.hLoss = 0;
   this.vLoss = 0;
 
+  this.boundingBox.setOffset(this.xOffset, this.yOffset);
+  this.clickBox.setOffset(this.xOffset, this.yOffset);
+
   this.hspdMax = 30;
   this.vspdMax = 30;
 
-  this.gravity = 0.25;
+  this.gravity.y = 0.25;
 
   this.depth = objectsDepth.rock;
 
@@ -711,6 +680,7 @@ function Sun(x, y){
   this.depth = 1;
 
   this.boundingBox = new BoundingBox(this.x, this.y, this.width, this.height);
+  //this.boundingBox.setOffset(this.xOffset, this.yOffset);
 
   this.update = function(dt){
     this.y += this.vspd*dt;
@@ -753,8 +723,13 @@ function Sun(x, y){
 
   }
 
-  this.draw = function(){
+  this.draw = function(ctx){
+
+    var alpha = ctx.globalAlpha;
+    ctx.globalAlpha = (this.life < 100 ? this.life/100: 1);
     this.sprite.drawExtRelative(this.x, this.y, 0, this.xScl, this.yScl, this.ang, 0.5,0.5);
+
+    ctx.globalAlpha = alpha;
   }
 }
 
@@ -772,8 +747,14 @@ function Dart(x, y, ang){
   this.xOffset = this.xScl*this.sprite.width/2;
   this.yOffset = this.yScl*this.sprite.height/4;
 
-  this.boundingBox = new BoundingBox(this.x  -this.xOffset, this.y -this.yOffset + this.width, this.width, this.height);
-  this.boundingBoxBack = new BoundingBox(this.x  -this.xOffset, this.y -this.yOffset, this.width, this.height);
+  this.backOffset = new Vector(0, this.width);
+
+  this.boundingBox = new BoundingBox(this.x + this.backOffset.x, this.y + this.backOffset.y, this.width, this.height);
+  this.boundingBox.setOffset(this.xOffset, this.yOffset);
+  this.boundingBoxBack = new BoundingBox(this.x , this.y, this.width, this.height);
+  this.boundingBoxBack.setOffset(this.xOffset, this.yOffset); 
+  this.clickBox = new BoundingBox(this.x, this.y, this.width, this.height);
+  this.clickBox.setOffset(this.xOffset, this.yOffset);
 
 
 
@@ -796,13 +777,17 @@ function Dart(x, y, ang){
     } else {
       this.updateBox(dt);
 
-      this.boundingBoxBack.x = this.x - this.xOffset + this.width*Math.sin(-this.ang);
-      this.boundingBoxBack.y = this.y - this.yOffset + this.width*Math.cos(-this.ang);
+      this.backOffset.setAngle(-this.ang + deg2rad(90))
+      this.backOffset = this.backOffset.mult(this.width);
+
+      this.boundingBoxBack.updatePos(this.x + this.backOffset.x, this.y + this.backOffset.y);
+      //  = this.x - this.xOffset + this.width*Math.sin(-this.ang);
+      // this.boundingBoxBack.y = this.y - this.yOffset + this.width*Math.cos(-this.ang);
       // TUDO ERRADO TUDOOOO
 
       if(this.hspd != 0 || this.vspd != 0){
         var spdVec = new Vector(this.hspd, this.vspd);
-        var targetAng = normalizeAngle(spdVec.angle()+Math.PI/2);
+        var targetAng = normalizeAngle(spdVec.angle() + Math.PI/2);
 
         var diffAng = targetAng - normalizeAngle(this.ang);
         var turnSpd = 0.1;
@@ -883,6 +868,9 @@ function MiniDart(x, y, type, angle){
   this.xOffset = this.xScl*this.sprite.width/2;
   this.yOffset = this.yScl*this.sprite.height/2;
 
+  this.boundingBox.setOffset(this.xOffset, this.yOffset);
+  this.clickBox.setOffset(this.xOffset, this.yOffset);
+
   this.dartType = type;
 
   this.angle = angle;
@@ -890,6 +878,8 @@ function MiniDart(x, y, type, angle){
 
   this.gravityOn = false;
   this.canBeHeld = false;
+
+  this.life = 400;
 
   this.depth = -1;
 
@@ -903,6 +893,11 @@ function MiniDart(x, y, type, angle){
     if(this.x  > roomWidth + margin || this.x < -margin){
       this.active = false;
     } else if(this.y  > roomHeight + margin || this.y < -margin){
+      this.active = false;
+    }
+
+    this.life--;
+    if(this.life <= 0){
       this.active = false;
     }
 
@@ -925,11 +920,16 @@ function Balloon(x, y, type){
   this.xOffset = this.xScl*this.sprite.width/2;
   this.yOffset = this.yScl*this.sprite.height/2;
 
+  this.boundingBox.setOffset(this.xOffset, this.yOffset);
+  this.clickBox.setOffset(this.xOffset, this.yOffset);
+
   this.balloonType = type;
 
   this.gravityOn = true;
   this.vspdMax = 2;
-  this.gravity = -0.05;
+  this.gravity.y = -0.05;
+  this.roomLimitsActive[3] = false;
+  this.roomLimitsActive[1] = false;
   this.canBeHeld = true;
 
   this.holdingString = new RopeObject(this.x, this.y + this.height/2, randInt(3, 5), 30);
@@ -994,6 +994,9 @@ function MotherBoard(x, y){
   this.xOffset = this.xScl*this.sprite.width/2;
   this.yOffset = this.yScl*this.sprite.height/2;
 
+  this.boundingBox.setOffset(this.xOffset, this.yOffset);
+  this.clickBox.setOffset(this.xOffset, this.yOffset);
+
   this.hLoss = 0.4;
   this.vLoss = 0.4;
 
@@ -1053,6 +1056,9 @@ function MetalBlock(x, y){
   this.xOffset = this.xScl*this.sprite.width/2;
   this.yOffset = this.yScl*this.sprite.height/2;
 
+  this.boundingBox.setOffset(this.xOffset, this.yOffset);
+  this.clickBox.setOffset(this.xOffset, this.yOffset);
+
   this.hLoss = 0.4;
   this.vLoss = 0.4;
 
@@ -1060,13 +1066,42 @@ function MetalBlock(x, y){
 
   this.depth = 5;
 
+
+  this.physics = true;
+
+  this.body = null;
+  this.angle = 0;
+
   this.update = function(dt){
 
 
 
+    this.hovered = false;
+    if(this.clickBox.isPointInside(input.mouseX, input.mouseY)){
+      this.hovered = true;
+    }
+
+    this.holder.getHold(this);
+    this.holder.update(this);
+
+    if(this.holder.throwEvent){
+
+      if(manager.inventory.boundingBox.isPointInside(input.mouseX, input.mouseY)){
+        manager.inventory.attachObjectMouse(this);
+      } else {
+        if(!this.attached){
+          manager.attachObjectMouse(this, GRID.MIDDLE);
+        }
+      }
+      this.holder.throwEvent = false;
+    }
 
     if(this.attached && this.attachGridId != -1){
+
       this.gravityOn = false;
+      if(this.body != null){
+        this.desmaterializeBody();
+      }
 
       if(this.hovered){
         if(input.mouseState[2][1]){
@@ -1120,31 +1155,166 @@ function MetalBlock(x, y){
         this.vspd += dir.y*spd*dt;
       }
     } else {
-      this.gravityOn = true;
+      if(this.body == null){
+        this.materializeBody();
+      }
     }
 
-    this.updateBox(dt);
+    this.parameterStep(dt);
 
-    if(this.holder.throwEvent){
+    this.boundingBox.x = this.x;
+    this.boundingBox.y = this.y;
+    this.clickBox.updatePos(this.x, this.y);
+    
+    this.pushDrawList();
 
-      if(manager.inventory.boundingBox.isPointInside(input.mouseX, input.mouseY)){
-        manager.inventory.attachObjectMouse(this);
-      } else {
-        if(!this.attached){
-          manager.attachObjectMouse(this, GRID.MIDDLE);
+    //this.updateBox(dt);
+
+   
+
+    if(this.holder.holded){
+      if(this.body != null){
+        this.body.state.pos.x = this.x;
+        this.body.state.pos.y = this.y;
+        this.body.state.angular.pos = this.angle;
+        this.body.sleep(false);
+      }
+    } else {
+      if(this.body != null){
+        if(this.physics){
+          var posPhy = this.body.state.pos;
+          this.x = posPhy.x;
+          this.y = posPhy.y;
+
+          this.angle = (this.body.state.angular.pos)%(Math.PI*2);
         }
       }
-      this.holder.throwEvent = false;
     }
-
   }
+
+  this.applyForce = function(force, point){
+    if(this.body != null){
+      this.body.sleep(false);
+      this.body.applyForce(new Physics.vector(force.x, force.y), new Physics.vector(point.x, point.y));
+    }
+  }
+
+  this.onDestroy = function(){
+    this.desmaterializeBody();
+    this.physics = false;
+  }
+
+  this.desmaterializeBody = function(){
+    if(this.body != null){
+      manager.world.remove(this.body);
+      this.body = null;
+    }
+    
+  }
+
+  this.materializeBody = function(){
+    if(this.physics){
+
+      if(this.body != null){
+        manager.world.remove(this.body);
+      }
+
+      this.body = Physics.body('rectangle', {
+        width: this.width
+        ,height: this.height
+        ,x: this.x
+        ,y: this.y
+        ,vx: this.hspd
+        ,vy: this.vspd
+        ,cof: 0.9
+        ,restitution: 0.6
+      });
+
+      manager.world.add(this.body);
+    }
+  }
+
+  // this.update = function(dt){
+  //   if(this.attached && this.attachGridId != -1){
+  //     this.gravityOn = false;
+
+  //     if(this.hovered){
+  //       if(input.mouseState[2][1]){
+  //         var gridPos = manager.gridInd2XY(this.attachGridId);
+  //         manager.screenize(gridPos.x, gridPos.y);
+  //       }
+  //     }
+
+
+      
+  //     var targetPos = manager.getPosGrid(this.attachGridId);
+
+  //     //this.attachCooldownAlarm.update(dt);
+
+  //     if(Math.abs(targetPos.x - this.x) + Math.abs(targetPos.y - this.y) < 5){
+
+  //       //if(this.attachCooldownAlarm.finished){
+  //         if(!this.inPlace){
+  //           this.hspd = 0;
+  //           this.vspd = 0;
+
+  //           var pos = new Vector(this.x, this.y);
+  //           var dist = targetPos.sub(pos).mag();
+  //           var dir = targetPos.sub(pos).unit();
+  //           if(dist < 1){
+  //             this.x = targetPos.x;
+  //             this.y = targetPos.y;
+  //             this.inPlace = true;
+
+  //             manager.particles.push(particleConfetti(this.x, this.y));
+  //             manager.particles.push(particleConfetti(this.x, this.y));
+  //             manager.particles.push(particleConfetti(this.x, this.y));
+  //             manager.particles.push(particleConfetti(this.x, this.y));
+
+
+  //           } else {
+  //             this.x += dir.x/10;
+  //             this.y += dir.y/10;
+  //           }
+  //         }
+  //       //}
+  //     } else {
+  //       this.inPlace = false;
+  //       var pos = new Vector(this.x, this.y);
+  //       var dist = targetPos.sub(pos).mag();
+  //       var dir = targetPos.sub(pos).unit();
+
+  //       var spd = Math.max((dist*dist)/100000, 0.1);
+
+  //       this.hspd += dir.x*spd*dt;
+  //       this.vspd += dir.y*spd*dt;
+  //     }
+  //   } else {
+  //     this.gravityOn = true;
+  //   }
+
+  //   this.updateBox(dt);
+
+  //   if(this.holder.throwEvent){
+
+  //     if(manager.inventory.boundingBox.isPointInside(input.mouseX, input.mouseY)){
+  //       manager.inventory.attachObjectMouse(this);
+  //     } else {
+  //       if(!this.attached){
+  //         manager.attachObjectMouse(this, GRID.MIDDLE);
+  //       }
+  //     }
+  //     this.holder.throwEvent = false;
+  //   }
+
+  // }
 
   this.collisionAction = function(isHorizontal, velocity){
 
   }
 
   this.draw = function(){
-      this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, 0, this.xOffset/this.xScl, this.yOffset/this.yScl);
+      this.sprite.drawExt(this.x, this.y, 0, this.xScl, this.yScl, this.angle, this.xOffset/this.xScl, this.yOffset/this.yScl);
   }
 }
 
@@ -1161,6 +1331,9 @@ function BlockPanel(x, y, blocksX, blocksY){
 
   this.xOffset = 0;
   this.yOffset = 0;
+
+  this.boundingBox.setOffset(this.xOffset, this.yOffset);
+  this.clickBox.setOffset(this.xOffset, this.yOffset);
 
   this.hLoss = 0.4;
   this.vLoss = 0.4;
@@ -1441,6 +1614,9 @@ function BlockScreen(x, y, blocksX, blocksY){
 
   this.xOffset = 0;
   this.yOffset = 0;
+
+  this.boundingBox.setOffset(this.xOffset, this.yOffset);
+  this.clickBox.setOffset(this.xOffset, this.yOffset);
 
   this.hLoss = 0.4;
   this.vLoss = 0.4;
@@ -1918,6 +2094,9 @@ function MedLogo(x, y){
   this.xOffset = 0;
   this.yOffset = 0;
 
+  this.boundingBox.setOffset(this.xOffset, this.yOffset);
+  this.clickBox.setOffset(this.xOffset, this.yOffset);
+
   this.hLoss = 0.4;
   this.vLoss = 0.4;
 
@@ -2025,6 +2204,138 @@ function MedLogo(x, y){
 
 }
 
+function CurtainObject(x, y){
+  Box.call(this, x, y, 10 ,10, sprites[SPR.CABLE]);
+  this.clothObj = new ClothObject(x-20*30, y, 60, 10, 20, 100);
+  this.depth = -10;
+
+  this.eyeletNum = Math.floor((this.clothObj.cloth.hSegments+1)/5);
+  this.eyelet = [];
+  for(var i = 0 ; i < this.eyeletNum; i++){
+    this.eyelet.push(new Vector((i-this.eyeletNum/2)*5*this.clothObj.cloth.segmentHLength, i*5));
+  }
+
+  this.gravityOn = false;
+  this.gravity.y = 0;
+
+  this.type = OBJECT.CURTAIN;
+
+  this.draw = function(ctx){
+    this.clothObj.draw(ctx);
+  }
+
+  this.update = function(dt){
+    var cloth = this.clothObj.cloth;
+    for(var i = 0; i < this.eyeletNum; i++){
+      cloth.points[0][this.eyelet[i].y].pos.x = this.x + this.eyelet[i].x;
+      cloth.points[0][this.eyelet[i].y].pos.y = this.y;
+    }
+
+    this.parameterStep(dt);
+
+    this.clothObj.update(dt);
+  }
+
+  this.compressEyelets = function(amount, rightSide){
+    for(var i = 0; i < this.eyeletNum; i++){
+      if(rightSide){
+        this.eyelet[i].x -= i*(amount/this.eyeletNum);
+      } else {
+        this.eyelet[i].x += (this.eyeletNum-i-1)*(amount/this.eyeletNum);
+      }
+    }
+  }
+}
+
+function ClothObject(x, y, segH, segV, segLenH, segLenV){
+  Box.call(this, x, y, 10 ,10, sprites[SPR.CABLE]);
+  this.cloth = new ClothBody(x, y, segH, segV, segLenH, segLenV);
+
+  this.depth = -10;
+
+  
+  this.type = OBJECT.CLOTH;
+
+
+  this.draw = function(ctx){
+    var sclH = this.cloth.segmentHLength/this.sprite.height;
+    var sclV = this.cloth.segmentVLength/this.sprite.height;
+
+    for (var i = 0; i < this.cloth.vSegments+1; i++) {
+      for (var j = 0; j < this.cloth.hSegments+1; j++) {
+          var point1 = this.cloth.points[i][j].pos;
+
+          if(i != 0){
+
+              var point2 = this.cloth.points[i-1][j].pos;
+              var ppos = point1.add(point2);
+              ppos.x /= 2;
+              ppos.y /= 2;
+              var dif = point1.sub(point2);
+              var segAngle = dif.angle() - Math.PI;
+
+              dist = distance(dif.x, dif.y);
+              ctx.save();
+              ctx.translate(ppos.x, ppos.y);
+              ctx.rotate(segAngle + deg2rad(90));
+
+
+              ctx.fillStyle = "rgb(100, 100, 100)";
+              var wid = this.cloth.segmentHLength*1.1;
+              var hei = this.cloth.segmentVLength*1.1;
+
+              ctx.fillRect(-wid/2, -hei/2, wid, hei);
+              ctx.restore();
+              //this.sprite.drawExtRelative(ppos.x, ppos.y, 0, sclV,sclV, segAngle, 0.5, 0.5);
+          }
+
+        }
+      }
+
+      for (var i = 0; i < this.cloth.vSegments+1; i++) {
+        for (var j = 0; j < this.cloth.hSegments+1; j++) {
+            var point1 = this.cloth.points[i][j].pos;
+  
+            if(i != 0){
+  
+                var point2 = this.cloth.points[i-1][j].pos;
+                var ppos = point1.add(point2);
+                ppos.x /= 2;
+                ppos.y /= 2;
+                var dif = point1.sub(point2);
+                var segAngle = dif.angle() - Math.PI;
+  
+                dist = distance(dif.x, dif.y);
+                ctx.save();
+                ctx.translate(ppos.x, ppos.y);
+                ctx.rotate(segAngle + deg2rad(90));
+  
+  
+                ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+                
+                var wid = this.cloth.segmentHLength*1.1;
+                var hei = this.cloth.segmentVLength*1.1;
+  
+                ctx.fillRect(-wid/2, -hei/2, wid, hei);
+                ctx.restore();
+                //this.sprite.drawExtRelative(ppos.x, ppos.y, 0, sclV,sclV, segAngle, 0.5, 0.5);
+            }
+  
+          }
+        }
+      
+    
+  }
+
+  this.update = function(dt){
+
+    this.cloth.applyForce(new Vector(0, 0.2));
+    this.cloth.update(dt);
+
+    this.pushDrawList();
+  }
+}
+
 function RopeObject(x, y, segments, segmentLen){
   Box.call(this, x, y, 10 ,10, sprites[SPR.CABLE]);
   this.rope = new RopeBody(x, y, segments, segmentLen);
@@ -2032,6 +2343,8 @@ function RopeObject(x, y, segments, segmentLen){
 
   this.ropeImgType = 2;
   this.depth = -10;
+
+  this.type = OBJECT.ROPE;
 
   this.init = function(segmentNum, openBegin, openEnd, randomizeMiddle){
     this.ropeImgSegment = [];
