@@ -20,6 +20,7 @@ class Particle{
     this.tanAcc = 0;
 
     this.damp = new Vector(0, 0);
+    this.accDamp = new Vector(0, 0);
 
 
     this.active = true;
@@ -49,6 +50,9 @@ class Particle{
 
     this.spd.x *= Math.pow(1 - this.damp.x, dt);
     this.spd.y *= Math.pow(1 - this.damp.y, dt);
+
+    this.acc.x *= Math.pow(1 - this.accDamp.x, dt);
+    this.acc.y *= Math.pow(1 - this.accDamp.y, dt);
 
     this.x += this.spd.x*dt;
     this.y += this.spd.y*dt;
@@ -324,6 +328,36 @@ function particleConfetti(x, y){
   part.acc = new Vector(0, 0);
   part.damp = new Vector(0.01, 0.01);
   part.depth = -10;
+
+  return part;
+}
+
+function particleBubble(x, y){
+  var life = 200;
+  var part = new ParticleSprite(x, y, life, sprites[SPR.BUBBLE]);
+
+  part.scl = randRange(0.25, 1);
+  part.xOffset = part.sprite.width/2;
+  part.yOffset = part.sprite.height/2;
+  part.img = 0;
+  part.imgSpd = 0;
+
+  var dir = randRange(0, deg2rad(360));
+  var dirVec = new Vector(Math.cos(dir), Math.sin(dir));
+  var spd = randRange(0.05, 0.5);
+
+  part.spd = dirVec.mult(spd);
+  part.damp = new Vector(0.01, 0.01);
+
+  var accDir = randRange(0, deg2rad(360));
+  var accDirVec = new Vector(Math.cos(accDir), Math.sin(accDir));
+  var accSpd = randRange(0.01, 0.1);
+
+  part.acc = accDirVec.mult(accSpd);
+  part.accDamp = new Vector(0.05, 0.05);
+
+  part.depth = -10;
+
 
   return part;
 }

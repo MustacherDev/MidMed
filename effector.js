@@ -73,6 +73,7 @@ class Effector {
 
     effect(los, rightClick) {
         // Redirecting Effects
+
         if (los.minesweeper) {
             this.minesweeperEffects(los, rightClick);
             return;
@@ -88,9 +89,13 @@ class Effector {
             return;
         }
 
-
         if(manager.musicMode){
             this.musicEffects(los, rightClick);
+        }
+
+        if(manager.toolBar.tool == 2){
+            los.tiltActor.freeMoveSpd = 0.02;
+            playSound(SND.SOCKETWRENCH);
         }
 
 
@@ -281,12 +286,14 @@ class Effector {
             }
         } else if (los.id == NAME.CAIO) {
             if (los.useAltName) {
-                //playSound(SND.FALL);
                 manager.fall();
             } else {
 
                 los.flipActor.freeMoveSpd += 0.05;
-                //los.flip(0.2, false, 0.1);
+
+                if(los.flipActor.freeMoveSpd > 0.15){
+                    manager.particles.push(particleBubble(los.x, los.y));
+                }
                 
                 if (input.mouseState[0][1]) {
                     manager.clickParticle();
@@ -299,8 +306,11 @@ class Effector {
             manager.sortGrid();
 
         } else if (los.id == NAME.LILIAN) {
-            var balloon = new Balloon(randInt(0, roomWidth), randInt(roomHeight, roomHeight*2), randInt(0, 4));
-            addObject(balloon, OBJECT.BALLOON);
+            if(objectLists[OBJECT.BALLOON].length < 20){
+                var balloon = new Balloon(randInt(0, roomWidth), randInt(roomHeight, roomHeight*2), randInt(0, 4));
+                playSound(choose([SND.BALLOONRUB1, SND.BALLOONRUB2, SND.BALLOONRUB3, SND.BALLOONRUB4]));
+                addObject(balloon, OBJECT.BALLOON);
+            }
         } else if (los.id == NAME.FGOIS) {
             manager.finishCodenames();
             manager.cleanCodenames();
@@ -326,6 +336,7 @@ class Effector {
                 window.scrollTo(0, 1);
                 manager.pageScrolled = true;
             }
+            manager.toolBar.state = 1;
             los.flip();
         } else if (los.id == NAME.JVROCHA) {
 
@@ -357,6 +368,12 @@ class Effector {
                     playSound(SND.POOF);
                 }
             }
+            los.flip();
+        } else if (los.id == NAME.GABRIEL) {
+            addObject(new Seed(los.x, los.y, randInt(0, 4)), OBJECT.SEED);
+
+            manager.clickParticle();
+            playSound(SND.POP);
             los.flip();
         } else if (los.id == NAME.SAMUEL) {
 
@@ -441,7 +458,7 @@ class Effector {
                 }
             } else {
                 for(var i = 0 ; i < 4; i++){
-                    var angle = Math.PI/4 + (Math.PI/2) * i;
+                    var angle = los.angle + (Math.PI/2) * i;
                     var miniDart = new MiniDart(los.x, los.y, i, angle);
                     addObject(miniDart, OBJECT.MINIDART);
                 }

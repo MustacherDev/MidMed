@@ -145,6 +145,7 @@ class Manager {
     this.achievementManager = new AchievementManager();
     this.codenamesManager = new Codenames();
     this.screenShaker = new ScreenShaker();
+    this.toolBar      = new Toolbar();
 
     this.curtainState = 1;
     this.curtainRight = new Curtain(1);
@@ -217,6 +218,8 @@ class Manager {
     this.bitcoinGraph.init();
 
     this.openingManager.turnOn();
+
+    this.toolBar.tools[2] = true;
  
 
     for(let i = 0; i < NAME.TOTAL; i++){
@@ -266,7 +269,7 @@ class Manager {
 
 
     this.worldEdgebounce = Physics.behavior('edge-collision-detection', {
-       aabb: Physics.aabb(0,0,roomWidth, roomHeight)
+       aabb: Physics.aabb(0,-roomHeight/2,roomWidth, roomHeight)
        ,restitution: 0.2
        ,cof: 0.8
    });
@@ -283,12 +286,16 @@ class Manager {
    ]);
 
    var screen = new BlockScreen(100, 100, 3, 4);
-   //addObject(screen, OBJECT.SCREEN);
+  //  addObject(screen, OBJECT.SCREEN);
 
+   var panel = new BlockPanel(100, 100, 4, 1);
+  //  addObject(panel, OBJECT.PANEL);
 
    var usbCable = new USBCable(10, 10, 10, 50);
-   //addObject(usbCable, OBJECT.USBCABLE);
+  //  addObject(usbCable, OBJECT.USBCABLE);
 
+   var flowerPot = new FlowerPot(100, 100);
+  //  addObject(flowerPot, OBJECT.FLOWERPOT);
    
    var motherBoard = new MotherBoard(10, 10);
    //addObject(motherBoard, OBJECT.MOTHERBOARD);
@@ -348,35 +355,8 @@ class Manager {
 
     if(this.drMarioScreen != null){
       if(this.drMarioScreen.cartridge == NAME.BERNAD){
-        if(input.keyState[KeyCodes.ArrowLeft][1]){
-          this.drMario.inputMovePress(-1);
-        }
-        if(input.keyState[KeyCodes.ArrowLeft][2]){
-          this.drMario.inputMoveRelease(-1);
-        }
-        if(input.keyState[KeyCodes.ArrowLeft][0]){
-          this.drMario.inputMoveHold(-1);
-        }
-      
-        if(input.keyState[KeyCodes.ArrowRight][1]){
-          this.drMario.inputMovePress(1);
-        }
-        if(input.keyState[KeyCodes.ArrowRight][2]){
-          this.drMario.inputMoveRelease(1);
-        }
-        if(input.keyState[KeyCodes.ArrowRight][0]){
-          this.drMario.inputMoveHold(1);
-        }
-      
-        if(input.keyState[KeyCodes.ArrowDown][0]){
-          this.drMario.inputDown();
-        }
-      
-        if(input.keyState[KeyCodes.Space][1]){
-          this.drMario.inputTurn(0);
-        }
-      
-    
+        this.drMario.input(input.keyState[KeyCodes.ArrowLeft], input.keyState[KeyCodes.ArrowRight], input.keyState[KeyCodes.ArrowDown][0], input.keyState[KeyCodes.Space][1]);
+
         this.drMario.update(dt);
       }
     }
@@ -401,6 +381,7 @@ class Manager {
       case -1:
         this.openingManager.update(dt);
         if(this.openingManager.finished){
+          this.openingManager.paused = true;
           this.mode = 0;
         }
 
@@ -550,16 +531,13 @@ class Manager {
       this.fadeInAlarm.stop();
     }
 
-    //this.spotlight.x = input.mouseX;
-    //this.spotlight.y = input.mouseY;
-
     this.hdmiScreen.update(dt);
     if(this.hdmiScreen.hdmi){
       this.mode = 2;
     }
 
     this.bitcoinGraph.update(dt);
-
+    this.toolBar.update(dt);
     this.inventory.update(dt);
     if(this.inventory.state == 1){
       mainCam.y = mainCam.height/2 +this.inventory.height*this.inventory.inAlarm.percentage();
@@ -674,6 +652,8 @@ class Manager {
     this.moneyDisplay.draw(ctx);
 
     this.bitcoinGraph.draw(ctx);
+
+    this.toolBar.draw(ctx);
 
 
 

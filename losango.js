@@ -302,6 +302,8 @@ class Losango {
     this.holder = new Holder();
     this.canBeHeld = true;
 
+    this.pressState = [false, false, false];
+
     this.boundingBox = new BoundingBox(this.x - this.boxWid/2, this.y - this.boxHei/2, this.boxWid, this.boxHei);
     
     
@@ -597,11 +599,25 @@ class Losango {
       objectLists[OBJECT.DRAW].push(new DrawRequest(this, this.depth-11, 1));
     }
 
-
+    if(this.pressState[0]){
+      if(!input.mouseState[0][0]){
+        this.pressState[0] = false;
+      }
+    }
+    this.pressState[1] = false;
+    this.pressState[2] = false;
 
     // CLICKING
     if(this.hovered){
+
+      this.pressState[0] = input.mouseState[0][0];
+      this.pressState[1] = input.mouseState[0][1];
+      this.pressState[2] = input.mouseState[0][2];
+
       if(input.mouseState[0][1] || input.mouseState[2][1]){
+        this.pressed = true;
+
+
         var isRightClick = false;
         if(input.mouseState[2][1]){
           isRightClick = true;
@@ -907,6 +923,9 @@ class Losango {
         }else if (this.id == NAME.JOAS){
           obj = new Bitcoin(this.x, this.y, 50);
           this.priceTag = manager.bitcoinGraph.value;
+        }else if (this.id == NAME.NATHALIA){
+          obj = new FlowerPot(this.x, this.y);
+          this.priceTag = 1000;
         }
 
         if(obj != null){

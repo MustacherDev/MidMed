@@ -82,26 +82,54 @@ function ClothBody(x, y, horizontalSegments, verticalSegments, segmentHLen, segm
     
     this.update = function(dt){
 
-        // Update positions using Verlet integration
-        for (var i = 0; i < this.points.length; i++) {
-            for (var j = 0; j < this.points[i].length; j++) {
-                this.verletIntegration(this.points[i][j], this.pointForces[i][j], dt);
+        var subDtSize = 0.6;
+        var subSteps = dt/subDtSize;
+        for(; subSteps > 1; subSteps--){
+
+            var subDt = subDtSize;
+            // Update positions using Verlet integration
+            for (var i = 0; i < this.points.length; i++) {
+                for (var j = 0; j < this.points[i].length; j++) {
+                    this.verletIntegration(this.points[i][j], this.pointForces[i][j], subDt);
+                }
+            }
+
+
+            // Apply constraints
+
+            var iter = 5;
+            for (var i = 0; i < iter; i++) {
+
+                for (var j = 0; j < this.distanceConstraints.length; j++) {
+                    var point1  = this.points[this.distanceConstraints[j].index1.y][this.distanceConstraints[j].index1.x];
+                    var point2  = this.points[this.distanceConstraints[j].index2.y][this.distanceConstraints[j].index2.x];
+                    var restLen = this.distanceConstraints[j].restLength;
+                    this.applyDistanceConstraint(point1, point2, restLen);
+                }
             }
         }
 
+        // var subDt = subSteps*subDtSize;
+        // // Update positions using Verlet integration
+        // for (var i = 0; i < this.points.length; i++) {
+        //     for (var j = 0; j < this.points[i].length; j++) {
+        //         this.verletIntegration(this.points[i][j], this.pointForces[i][j], subDt);
+        //     }
+        // }
 
-        // Apply constraints
 
-        var iter = 5;
-        for (var i = 0; i < iter; i++) {
+        // // Apply constraints
 
-            for (var j = 0; j < this.distanceConstraints.length; j++) {
-                var point1  = this.points[this.distanceConstraints[j].index1.y][this.distanceConstraints[j].index1.x];
-                var point2  = this.points[this.distanceConstraints[j].index2.y][this.distanceConstraints[j].index2.x];
-                var restLen = this.distanceConstraints[j].restLength;
-                this.applyDistanceConstraint(point1, point2, restLen);
-            }
-        }
+        // var iter = 5;
+        // for (var i = 0; i < iter; i++) {
+
+        //     for (var j = 0; j < this.distanceConstraints.length; j++) {
+        //         var point1  = this.points[this.distanceConstraints[j].index1.y][this.distanceConstraints[j].index1.x];
+        //         var point2  = this.points[this.distanceConstraints[j].index2.y][this.distanceConstraints[j].index2.x];
+        //         var restLen = this.distanceConstraints[j].restLength;
+        //         this.applyDistanceConstraint(point1, point2, restLen);
+        //     }
+        // }
 
 
         for (var i = 0; i < this.pointForces.length; i++) {

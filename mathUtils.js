@@ -3,6 +3,16 @@ function Vector(x, y) {
     this.x = x;
     this.y = y;
 
+    this.set = function(x, y){
+      this.x = x;
+      this.y = y;
+    }
+
+    this.setVec = function(vec){
+      this.x = vec.x;
+      this.y = vec.y;
+    }
+
     this.add = function (vec) {
         return new Vector(this.x + vec.x, this.y + vec.y);
     }
@@ -119,6 +129,10 @@ function tweenOut(percentage){
 
 function tweenInOut(percentage){
   return -(Math.cos(Math.PI * percentage) - 1) / 2;
+}
+
+function zigzag(percentage){
+  return (1- Math.abs(percentage*2 -1));
 }
 
 function pointInRect(x, y, x1, y1, x2, y2) {

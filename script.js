@@ -88,9 +88,11 @@ function stateMenu(dt){
     ctx.fillRect(0,0,roomWidth, roomHeight);
   }
 
-  //manager.openingManager.draw(ctx);
 
   ctx.restore();
+
+  manager.curtainLeft.draw(ctx);
+  manager.curtainRight.draw(ctx);
 
   
   ctx.save();
@@ -101,16 +103,16 @@ function stateMenu(dt){
 
 
   manager.drawGUI();
+
+
+  
   ctx.restore();
+  manager.openingManager.draw(ctx);
 
- 
-
-  manager.curtainLeft.draw(ctx);
-  manager.curtainRight.draw(ctx);
-
-  manager.openingManager.curtainSpotlight.draw(ctx);
-
-
+  // if(!manager.openingManager.paused){
+  //   manager.openingManager.curtainLeft.update(dt);
+  //   manager.openingManager.curtainRight.update(dt);
+  // }
 
 
   mainCam.lateUpdate(dt);
@@ -138,14 +140,8 @@ function step() {
 
   elapsedTime = Math.max(elapsedTime - discountTime, 0);
 
-  // if(elapsedTime < 1000/FRAMERATE){
-  //   window.requestAnimationFrame(step);
-  //   return;
-  // }
-
   thenTimeDate = new Date(nowTimeDate);
   var dt = elapsedTime/(1000/FRAMERATE);
-  //console.log(dt)
 
   canvas.style.cursor = 'default';
 

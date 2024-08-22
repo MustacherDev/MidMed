@@ -17,13 +17,15 @@ const OBJECT = Object.freeze(new Enum(
     "MIDMEDLOGO",
     "PANEL",
     "ROPE",
-    "CLOTH",
     "USBCABLE",
     "MOTHERBOARD",
     "USBCONNECTOR",
     "MINIDART",
     "BALLOON",
     "CURTAIN",
+    "CLOTH",
+    "FLOWERPOT",
+    "SEED",
     "TOTAL"
 ));
 
@@ -74,9 +76,7 @@ function updateList(type, dt) {
 function drawList(type) {
     var _len = objectLists[type].length;
     for (var i = 0; i < _len; i++) {
-        // (objectLists[type][i].active) {
-            objectLists[type][i].draw(ctx);
-        //}
+        objectLists[type][i].draw(ctx);
     }
 }
 
@@ -87,7 +87,6 @@ function addList(obj, type) {
 function addObject(obj, type){
   objectLists[type].push(obj);
   objectLists[OBJECT.GAMEOBJECT].push(obj);
-  //objectLists[OBJECT.DRAW].push(obj);
 }
 
 function sortDepth() {

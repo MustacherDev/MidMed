@@ -176,6 +176,37 @@ class DrMarioGame {
         }
     }
 
+    input(leftState, rightState, down, turn){
+
+        if(leftState[1]){
+            this.inputMovePress(-1);
+          }
+          if(leftState[2]){
+            this.inputMoveRelease(-1);
+          }
+          if(leftState[0]){
+            this.inputMoveHold(-1);
+          }
+        
+          if(rightState[1]){
+            this.inputMovePress(1);
+          }
+          if(rightState[2]){
+            this.inputMoveRelease(1);
+          }
+          if(rightState[0]){
+            this.inputMoveHold(1);
+          }
+        
+          if(down){
+            this.inputDown();
+          }
+        
+          if(turn){
+            this.inputTurn(0);
+          }
+    }
+
     inputMovePress(dir) {
        
 

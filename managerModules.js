@@ -267,8 +267,18 @@ class HDMIScreen{
     if(!this.hdmi){
       if(this.glitchLevel >= this.glitchMax){
         this.hdmi = true;
-        this.state = 1;
-        manager.losangos[NAME.JP].connector = true;
+        //if(!manager.losangos[NAME.JP].connector){
+          this.state = 1;
+          manager.losangos[NAME.JP].connector = true;
+        //} else{
+          // var device = manager.losangos[NAME.JP].usbSlot.getOtherDevice();
+          // console.log(device);
+          // this.state = 1;
+          // if(device != null){
+          //   this.state = 2;
+          // } 
+
+//}
       }
     }
 
@@ -318,10 +328,11 @@ class HDMIScreen{
         ctx.fillRect(0,this.whiteBars[i].x, roomWidth, this.whiteBars[i].y);
       }
     } else if(this.state == 1){
+      var device = manager.losangos[NAME.JP].usbSlot.getOtherDevice();
+      ctx.fillStyle = "rgb(0,0,255)";
+      ctx.fillRect(0,0,roomWidth, roomHeight);
+      if(device == null){
 
-      if(this.hdmi){
-        ctx.fillStyle = "rgb(0,0,255)";
-        ctx.fillRect(0,0,roomWidth, roomHeight);
 
         ctx.fillStyle = "rgb(0,0,230)";
         var screenLines = 100;
@@ -352,8 +363,34 @@ class HDMIScreen{
         ctx.fillRect(40, roomHeight - 40, roomWidth - 60, 20);
         ctx.fillStyle = "rgb(255,255,255)";
         ctx.fillRect(40, roomHeight - 40, (roomWidth - 60)*this.reconnectStatus, 20);
+      } else {
+        if(device.type == OBJECT.SCREEN){
+          if(device.cartridge == NAME.BERNAD){
+            if(manager.drMarioPlaying){
+              var wid = manager.drMario.wid;
+              var hei = manager.drMario.hei;
+              var ratio = wid/hei;
+      
+              var screenRatio = roomWidth/roomHeight;
+      
+              var finalWid = 0;
+              var finalHei = 0;
+              if(screenRatio > ratio){
+                finalHei = roomHeight;
+                finalWid = ratio*finalHei;
+              } else {
+                finalWid = roomWidth;
+                finalHei = finalWid/ratio;
+              }
+              manager.drMario.draw(roomWidth/2 - finalWid/2, 0, finalWid, finalHei);
+            }
+          } else {
+            ContentDisplayer.draw(device.cartridge, 0,0,roomWidth, roomHeight, ctx);
+          }
+        }
       }
     } else if (this.state == 2){
+      
       if(manager.drMarioPlaying){
         var wid = manager.drMario.wid;
         var hei = manager.drMario.hei;
@@ -373,10 +410,6 @@ class HDMIScreen{
         manager.drMario.draw(roomWidth/2 - finalWid/2, 0, finalWid, finalHei);
       }
     }
-
-
-
-    
   }
 }
 
@@ -953,13 +986,226 @@ class Inventory{
   
 
     ctx.globalAlpha = prevAlpha;
-
-
-    // ctx.fillRect(this.x, this.y + this.yOff, this.width, this.height);
-    // ctx.fillStyle = "rgb(0,0,0)";
-    // ctx.fillRect(this.x, this.y + this.yOff, this.width, this.height);
   }
 }
+
+
+class Toolbar{
+  constructor(){
+
+    this.width = roomWidth/14;
+    this.toolsNum = 4;
+    this.tool = 0;
+
+    this.tools = [];
+
+    this.slotsX = 1;
+    this.slotsY = this.toolsNum;
+
+    this.slotWid = this.width/(this.slotsX);
+    this.slotHei = this.slotWid;
+
+    this.height = this.slotHei*(this.slotsY);
+
+    this.xOrigin = roomWidth;
+    this.yOrigin = roomHeight/2 - this.height/2;
+    this.x = this.xOrigin;
+    this.y = this.yOrigin;
+    
+   
+    this.displacement = new Vector(0, 0);
+    this.displacementTotal = new Vector(-this.width,0);
+
+    this.inTime = 50;
+    this.stayTime = 500;
+    this.outTime = 50;
+
+    this.timer = 0;
+
+    // this.inAlarm = new Alarm(0, 100);
+    // this.outAlarm = new Alarm(0, 100);
+
+    this.cooldownAlarm = new Alarm(0, 5);
+
+    this.hoveredSlot =  new Vector(-1, -1);
+
+    this.mainToolWobbleAlarm = new Alarm(0, 100); 
+
+
+    // 0 = INNACTIVE, 1 = IN, 2 = ACTIVE, 3= OUT
+    this.state = 0;
+
+
+    for(var i = 0; i < this.slotsY*this.slotsX; i++){
+      this.tools.push(false);
+    }
+
+    this.tools[0] = true;
+
+    this.boundingBox = new BoundingBox(this.x, this.y, this.width, this.height);
+    this.closeBoundingBox = new BoundingBox(this.x, this.y , this.slotWid, this.slotHei*2);
+    this.closeBoundingBox.setOffset(0, -this.slotHei*this.slotsY);
+  }
+
+
+  update(dt){
+
+    switch(this.state){
+      // HIDDEN
+      case 0:
+        this.displacement.set(0,0);
+        break;
+
+      // ENTERING
+      case 1:
+        this.timer+=dt;
+        this.displacement = this.displacementTotal.mult(tweenOut(this.timer/this.inTime));
+        if(this.timer > this.inTime){
+          this.timer = 0;
+          this.state = 2;
+        }
+        break;
+
+      // STAYING
+      case 2:
+        this.timer+= dt;
+        this.displacement.setVec(this.displacementTotal);
+        if(this.timer > this.stayTime){
+          this.timer = 0;
+          this.state = 3;
+        }
+        break;
+
+      // LEAVING
+      case 3:
+        this.timer+= dt;
+        this.displacement = this.displacementTotal.mult(tweenOut(1-(this.timer/this.outTime)));
+        if(this.timer > this.outTime){
+          this.timer = 0;
+          this.state = 0;
+        }
+        break;
+    }
+
+    this.x = this.xOrigin + this.displacement.x;
+    this.y = this.yOrigin + this.displacement.y;
+    this.boundingBox.updatePos(this.x, this.y);
+    this.closeBoundingBox.updatePos(this.x, this.y);
+
+    if(this.state == 0) return;
+
+    this.cooldownAlarm.update(dt);
+    this.mainToolWobbleAlarm.update(dt);
+    if(this.mainToolWobbleAlarm.finished){
+      this.mainToolWobbleAlarm.restart();
+    }
+
+
+    if(this.boundingBox.isPointInside(input.mouseViewX, input.mouseViewY)){
+      var slotInd = 0;
+      var dx = input.mouseViewX - this.x ;
+      var dy = input.mouseViewY - this.y ;
+
+      var indX = Math.floor(dx/this.slotWid);
+      var indY = Math.floor(dy/this.slotHei);
+
+      this.hoveredSlot.x = indX;
+      this.hoveredSlot.y = indY;
+
+      if(this.cooldownAlarm.finished){
+        if(input.mouseState[0][1]){
+          if(this.hoveredSlot.y != -1){
+            if(this.tools[this.hoveredSlot.y]){
+              this.tool = this.hoveredSlot.y;
+            }
+          }
+        }
+      }
+    } else {
+      this.hoveredSlot.x = -1;
+      this.hoveredSlot.y = -1;
+    }
+
+    if(this.closeBoundingBox.isPointInside(input.mouseViewX, input.mouseViewY)){
+      if(input.mouseState[0][1] && this.state == 2){
+        this.timer = 0;
+        this.state = 3;
+      }
+
+    }
+  }
+
+
+
+      
+
+  draw(ctx){
+
+    if(this.state == 0) return;
+
+    var prevAlpha = ctx.globalAlpha;
+
+    var perc = this.displacement.x / this.displacementTotal.x;
+
+    // if(this.state == 1){
+    //   perc = this.inAlarm.percentage();
+    // } else if(this.state == 3){
+    //   perc = 1-this.outAlarm.percentage();
+    // }
+
+    ctx.globalAlpha = tweenOut(perc);
+
+    // ctx.fillStyle = "rgb(0, 0, 0)";
+    // ctx.fillRect(this.x, this.y, this.width, this.height);
+
+    var closeButtonImg = 0;
+
+    if(this.closeBoundingBox.isPointInside(input.mouseViewX, input.mouseViewY)){
+      closeButtonImg = 1;
+    }
+
+
+    var closeScl = this.closeBoundingBox.width/sprites[SPR.CLOSEINVENTORYBUTTON].width;
+    sprites[SPR.CLOSEINVENTORYBUTTON].drawExt(this.closeBoundingBox.x, this.closeBoundingBox.y, closeButtonImg, closeScl,closeScl, 0, this.closeBoundingBox.xOffset/closeScl,this.closeBoundingBox.yOffset/closeScl );
+
+
+    var frameScl = this.slotWid/(sprites[SPR.TOOLS].width);
+    sprites[SPR.TOOLBOX].drawExt(this.x, this.y, 0, frameScl,frameScl, 0, 3, 3);
+
+    for(var i = 0; i < this.slotsY; i++){
+      for(var j = 0 ; j < this.slotsX; j++){
+
+        var toolActive = this.tools[i + j*this.slotsY];
+        var toolId = i;
+        var toolSelected = (this.tool == i) ? true: false;
+
+        if(!toolActive) continue;
+
+        var xx = this.x + j*this.slotWid;
+        var yy = this.y + i*this.slotHei;
+        var ang = 0;
+        if(toolSelected){
+          ang = Math.PI/12*tweenInOut(zigzag(this.mainToolWobbleAlarm.percentage())) - Math.PI/24;
+        }
+        var extraScl = 1;
+        if(i == this.hoveredSlot.y && j == this.hoveredSlot.x){
+          extraScl = 1.2;
+        }
+
+        // var perc = 0.85;
+        // ctx.fillRect(xx +this.slotWid*(1-perc)/2, yy + this.slotHei*(1-perc)/2, this.slotWid*perc, this.slotHei*perc);
+        //var frameScl = this.slotWid/sprites[SPR.SCREENFRAMETILE].width;
+        
+        sprites[SPR.TOOLS].drawExtRelative(xx + this.slotWid/2, yy + this.slotHei/2, toolId, frameScl*extraScl,frameScl*extraScl, ang, 0.5, 0.5);
+        // if(slot.valid){
+        //   sprites[SPR.INVENTORYITEMS].drawExt(xx + this.slotWid/2, yy + this.slotHei/2, slot.object.type-4, 4,4, 0, 8, 8);
+        // }
+      }
+    }
+    ctx.globalAlpha = prevAlpha;
+  }
+}
+
 
 
 
@@ -1153,6 +1399,9 @@ class Curtain{
     var curtainHei = window.innerHeight + curtainExtraHei;
     var curtainScl = curtainHei/sprites[SPR.CURTAIN].height;
     var curtainExtraX = 20;
+
+    var offX = -curtainWid*2*0;
+    var offY = 0;
   
     var canvasSpace = window.innerWidth - curtainWid*2;
   
@@ -1160,9 +1409,9 @@ class Curtain{
   
     
     if(this.orientation == 0){
-      sprites[SPR.CURTAIN].drawExt(curtainWid + curtainExtraX + (canvasSpace/2)*curtainsState,-curtainExtraHei/2, 0, curtainScl, curtainScl, 0, sprites[SPR.CURTAIN].width, 0);
+      sprites[SPR.CURTAIN].drawExt(offX + curtainWid + curtainExtraX + (canvasSpace/2)*curtainsState,-curtainExtraHei/2, offY, curtainScl, curtainScl, 0, sprites[SPR.CURTAIN].width, 0);
     } else {
-      sprites[SPR.CURTAIN].drawExt(window.innerWidth - curtainWid - curtainExtraX - (canvasSpace/2)*curtainsState,-curtainExtraHei/2, 0, curtainScl, curtainScl, 0, 0, 0);
+      sprites[SPR.CURTAIN].drawExt(offX+ window.innerWidth - curtainWid - curtainExtraX - (canvasSpace/2)*curtainsState,-curtainExtraHei/2, offY, curtainScl, curtainScl, 0, 0, 0);
     }
   }
 }
@@ -1186,7 +1435,7 @@ class OpeningSequence{
     this.curtainSpotlight.y = this.curtainSpotlight.screenHeight/2;
     this.curtainSpotlight.active = true;
 
-    this.openingAlarm = new Alarm(0, 300);
+    this.openingAlarm = new Alarm(0, 500);
     this.openingCooldownAlarm = new Alarm(0, 25);
     this.openingAlarm.paused = true;
     this.spotWobbleAlarm = new Alarm(0, 400);
@@ -1196,19 +1445,22 @@ class OpeningSequence{
 
     this.drumSound = null;
 
+    this.paused = false;
+
     this.finished = false;
   }
 
   turnOn(){
     playSound(SND.SWITCHFLIPLOUD);
     //this.drumSound = playSound(SND.DRUMS);
-    this.curtainLeft = new CurtainObject(roomWidth*0.25, -100);
-    this.curtainRight = new CurtainObject(roomWidth*0.75, -100);
+    this.curtainLeft = new CurtainObject(0, -200);
+    this.curtainRight = new CurtainObject(roomWidth -30*30, -200);
   }
 
   draw(ctx){
-    this.curtainRight.draw(ctx);
-    this.curtainLeft.draw(ctx);
+    // this.curtainRight.draw(ctx);
+    // this.curtainLeft.draw(ctx);
+    this.curtainSpotlight.draw(ctx);
   }
 
   update(dt){
@@ -1229,10 +1481,13 @@ class OpeningSequence{
         }
       }
     } else {
-      this.curtainLeft.compressEyelets(10*dt, true);
-      this.curtainLeft.x -= 4*dt;
-      this.curtainRight.compressEyelets(10*dt, false);
-      this.curtainRight.x += 4*dt;
+
+      if(!this.paused){
+        this.curtainLeft.compressEyelets(1.5*dt, true);
+        this.curtainLeft.x -= 2.5*dt;
+        this.curtainRight.compressEyelets(1.5*dt, false);
+        this.curtainRight.x += 2.5*dt;
+      }
 
     }
 
@@ -1250,8 +1505,7 @@ class OpeningSequence{
       //stopSound(this.drumSound);
     }
 
-    //this.curtainLeft.update(dt);
-    //this.curtainRight.update(dt);
+
 
   }
 }
