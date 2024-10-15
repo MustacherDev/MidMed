@@ -613,6 +613,26 @@ function Rock(x, y, width, height) {
 
   this.rotateOnCollision = false;
 
+
+  this.onDestroy = function(){
+    var parts = [];
+
+    var scl = (this.sprite.width*this.xScl)/sprites[SPR.ROCKPIECES].width;
+    scl /= 4;
+    for(var j = 0 ; j < 2; j++){
+      for(var i = 0; i < 4; i++){
+        var xx = this.x - this.xOffset + (i+0.5)*sprites[SPR.ROCKPIECES].width*scl;
+        var yy = this.y - this.yOffset + (j+0.5)*sprites[SPR.ROCKPIECES].height*scl;
+        parts.push(particleRockPiece(xx, yy, i + j*4, scl));
+
+
+      }
+    }
+
+    console.log(parts);
+    manager.addParticles(parts);
+  }
+
   this.collisionAction = function (isHorizontal, velocity) {
 
     var spd = Math.abs(velocity);
@@ -631,6 +651,12 @@ function Rock(x, y, width, height) {
         manager.screenShaker.startShake(5, 20);
       }
     }
+
+    if(!isHorizontal){
+      if(spd > 25){
+        this.active = false;
+      }
+    }
   }
 
   this.update = function (dt) {
@@ -642,6 +668,11 @@ function Rock(x, y, width, height) {
     }
 
     this.updateBox(dt);
+
+    if(this.holder.holdEvent){
+      this.holder.holdEvent = false;
+      stopSound(SND.FALLINGROCK);
+    }
 
 
 
@@ -660,6 +691,8 @@ function Rock(x, y, width, height) {
           var parts = createParticlesInRect(particleLock, 50, this.x - this.xOffset, this.y - this.yOffset + this.height / 1.5, this.width, this.height);
 
           manager.addParticles(parts);
+
+          this.active = false;
 
 
         }
@@ -2115,6 +2148,9 @@ function SeedModule(seedType){
       if(pot.boundingBox.checkCollision(seedObj.boundingBox)){
         if(!pot.hasPlant){
           pot.plant = this.type;
+          if(pot.plant == 3){
+            pot.plantObj = new Plant(pot.x, pot.y, pot.ang);
+          }
           pot.hasPlant = true;
           pot.plantStage = 0;
           return true;
@@ -2190,6 +2226,8 @@ function FlowerPot(x, y){
   this.hLoss = 0.2;
   this.vLoss = 0.2;
 
+  this.plantObj = null;
+
   this.linDamp = 0.95;
 
   this.tickAlarm = new Alarm(0, 100);
@@ -2201,6 +2239,13 @@ function FlowerPot(x, y){
   this.clickBox.setOffset(this.width/2, 0);
   
   this.update = function(dt){
+
+    if(this.plantObj){
+      this.plantObj.x = this.x;
+      this.plantObj.y = this.y;
+      this.plantObj.ang = this.ang;
+      this.plantObj.update(dt);
+    }
 
 
     if (this.onGround) {
@@ -2240,6 +2285,13 @@ function FlowerPot(x, y){
         manager.inventory.attachObjectMouse(this);
       }
       this.holder.throwEvent = false;
+    }
+  }
+
+  this.pushDrawList = function(){
+    addList(new DrawRequest(this, this.depth, 0), OBJECT.DRAW);
+    if(this.plantObj){
+      this.plantObj.pushDrawList();
     }
   }
 

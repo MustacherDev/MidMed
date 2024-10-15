@@ -153,12 +153,12 @@ class Effector {
                 playSound(SND.AUU);
                 los.flip();
             } else {
-                if(manager.chessMode){
-                    manager.pinSlideAlarm.restart();
-                    manager.chessState = 3;
-                } else{
-                    manager.initChess();
-                }
+                // if(manager.chessMode){
+                //     manager.pinSlideAlarm.restart();
+                //     manager.chessState = 3;
+                // } else{
+                //     manager.initChess();
+                // }
                 los.flip();
             }
         } else if (los.id == NAME.SHEILA) {
@@ -168,6 +168,41 @@ class Effector {
                 var yy = Math.sin(ang) * los.height/4;
                 manager.particles.push(particleSoundWave(los.x + xx, los.y + yy, ang));
             }
+
+
+            var directions = [
+                new Vector(1, 0),
+                new Vector(1, -1),
+                new Vector(0, -1),
+                new Vector(-1, -1),
+                new Vector(-1, 0),
+                new Vector(-1, 1),
+                new Vector(0, 1),
+                new Vector(1, 1),
+            ];
+
+            for (var i = 0; i < directions.length; i++) {
+                var pos = manager.gridInd2XY(los.getGridId());
+                pos.x += directions[i].x;
+                pos.y += directions[i].y;
+
+                if (manager.checkValidGridPos(pos.x, pos.y)) {
+                    var sideInd = manager.gridXY2Ind(pos.x, pos.y);
+                    var sideGridObj = manager.grid[GRID.MIDDLE][sideInd];
+                    if (sideGridObj.valid) {
+                        if (sideGridObj.object.type == OBJECT.LOSANGO) {
+                            var sideId = sideGridObj.object.id;
+                            sideGridObj.object.hspd += 2 * directions[i].x;
+                            sideGridObj.object.x += 4 * directions[i].x;
+                            sideGridObj.object.vspd += 2 * directions[i].y;
+                            sideGridObj.object.y += 4 * directions[i].y;
+                            // manager.particles.push(particleSmack(sideGridObj.object.x, sideGridObj.object.y));
+                            sideGridObj.object.popInAlarm.start();
+                        }
+                    }
+                }
+            }
+
             if(!manager.losangos[NAME.ISRAEL].inOtherplane){
                 var otherLos = manager.losangos[NAME.ISRAEL];
                 var dx = otherLos.x - los.x;
@@ -191,11 +226,11 @@ class Effector {
                 los.flip();
             }
         } else if (los.id == NAME.ARAUJO) {
-            manager.finishCodenames();
-            manager.cleanCodenames();
-            manager.randomizeGrid();
-            manager.codenamesManager.getGrid();
-            manager.codenamesManager.getHint();
+            // manager.finishCodenames();
+            // manager.cleanCodenames();
+            // manager.randomizeGrid();
+            // manager.codenamesManager.getGrid();
+            // manager.codenamesManager.getHint();
             los.flip();
         } else if (los.id == NAME.NATHALIA) {
             if(manager.altNames){
@@ -247,32 +282,32 @@ class Effector {
                 }
             }
         } else if (los.id == NAME.LAIS) {
-            var directions = [
-                new Vector(1, -1),
-                new Vector(-1, -1),
-                new Vector(-1, 1),
-                new Vector(1, 1),
-            ];
+            // var directions = [
+            //     new Vector(1, -1),
+            //     new Vector(-1, -1),
+            //     new Vector(-1, 1),
+            //     new Vector(1, 1),
+            // ];
 
-            for (var i = 0; i < directions.length; i++) {
-                var pos = manager.gridInd2XY(los.getGridId());
-                pos.x += directions[i].x;
-                pos.y += directions[i].y;
+            // for (var i = 0; i < directions.length; i++) {
+            //     var pos = manager.gridInd2XY(los.getGridId());
+            //     pos.x += directions[i].x;
+            //     pos.y += directions[i].y;
 
-                if (manager.checkValidGridPos(pos.x, pos.y)) {
-                    var sideInd = manager.gridXY2Ind(pos.x, pos.y);
-                    var sideGridObj = manager.grid[GRID.MIDDLE][sideInd];
-                    if (sideGridObj.valid) {
-                        if (sideGridObj.object.type == OBJECT.LOSANGO) {
-                            var sideId = sideGridObj.object.id;
+            //     if (manager.checkValidGridPos(pos.x, pos.y)) {
+            //         var sideInd = manager.gridXY2Ind(pos.x, pos.y);
+            //         var sideGridObj = manager.grid[GRID.MIDDLE][sideInd];
+            //         if (sideGridObj.valid) {
+            //             if (sideGridObj.object.type == OBJECT.LOSANGO) {
+            //                 var sideId = sideGridObj.object.id;
 
-                            sideGridObj.object.shop();
-                        }
-                    }
-                }
-            }
+            //                 sideGridObj.object.shop();
+            //             }
+            //         }
+            //     }
+            // }
             los.flip(1);
-            los.startBlackHole();
+            // los.startBlackHole();
 
         } else if (los.id == NAME.IKARO) {
             if(manager.musicMode){
@@ -287,6 +322,10 @@ class Effector {
         } else if (los.id == NAME.CAIO) {
             if (los.useAltName) {
                 manager.fall();
+                for(var other of manager.losangos){
+                    if(other.inOtherplane) continue;
+                    other.popInAlarm.start();
+                }
             } else {
 
                 los.flipActor.freeMoveSpd += 0.05;
@@ -312,9 +351,9 @@ class Effector {
                 addObject(balloon, OBJECT.BALLOON);
             }
         } else if (los.id == NAME.FGOIS) {
-            manager.finishCodenames();
-            manager.cleanCodenames();
-            manager.randomizeGrid();
+            // manager.finishCodenames();
+            // manager.cleanCodenames();
+            // manager.randomizeGrid();
         } else if (los.id == NAME.JP) {
             playSound(SND.KNOCK);
             manager.clickParticle();
@@ -336,7 +375,7 @@ class Effector {
                 window.scrollTo(0, 1);
                 manager.pageScrolled = true;
             }
-            manager.toolBar.state = 1;
+            // manager.toolBar.state = 1;
             los.flip();
         } else if (los.id == NAME.JVROCHA) {
 
@@ -357,23 +396,24 @@ class Effector {
                 los.flip();
             }
         } else if (los.id == NAME.EUDA) {
-            manager.openInventory();
+            // manager.openInventory();
             los.flip();
         } else if (los.id == NAME.BERNAD) {
             if (los.useAltName) {
                 if (!manager.losangos[NAME.ISRAEL].inOtherplane) {
                     var pos = new Vector(manager.losangos[NAME.ISRAEL].x, manager.losangos[NAME.ISRAEL].y);
-                    manager.addParticles(createParticlesInRect(particleLock, 20, pos.x, pos.y, 0, 0));
+                    manager.addParticles(createParticlesInRect(particleSmoke, 30, pos.x - 40, pos.y- 40, 80, 80));
                     manager.quietAlarm.timer = manager.quietAlarm.time;
+                    manager.losangos[NAME.ISRAEL].popInAlarm.start();
                     playSound(SND.POOF);
                 }
             }
             los.flip();
         } else if (los.id == NAME.GABRIEL) {
-            addObject(new Seed(los.x, los.y, randInt(0, 4)), OBJECT.SEED);
+            // addObject(new Seed(los.x, los.y, randInt(0, 4)), OBJECT.SEED);
 
-            manager.clickParticle();
-            playSound(SND.POP);
+            // manager.clickParticle();
+            // playSound(SND.POP);
             los.flip();
         } else if (los.id == NAME.SAMUEL) {
 
@@ -425,38 +465,38 @@ class Effector {
 
         } else if (los.id == NAME.DANILO) {
 
-            if (los.flipActor.isFront && chance(0.1) && objectLists[OBJECT.DART].length == 0) {
-                var pos = manager.getPosGrid(los.getGridId());
-                var ang = Math.random() * Math.PI * 2;
-                var spd = randRange(5, 10);
-                var dart = new Dart(pos.x, pos.y, ang);
-                dart.hspd = Math.cos(ang) * spd;
-                dart.vspd = Math.sin(ang) * spd;
-                dart.depth = 10;
+            // if (los.flipActor.isFront && chance(0.1) && objectLists[OBJECT.DART].length == 0) {
+            //     var pos = manager.getPosGrid(los.getGridId());
+            //     var ang = Math.random() * Math.PI * 2;
+            //     var spd = randRange(5, 10);
+            //     var dart = new Dart(pos.x, pos.y, ang);
+            //     dart.hspd = Math.cos(ang) * spd;
+            //     dart.vspd = Math.sin(ang) * spd;
+            //     dart.depth = 10;
 
-                los.backItem = dart;
+            //     los.backItem = dart;
 
-                los.flip(1);
-            } else if (!los.flipActor.isFront) {
-                if (los.backItem != null) {
+            //     los.flip(1);
+            // } else if (!los.flipActor.isFront) {
+            //     if (los.backItem != null) {
 
-                    if (los.backItem.type == OBJECT.DART) {
+            //         if (los.backItem.type == OBJECT.DART) {
 
-                        var pos = manager.getPosGrid(los.getGridId());
-                        los.backItem.x = pos.x;
-                        los.backItem.y = pos.y;
-                        addObject(los.backItem, OBJECT.DART);
+            //             var pos = manager.getPosGrid(los.getGridId());
+            //             los.backItem.x = pos.x;
+            //             los.backItem.y = pos.y;
+            //             addObject(los.backItem, OBJECT.DART);
 
 
-                        playSound(SND.POP);
-                        manager.clickParticle();
+            //             playSound(SND.POP);
+            //             manager.clickParticle();
 
-                        los.backItem = null;
-                    }
-                } else {
-                    los.flip(1);
-                }
-            } else {
+            //             los.backItem = null;
+            //         }
+            //     } else {
+            //         los.flip(1);
+            //     }
+            // } else {
                 for(var i = 0 ; i < 4; i++){
                     var angle = los.angle + (Math.PI/2) * i;
                     var miniDart = new MiniDart(los.x, los.y, i, angle);
@@ -465,7 +505,7 @@ class Effector {
                 los.popInAlarm.start();
                 playSound(SND.DARTBLOW);
                 //los.effectCooldownAlarm.start(0);
-            }
+            // }
         } else if (los.id == NAME.MARCELO) {
 
             playSound(SND.AUMENTAOSOM);

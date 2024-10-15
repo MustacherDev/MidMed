@@ -382,6 +382,50 @@ function particleLock(x, y){
   return part;
 }
 
+function particleSmoke(x, y){
+  var life = 150 + randInt(0, 50);
+  var part = new ParticleCircle(x, y, life);
+  part.radius = randInt(15, 25);
+  part.color = Color.fromHSL(100, 0, 50);
+  part.colorSpd = new Color(0,0,0, -1/life);
+  part.radiusSpd = -part.radius/life;
+
+  var dir = randRange(0, deg2rad(360));
+  var dirVec = new Vector(Math.cos(dir), Math.sin(dir));
+  var spd = randRange(0.5, 2);
+
+  part.spd = dirVec.mult(spd);
+  part.acc = new Vector(0, 0);
+  part.damp = new Vector(0.01, 0.01);
+  part.depth = -20;
+
+  return part;
+}
+
+function particleRockPiece(x, y, img, scl){
+  var life = 100 + randInt(0, 25);
+  var part = new ParticleSprite(x, y, life, sprites[SPR.ROCKPIECES]);
+  part.img = img;
+  part.imgSpd = 0;
+  part.xOffset = 32;
+  part.yOffset = 32;
+
+  part.scl = scl;
+
+  var dir = randRange(0, deg2rad(360));
+  var dirVec = new Vector(Math.cos(dir), Math.sin(dir));
+  var spd = randRange(1, 2);
+
+  part.spd = dirVec.mult(spd);
+  part.acc = new Vector(0, 0.3);
+  part.damp = new Vector(0.01, 0.01);
+
+  part.angleSpd = randRange(-0.1, 0.1);
+  part.depth = -20;
+
+  return part;
+}
+
 function particleCodenamesHint(x, y, hint){
   var life = 500;
   var part = new ParticleText(x, y, life, hint, "rgb(255,255,255)");

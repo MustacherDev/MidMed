@@ -98,6 +98,10 @@ function randRange(min, max){
   return (Math.random() * (max - min)) + min;
 }
 
+function randAmp(amp){
+  return randRange(-amp, amp);
+}
+
 function distance(dx, dy) {
     return Math.sqrt((dx * dx) + (dy * dy));
 }
