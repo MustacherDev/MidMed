@@ -1435,7 +1435,7 @@ class OpeningSequence{
     this.curtainSpotlight.y = this.curtainSpotlight.screenHeight/2;
     this.curtainSpotlight.active = true;
 
-    this.openingAlarm = new Alarm(0, 500);
+    this.openingAlarm = new Alarm(0, 200);
     this.openingCooldownAlarm = new Alarm(0, 25);
     this.openingAlarm.paused = true;
     this.spotWobbleAlarm = new Alarm(0, 400);
@@ -1836,7 +1836,7 @@ class Codenames{
 
         // 0 WHITE, 1 BLUE, 2 
         if(walkthrough){
-          console.log(nameMan.persons[name].name + " [" + (prob*100) + "%]");
+          console.log(nameMan.persons[name].name.text + " [" + (prob*100) + "%]");
         }
 
         if(!extra){

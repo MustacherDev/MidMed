@@ -125,7 +125,7 @@ class Effector {
 
                 if(id == NAME.WILLISTON) continue;
 
-                if (nameMan.persons[id].altName != nameMan.persons[id].name) {
+                if (nameMan.persons[id].altName.text != nameMan.persons[id].name.text) {
                     if(manager.losangos[i].useAltName != willAlt){
                         var event = EventCreate.altname(willAlt)
                         var updatePacket = event.wrap();
@@ -223,7 +223,8 @@ class Effector {
                 los.flip();
             } else {
                 playSound(SND.POLICE);
-                los.flip();
+                los.startPoliceSiren();
+                //los.flip();
             }
         } else if (los.id == NAME.ARAUJO) {
             // manager.finishCodenames();
@@ -281,6 +282,9 @@ class Effector {
                     manager.spotlight.active = false;
                 }
             }
+        } else if (los.id == NAME.RAFAEL) {
+            los.animeHat = (los.animeHat+1) % 4;
+            los.flip();
         } else if (los.id == NAME.LAIS) {
             // var directions = [
             //     new Vector(1, -1),
@@ -306,7 +310,7 @@ class Effector {
             //         }
             //     }
             // }
-            los.flip(1);
+            los.flip();
             // los.startBlackHole();
 
         } else if (los.id == NAME.IKARO) {

@@ -1040,6 +1040,10 @@ function Balloon(x, y, type) {
     manager.addParticles([particleSmack(this.x, this.y)]);
     this.holdingString.active = false;
     this.holdingString.onDestroy();
+    if(chance(0.25)){
+      addObject(new Bitcoin(this.x, this.y, randInt(25, 40)), OBJECT.BITCOIN);
+      playSound(SND.COINNOISE);
+    }
   }
 }
 

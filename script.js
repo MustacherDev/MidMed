@@ -109,6 +109,11 @@ function stateMenu(dt){
   ctx.restore();
   manager.openingManager.draw(ctx);
 
+
+  // if(input.keyState[KeyCodes.Space][1]){
+  //   manager.openingManager.
+  // }
+
   // if(!manager.openingManager.paused){
   //   manager.openingManager.curtainLeft.update(dt);
   //   manager.openingManager.curtainRight.update(dt);

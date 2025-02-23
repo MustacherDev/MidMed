@@ -58,13 +58,22 @@ const NAME = Object.freeze(new Enum(
 ));
 
 
+class Name{
+  constructor(text, scale = 1){
+    this.text = text;
+    this.scale = scale;
+  }
+}
+
 class Person{
   constructor(name, altName, extraNames, bday, bmonth){
-    this.name = name;
-    this.altName = altName;
+    this.name = new Name(name);
+    this.altName = new Name(altName);
+
     this.extraNames = extraNames;
     this.bday = bday;
     this.bmonth = bmonth;
+
   }
 }
 
@@ -100,7 +109,7 @@ class NameManager{
       new Person("EUDA","EUDA", ["EUDA"], 19, 8),
       new Person("FELIPE GOIS", "PHILLIP GOES", ["EUDA"], 9, 11),
       new Person("BARRETO","BARRET", ["EUDA"], 2, 6),
-      new Person("SANCHEZ","SANCHEZ", ["EUDA"], 21, 5),
+      new Person("SANCHEZ","GONZALEZ", ["EUDA"], 21, 5),
       new Person("HENRIQUE","HENRY", ["EUDA"], 25, 1),
       new Person("JOAO PAULO","JOHN PAUL", ["EUDA"], 10, 12),
       new Person("JOATAN","JOATAN", ["EUDA"], 29, 10),
@@ -112,7 +121,7 @@ class NameManager{
       new Person("JV PORTO","JV HARBOR", ["EUDA"], 4, 11),
       new Person("JV ROCHA","JV ROCK", ["EUDA"], 30, 6),
       new Person("JONATAS","JONATHAN", ["EUDA"], 1, 6),
-      new Person("ISRAEL","ISRAEL", ["EUDA"], 5, 6),
+      new Person("ISRAEL","ASRIEL", ["EUDA"], 5, 6),
       new Person("MARIA LUISA","MARY LOUISE", ["EUDA"], 12, 6),
       new Person("MARIANNA","MARY ANNE", ["EUDA"], 7, 8),
       new Person("INGRID","HINGRID", ["EUDA"], 26, 9),
@@ -122,9 +131,9 @@ class NameManager{
       new Person("THALIA","ITALIA", ["EUDA"], 23, 8),
       new Person("VICTORIA","VICTORY", ["EUDA"], 5, 11),
       new Person("WILLISTON","NOT SILLIW", ["EUDA"], 8, 1),
-      new Person("JUAN","JUAN", ["EUDA"], 10, 12),
+      new Person("JUAN","JOÃO", ["EUDA"], 10, 12),
       new Person("LAIS","LAYS", ["EUDA"], 19, 4),
-      new Person("LILIAN","LILIAN", ["EUDA"], 14, 9),
+      new Person("LILIAN","LILY", ["EUDA"], 14, 9),
       new Person("LUIS","LOUIS", ["EUDA"], 14, 8),
       new Person("MELINA","HONEY-INA", ["EUDA"], 23, 2),
       new Person("MICCHAEL","JACKSON", ["EUDA"], 20, 9),
@@ -141,12 +150,22 @@ class NameManager{
       new Person("SHEILA", "SHEILA", ["SHEILA"], 4, 1),
       new Person("DIOGO","DIOGO", ["DIOGO"], 24, 1),
       new Person("SIDNEY", "KIDNEY", ["SID"], 19, 1),
-      new Person("GIULIA","GIULIA", ["GIULIA"], 0, 13),
+      new Person("GIULIA","IIGUAL", ["GIULIA"], 0, 13),
       new Person("ROBERTA", "BETERRABA", ["REBECCA"], 6, 12),
       new Person("WALTER","WATER", ["AGUA"], 17, 11)
     ];
 
+    this.persons[NAME.FGOIS].name.scale = 0.9;
+    this.persons[NAME.MARIALUISA].name.scale = 0.9;
+    this.persons[NAME.JP].name.scale = 0.9;
 
+    this.persons[NAME.MILENA].altName.scale = 0.75;
+    this.persons[NAME.MICCHAEL].altName.scale = 0.9;
+    this.persons[NAME.ARAUJO].altName.scale = 0.75;
+    this.persons[NAME.MARIALUISA].altName.scale = 0.8;
+    this.persons[NAME.MARIANNA].altName.scale = 0.8;
+    this.persons[NAME.FGOIS].altName.scale = 0.8;
+    
     this.orderPattern = [
       [
          0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
@@ -178,8 +197,6 @@ class NameManager{
       ]
 
     ];
-
-    this.sortList
 
 
     this.hint = function(name, probNameList){

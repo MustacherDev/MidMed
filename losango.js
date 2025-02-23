@@ -7,6 +7,7 @@ const LSTATE = Object.freeze(new Enum(
     "BLACKHOLE",
     "HEADPHONES",
     "NAME",
+    "ANIMEHAT",
     "TOTAL"
 ));
 
@@ -213,6 +214,39 @@ class TiltActor{
   }
 }
 
+
+class WobbleActor{
+  constructor(){
+    this.wobbling = false;
+    this.spd = 0.025;
+    this.phase = 0;
+    this.amp = deg2rad(20);
+    this.angle = 0;
+
+    this.angDamp = 0.02;
+  }
+
+  startWobble(spd = 0.025, phase = 0){
+    this.wobbling = true;
+    this.spd = spd;
+    this.phase = phase;
+  }
+
+  stopWobble(){
+    this.wobbling = false;
+  }
+
+  update(dt, los){
+     // Rotating/ Tilting
+     if(this.wobbling){
+        this.phase += this.spd*dt;
+        this.angle = Math.sin(this.phase)*this.amp;
+    } else {
+      this.angle *= Math.pow(1-this.angDamp,dt);
+    }
+  }
+}
+
 class ColorActor{
   constructor(color){
     this.baseColor = new Color(0,0,0,0);
@@ -263,6 +297,71 @@ class ColorActor{
         this.phaseTimer.stop();
         this.phasing = false;
       }
+    }
+  }
+}
+
+class StateFlow{
+  constructor(state, stateTime){
+    this.state = state;
+    this.stateTimer = 0;
+    this.stateTime = stateTime;
+    this.progress = 0;
+  }
+
+  setState(state){
+    this.state = state;
+    this.progress = 0;
+  }
+
+  update(dt){
+
+
+    switch(this.state){
+      case 0:
+        this.progress = 0;
+        break;
+      case 1:
+        this.stateTimer += dt;
+        if(this.stateTimer < this.stateTime){
+          this.progress = this.stateTimer/this.stateTime;
+        } else {
+          this.state = 2;
+          this.progress = 1;
+        }
+        break;
+      case 2:
+        this.progress = 1;
+        break;
+      case 3:
+        this.stateTimer -= dt;
+        if(this.stateTimer > 0){
+          this.progress = this.stateTimer/this.stateTime;
+        } else {
+          this.state = 0;
+          this.progress = 0;
+        }
+        break;
+    }
+
+
+  }
+
+  trigger(){
+    if(this.state == 0){
+      this.state = 1;
+    } else if (this.state == 3){
+      this.state = 1;
+      this.stateTimer = this.stateTime - this.stateTimer;
+    }
+  }
+
+  hide(){
+    if(this.state == 2){
+      this.state = 3;
+    } else if (this.state == 1){
+      this.state = 3;
+      this.stateTimer = this.stateTime - this.stateTimer;
     }
   }
 }
@@ -324,6 +423,7 @@ class Losango {
     this.sneezeActor = new SneezeActor();
     this.flipActor = new FlipActor();
     this.tiltActor = new TiltActor();
+    this.wobbleActor = new WobbleActor();
 
     this.shrinked = false;
     this.shrinkAlarm = new Alarm(0, 100);
@@ -338,9 +438,16 @@ class Losango {
 
     this.hideLineAlarm = new Alarm(0, 25);
     this.hideLineAlarm.pause();
+    this.lineStateFlow = new StateFlow(1, 50);
+
+    this.enlargeStateFlow = new StateFlow(0, 75);
 
     this.frontColor = new Color(255,255,255);
     this.backColor = new Color(200, 200, 200);
+
+    this.policeColorSwitchAlarm = new Alarm(0, 10);
+    this.policeColorDurationAlarm = new Alarm(130, 130);
+    this.policeColorId = 0;
 
     this.frontColorActor = new ColorActor(this.frontColor);
     this.backColorActor = new ColorActor(this.backColor);
@@ -363,6 +470,7 @@ class Losango {
     this.codenamesMode = false;
 
     this.headphones = false;
+    this.animeHat = 0;
 
     this.blackHolePartAlarm = new Alarm(0, 1);
     this.blackHoleMode = false;
@@ -452,9 +560,8 @@ class Losango {
   }
 
 
-
   ghostParticles(){
-    manager.particles.push(particleGhostLos(this.x, this.y, nameMan.persons[this.id].name));
+    manager.particles.push(particleGhostLos(this.x, this.y, nameMan.persons[this.id].name.text));
   }
 
   musicNoteParticle(type){
@@ -462,6 +569,28 @@ class Losango {
   }
 
 
+  startPoliceSiren(){
+    this.policeColorDurationAlarm.restart();
+    this.policeColorSwitchAlarm.restart();
+    this.policeColorId = 1;
+    
+    var color =  new Color(255, 0, 0);
+    switch (this.policeColorId){
+      case 0:
+        color =  new Color(0, 0, 255);
+        break;
+      case 1:
+        color =  new Color(255, 255, 255);
+        break;
+      case 2:
+        color =  new Color(255, 0, 0);
+        break; 
+      case 3:
+        color =  new Color(255, 255, 255);
+        break;
+    } 
+    this.frontColorActor.startPhase(this.frontColor,color, this.policeColorSwitchAlarm.time);
+  }
 
   playNote(){
     if(this.playNoteCooldownAlarm.finished){
@@ -583,7 +712,7 @@ class Losango {
     if(this.inOtherplane) return;
 
     this.hovered = false;
-
+ 
 
     // VARIABLES THAT GET CHANGED ONLY DURING THIS UPDATE
     // MODIFIERS OF EXISTING VARS 
@@ -660,6 +789,31 @@ class Losango {
       }
     }
 
+    if(this.wobbleActor.wobbling){
+
+      if(manager.holding){
+        if(manager.holdingObject.type != OBJECT.BITCOIN){
+          this.wobbleActor.stopWobble();
+          this.lineStateFlow.trigger();
+        }
+      } else {
+        this.wobbleActor.stopWobble();
+        this.lineStateFlow.trigger();
+      }
+    } else {
+
+      if(this.id == NAME.LAIS){
+
+        if(manager.holding){
+
+          if(manager.holdingObject.type == OBJECT.BITCOIN){
+            this.wobbleActor.startWobble(0.075, 0);
+            this.lineStateFlow.hide();
+          }
+        }
+      }
+    }
+
     // BLACK HOLE PARTICLES
     if(this.blackHoleMode && !this.flipActor.isFront && !this.minesweeper){
       this.blackHolePartAlarm.update(dt);
@@ -698,12 +852,47 @@ class Losango {
     // SNEEZING
     this.sneezeActor.update(dt, this);
 
+    // WOBBLING
+    this.wobbleActor.update(dt, this);
+
+    // POLICE COLOR
+    this.policeColorDurationAlarm.update(dt);
+    if(!this.policeColorDurationAlarm.finished){
+      this.policeColorSwitchAlarm.update(dt);
+      if(this.policeColorSwitchAlarm.finished){
+        this.policeColorSwitchAlarm.restart();
+        this.policeColorId = (this.policeColorId+1) % 4;
+
+        var color =  new Color(255, 0, 0);
+        switch (this.policeColorId){
+          case 0:
+            color =  new Color(0, 0, 255);
+            break;
+          case 1:
+            color =  new Color(255, 255, 255);
+            break;
+          case 2:
+            color =  new Color(255, 0, 0);
+            break; 
+          case 3:
+            color =  new Color(255, 255, 255);
+            break;
+        } 
+        this.frontColorActor.startPhase(this.frontColor,color, this.policeColorSwitchAlarm.time);
+      }
+    }
 
     // COLOR CHANGING
     this.frontColorActor.update(dt, this);
     this.backColorActor.update(dt, this);
     this.frontColor.setWithColor(this.frontColorActor.color);
     this.backColor.setWithColor(this.backColorActor.color);
+
+    // OUTLINE STATE
+    this.lineStateFlow.update(dt);
+
+    // ENLARGING STATE
+    this.enlargeStateFlow.update(dt);
 
     // POPPING
     this.popInAlarm.update(dt);
@@ -784,6 +973,11 @@ class Losango {
       }
     }
 
+    // ENLARGEMENT
+    this.xSclMult *= (this.enlargeStateFlow.progress*0.2+1);
+    this.ySclMult *= (this.enlargeStateFlow.progress*0.2+1);
+
+
 
 
 
@@ -858,6 +1052,7 @@ class Losango {
       this.states[LSTATE.SHOPMODE] = this.shopMode;
 
       this.states[LSTATE.HEADPHONES] = this.headphones;
+      this.states[LSTATE.ANIMEHAT] = this.animeHat;
     }
 
 
@@ -891,9 +1086,13 @@ class Losango {
       break;
       case LEVENT.STARTMINESWEEPER:
         this.minesweeper = true;
+        this.lineStateFlow.hide();
+        this.enlargeStateFlow.trigger();
       break;
       case LEVENT.ENDMINESWEEPER:
         this.minesweeper = false;
+        this.lineStateFlow.trigger();
+        this.enlargeStateFlow.hide();
       break;
       case LEVENT.SCREENMODE:
         this.screenMode = params[0];
@@ -986,7 +1185,7 @@ class Losango {
     var yAnim = this.y + anim.y;
     var xSclAnim = this.xScl * (1+anim.xScl);
     var ySclAnim = this.yScl * (1+anim.yScl);
-    var angAnim = this.angle + anim.angle;
+    var angAnim = this.angle + anim.angle + this.wobbleActor.angle;
 
 
 
@@ -1013,9 +1212,13 @@ class Losango {
 
     var resultColor = (this.flipActor.isFront > 0) ? this.frontColor.copy() : this.backColor.copy();
 
-    if(this.hovered || (!manager.winSoundReady() && this.id == NAME.VICTORIA)){
+    if(!manager.winSoundReady() && this.id == NAME.VICTORIA){
+      resultColor = resultColor.mult(0.5);
+    } else if(this.hovered){
       resultColor = resultColor.mult(0.75);
     }
+
+  
 
     var colorHex = resultColor.toHex();
 
@@ -1023,9 +1226,11 @@ class Losango {
     // Drawing lines around
     var perc = this.linePerc;
     
-    if(this.minesweeper){
-      perc *= (1 - this.hideLineAlarm.percentage());
-    }
+    // if(this.minesweeper){
+    //   perc *= (1 - this.hideLineAlarm.percentage());
+    // }
+
+    perc *= this.lineStateFlow.progress;
 
     var cooldownColor = Math.floor(this.effectCooldownAlarm.percentage()*200);
     ctx.fillStyle = "rgb(200," + cooldownColor + "," +cooldownColor+")";
@@ -1054,6 +1259,10 @@ class Losango {
       sprites[SPR.HEADPHONES].drawExtRelative(-this.width/2,-this.height/2,0,4,4,deg2rad(0),0.5,0.5);
     }
 
+    if(this.states[LSTATE.ANIMEHAT] == 1){
+      sprites[SPR.STRAWHAT].drawExtRelative(0, 0,0,0.6,0.6,deg2rad(-45),0.5,0.5);
+    }  
+
     // if(this.connector){
     //   var xx = -this.width/2;
     //   var yy = 0;
@@ -1069,6 +1278,13 @@ class Losango {
     ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
     ctx.strokeRect(-this.width / 2, -this.height / 2, this.width, this.height);
 
+    var alpha = ctx.globalAlpha;
+    ctx.globalAlpha = 1;
+    if (this.states[LSTATE.ANIMEHAT] == 3){
+      sprites[SPR.HUNTERHUNTER].drawExtRelative(0,0,0,0.25,0.25,deg2rad(-45),0.5,-0.25);
+    }
+    ctx.globalAlpha = alpha;
+
 
     // Drawing Losango Contents
     if(this.flipActor.isFront){
@@ -1079,9 +1295,11 @@ class Losango {
       ctx.textAlign = 'center';
 
       if(this.useAltName){
-        ctx.fillText(nameMan.persons[this.id].altName, 0, 0);
+        ctx.scale(nameMan.persons[this.id].altName.scale, nameMan.persons[this.id].altName.scale);
+        ctx.fillText(nameMan.persons[this.id].altName.text, 0, 0);
       } else {
-        ctx.fillText(nameMan.persons[this.id].name, 0, 0);
+        ctx.scale(nameMan.persons[this.id].name.scale, nameMan.persons[this.id].name.scale);
+        ctx.fillText(nameMan.persons[this.id].name.text, 0, 0);
         //ctx.fillText(this.depth, 0, 40);
       }
 

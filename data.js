@@ -223,6 +223,8 @@ const SPR = Object.freeze(new Enum(
     "PLANTSADDONS",
     "SEEDS",
     "ROCKPIECES",
+    "STRAWHAT",
+    "HUNTERHUNTER",
     "TOTAL"
 ));
 
@@ -273,7 +275,9 @@ var imgPaths = [  "bombSprite.png",
   "plants.png",
   "plantsAddons.png",
   "seeds.png",
-  "rock.png"
+  "rock.png",
+  "bones.png",
+  "hunterHunter.png"
 
 ];
 

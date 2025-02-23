@@ -472,7 +472,7 @@ function particleMusicNote(x, y, type){
   var life = 40;
   var part = new ParticleSprite(x, y, life, sprites[SPR.MUSICNOTES]);
   
-  part.scl = 4;
+  part.scl = 3;
   part.xOffset = part.sprite.width/2;
   part.yOffset = part.sprite.height/2;
   part.img = type;
