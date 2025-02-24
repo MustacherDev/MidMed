@@ -225,6 +225,8 @@ const SPR = Object.freeze(new Enum(
     "ROCKPIECES",
     "STRAWHAT",
     "HUNTERHUNTER",
+    "XAROPSQUARE",
+    "BEE",
     "TOTAL"
 ));
 
@@ -277,7 +279,9 @@ var imgPaths = [  "bombSprite.png",
   "seeds.png",
   "rock.png",
   "bones.png",
-  "hunterHunter.png"
+  "hunterHunter.png",
+  "xaropSquare.png",
+  "bee.png"
 
 ];
 
@@ -322,6 +326,9 @@ function loadSprites() {
         sprites[SPR.SEEDS].setSubimg(32,32);
         sprites[SPR.PLANTSADDONS].setSubimg(16,16);
         sprites[SPR.ROCKPIECES].setSubimg(64,64);
+        sprites[SPR.XAROPSQUARE].setSubimg(38,38);
+        sprites[SPR.BEE].setSubimg(150,200);
+
 
 
         spritesLoaded = true;

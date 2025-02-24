@@ -760,7 +760,7 @@ class AchievementManager{
 
     if(this.state == 0) return;
     var spr = sprites[SPR.ACHIEVEMENTDISPLAY];
-    var scl = this.height/spr.height
+    var scl = (this.height)/spr.height;
     var wid = spr.width*scl;
     var hei = spr.height*scl;
     var prevAlpha = ctx.globalAlpha;
@@ -771,7 +771,7 @@ class AchievementManager{
     var slotSize = 85 * scl;
 
     var iconWid = iconSpr.width;
-    var iconScl = slotSize/iconWid;
+    var iconScl = (slotSize*0.8)/iconWid;
 
     iconSpr.drawExtRelative(this.x - wid/2 + 16*scl + slotSize/2, this.y + this.yOff + 16*scl + slotSize/2, this.displayIcon, iconScl, iconScl, 0, 0.5, 0.5);
   
@@ -781,7 +781,7 @@ class AchievementManager{
     ctx.textBaseline = "top";
     
     for(var i = 0 ; i < 3; i++){
-      ctx.fillText(this.displayText[i], this.x - wid/2 + slotSize + 32*scl, this.y + this.yOff + (hei/3)*i);
+      ctx.fillText(this.displayText[i], this.x - wid/2 + slotSize + 32*scl, this.y + this.yOff + 10 + ((hei-20)/3)*i);
     }
 
     ctx.globalAlpha = prevAlpha;

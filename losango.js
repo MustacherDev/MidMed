@@ -8,6 +8,8 @@ const LSTATE = Object.freeze(new Enum(
     "HEADPHONES",
     "NAME",
     "ANIMEHAT",
+    "IMAGE",
+    "GRIDIND",
     "TOTAL"
 ));
 
@@ -17,6 +19,7 @@ const LEVENT = Object.freeze(new Enum(
   "STARTMINESWEEPER",
   "ENDMINESWEEPER",
   "SCREENMODE",
+  "IMAGESHOW",
   "TOTAL"
 ));
 
@@ -40,6 +43,10 @@ class EventCreate{
 
   static screenMode(state = true){
     return new EventObject(LEVENT.SCREENMODE, [state]);
+  }
+
+  static imageShow(imageId){
+    return new EventObject(LEVENT.IMAGESHOW, [imageId]);
   }
 
 
@@ -442,6 +449,12 @@ class Losango {
 
     this.enlargeStateFlow = new StateFlow(0, 75);
 
+
+
+    this.colorInOutAlarm = new Alarm(0, 150);
+    this.colorInOut = new Color(255, 255, 255);
+
+
     this.frontColor = new Color(255,255,255);
     this.backColor = new Color(200, 200, 200);
 
@@ -453,6 +466,9 @@ class Losango {
     this.backColorActor = new ColorActor(this.backColor);
 
     this.linePerc = 0.1;
+
+    this.imageShow = -1;
+    this.resolvingImage = false;
 
     this.hovered = false;
 
@@ -568,6 +584,12 @@ class Losango {
     manager.particles.push(particleMusicNote(this.x, this.y, type));
   }
 
+  startColorInOut(color){
+    this.frontColorActor.startPhase(this.frontColor, color, 50);
+    this.colorInOut = this.frontColor.copy();
+    this.colorInOutAlarm.restart();
+    this.colorInOutAlarm.resume();
+  }
 
   startPoliceSiren(){
     this.policeColorDurationAlarm.restart();
@@ -882,6 +904,13 @@ class Losango {
       }
     }
 
+    // COLOR INOUT
+    this.colorInOutAlarm.update(dt);
+    if(this.colorInOutAlarm.finished){
+      this.frontColorActor.startPhase(this.frontColor, this.colorInOut, 50);
+      this.colorInOutAlarm.stop();
+    }
+
     // COLOR CHANGING
     this.frontColorActor.update(dt, this);
     this.backColorActor.update(dt, this);
@@ -1053,6 +1082,8 @@ class Losango {
 
       this.states[LSTATE.HEADPHONES] = this.headphones;
       this.states[LSTATE.ANIMEHAT] = this.animeHat;
+      this.states[LSTATE.IMAGE] = this.imageShow;
+      this.states[LSTATE.GRIDIND] = this.getGridId();
     }
 
 
@@ -1097,6 +1128,10 @@ class Losango {
       case LEVENT.SCREENMODE:
         this.screenMode = params[0];
       break;
+      case LEVENT.IMAGESHOW:
+        this.imageShow = params[0];
+        this.resolvingImage = false;
+        break;
     }
   }
 
@@ -1260,8 +1295,11 @@ class Losango {
     }
 
     if(this.states[LSTATE.ANIMEHAT] == 1){
-      sprites[SPR.STRAWHAT].drawExtRelative(0, 0,0,0.6,0.6,deg2rad(-45),0.5,0.5);
+      sprites[SPR.STRAWHAT].drawExtRelative(0, 0,0,0.7,0.7,deg2rad(0),0.5,0.5);
     }  
+
+
+   
 
     // if(this.connector){
     //   var xx = -this.width/2;
@@ -1286,8 +1324,25 @@ class Losango {
     ctx.globalAlpha = alpha;
 
 
+
     // Drawing Losango Contents
     if(this.flipActor.isFront){
+
+      if(this.states[LSTATE.IMAGE] == 0){
+
+        var gridInd = this.states[LSTATE.GRIDIND];
+        var col = gridInd%10;
+        var row = Math.floor(gridInd/10);
+  
+        var imgX = col + row;
+        var imgY = 9 - col + row;
+  
+        var img = imgX + imgY*14;
+  
+        sprites[SPR.XAROPSQUARE].drawExtRelative(0,0, img,2.1,2.1,deg2rad(0),0.5,0.5);
+      }
+
+
       ctx.rotate(-angAnim); // Rotate the canvas context
 
       ctx.font = ((isMobile) ? "18" : "14") + "px Arial";

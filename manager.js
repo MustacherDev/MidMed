@@ -205,6 +205,8 @@ class Manager {
     this.prevMousePos = [];
     this.prevMouseLength = 2;
 
+    this.birthdayParty = false;
+
 
     if(isMobile){
       this.prevMouseLength = 5;
@@ -222,6 +224,7 @@ class Manager {
     this.toolBar.tools[2] = true;
  
 
+
     for(let i = 0; i < NAME.TOTAL; i++){
       var pos = this.getBasePosGrid(i);
       this.losangos.push(new Losango(pos.x, pos.y, i));
@@ -231,6 +234,7 @@ class Manager {
 
       if(nameMan.persons[i].bday == this.day && nameMan.persons[i].bmonth == this.month){
         this.losangos[i].anniversary = true;
+        this.birthdayParty = true;
       } else if(nameMan.persons[i].bday == this.tDay && nameMan.persons[i].bmonth == this.tMonth){
         this.losangos[i].preAnniversary = true;
       }
@@ -241,6 +245,11 @@ class Manager {
         this.losangos[i].attached = false;
       }
     }
+  
+    if(this.birthdayParty){
+      musicBox.readMidi("MIDI/happyBirthday.json");
+    }
+
 
     for(var j = 0 ; j < GRID.TOTAL; j++){
       var subGrid = [];

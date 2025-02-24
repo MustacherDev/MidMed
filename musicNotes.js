@@ -134,6 +134,8 @@ class MusicBox{
         this.loadedTracks = [];
         this.playTime = 0;
         this.playSpd = 0.02;
+
+        this.paused = false;
     }
 
     async readMidi(midiJsonPath){
@@ -175,10 +177,12 @@ class MusicBox{
         }
 
         this.playReady = true;
+        this.paused = false;
     }
 
     play(dt){
         if(!this.playReady) return;
+        if(this.paused) return;
 
         this.playTime += dt*this.playSpd;
 
@@ -223,6 +227,7 @@ class MusicBox{
         if(!keepPlaying){
             this.playReady = true;
             this.playTime = 0;
+            this.paused = true;
             for(var i =  0 ; i < this.loadedTracks.length; i++){
                 this.loadedTracks[i].done = false;
                 this.loadedTracks[i].playIndex = 0;

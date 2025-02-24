@@ -556,6 +556,12 @@ function Bitcoin(x, y, radius) {
   this.update = function (dt) {
     this.updateBox(dt);
 
+    if(this.holder.holded){
+      this.depth = -50;
+    } else {
+      this.depth = objectsDepth.bitcoin;
+    }
+
     if (this.holder.throwEvent) {
 
       if (manager.inventory.boundingBox.isPointInside(input.mouseX, input.mouseY)) {
@@ -668,6 +674,12 @@ function Rock(x, y, width, height) {
     }
 
     this.updateBox(dt);
+
+    if(this.holder.holded){
+      this.depth = -50;
+    } else {
+      this.depth = objectsDepth.rock;
+    }
 
     if(this.holder.holdEvent){
       this.holder.holdEvent = false;

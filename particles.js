@@ -486,6 +486,27 @@ function particleMusicNote(x, y, type){
 }
 
 
+function particleBee(x, y){
+  var life = 600;
+  var part = new ParticleSprite(x, y, life, sprites[SPR.BEE]);
+  
+  var depthRatio = randRange(-1, 1);
+  var depth = depthRatio*10;
+  part.scl = 0.5 + depthRatio*0.25;
+  part.xOffset = part.sprite.width/2;
+  part.yOffset = part.sprite.height/2;
+  part.imgSpd = 0.2 + depthRatio*0.01;
+  part.spd.x = 8 + depthRatio*2.5;
+  part.acc.x = randRange(-0.01, 0.1);
+  part.accDamp.x = 0.98;
+  
+  //part.damp.y = 0.05; 
+  //part.angle = randRange(-Math.PI/10, Math.PI/10);
+  part.depth = -depth;
+
+  return part;
+}
+
 function particleLogo(x, y){
   var life = 100;
   var part = new ParticleSprite(x, y, life, sprites[SPR.MIDMEDLOGO]);

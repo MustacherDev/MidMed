@@ -79,6 +79,38 @@ class Effector {
             return;
         }
 
+        if(los.imageShow != -1){
+            if(los.resolvingImage) return;
+            if(!los.flipActor.isFront) return;
+            var gridInd = los.getGridId();
+            var startCol = gridInd%10;
+            var startRow = Math.floor(gridInd/10);
+
+            for(var i = 0; i < manager.grid[GRID.MIDDLE].length; i++){
+                if(manager.losangos.length <= i ) continue;
+                if(manager.losangos[i].inOtherplane) continue;
+                
+                var obj = manager.grid[GRID.MIDDLE][i];
+
+                if (!obj.valid) continue;
+                if (obj.object.type != OBJECT.LOSANGO) continue;
+
+                var col = i%10;
+                var row = Math.floor(i/10);
+
+            
+
+                var diff = distance((col - startCol), (row - startRow));
+                obj.object.resolvingImage = true;
+                
+                var updatePacket = EventCreate.imageShow(-1).wrap();
+                updatePacket.isFront = true;
+                updatePacket.waitTime = diff*5;
+                obj.object.updateList.push(updatePacket);
+            }
+            return;
+        }
+
         if (los.shopMode) {
             this.shopEffects(los, rightClick);
             return;
@@ -222,8 +254,10 @@ class Effector {
             if(manager.altNames){
                 los.flip();
             } else {
-                playSound(SND.POLICE);
-                los.startPoliceSiren();
+                if(los.policeColorDurationAlarm.finished){
+                    playSound(SND.POLICE);
+                    los.startPoliceSiren();
+                }
                 //los.flip();
             }
         } else if (los.id == NAME.ARAUJO) {
@@ -312,7 +346,51 @@ class Effector {
             // }
             los.flip();
             // los.startBlackHole();
+        } else if (los.id == NAME.MELINA) {
+            los.flip(12);
+            var parts = [];
+            for(var i = 0; i < 30; i++){
+                var part = particleBee(randRange(-roomWidth*1.2, -100), randRange(0, roomHeight));
+                parts.push(part);
+            }
+            manager.addParticles(parts);
+        } else if (los.id == NAME.ANAJU) {
 
+            if(!los.flipActor.isFront){
+
+            } else {
+                var gridInd = manager.losangosGrid[NAME.ANAJU];
+                var startCol = gridInd%10;
+                var startRow = Math.floor(gridInd/10);
+
+                for(var i = 0; i < manager.grid[GRID.MIDDLE].length; i++){
+                    if(manager.losangos.length <= i ) continue;
+                    if(manager.losangos[i].inOtherplane) continue;
+                    
+                    var obj = manager.grid[GRID.MIDDLE][i];
+
+                    if (!obj.valid) continue;
+                    if (obj.object.type != OBJECT.LOSANGO) continue;
+
+                    var col = i%10;
+                    var row = Math.floor(i/10);
+
+                
+
+                    var diff = distance((col - startCol), (row - startRow));
+
+                    
+                    var updatePacket = EventCreate.imageShow(0).wrap();
+                    updatePacket.isFront = false;
+                    updatePacket.waitTime = diff*5;
+                    obj.object.updateList.push(updatePacket);
+
+                    var otherUpdatePacket = new UpdateLosango([]);
+                    otherUpdatePacket.isFront = true;
+                    otherUpdatePacket.waitTime = diff*2 + 50;
+                    obj.object.updateList.push(otherUpdatePacket);
+                }
+            }
         } else if (los.id == NAME.IKARO) {
             if(manager.musicMode){
                 los.headphones = false;
@@ -321,7 +399,17 @@ class Effector {
             } else {
                 los.headphones = true;
                 manager.musicMode = true;
+
+                if(manager.birthdayParty){
+                    musicBox.loadFromPartiture();
+                }
+
                 los.flip();
+            }
+        } else if (los.id == NAME.MARLUS) {
+            los.tiltActor.freeMoveSpd += 0.02;
+            if (input.mouseState[0][1]) {
+                manager.clickParticle();
             }
         } else if (los.id == NAME.CAIO) {
             if (los.useAltName) {
@@ -367,6 +455,23 @@ class Effector {
             if(los.useAltName){
                 playSound(SND.FUNICULI);
                 los.flip(6);
+                for(var i = 0; i < manager.grid[GRID.MIDDLE].length; i++){
+                    if(manager.losangos.length <= i ) continue;
+                    if(manager.losangos[i].inOtherplane) continue;
+
+                    var obj = manager.grid[GRID.MIDDLE][i];
+
+                    if (!obj.valid) continue;
+                    if (obj.object.type != OBJECT.LOSANGO) continue;
+
+                    var col = i%10;
+
+                    if(col < 3){
+                        obj.object.startColorInOut(new Color(0, 255, 0));
+                    } else if(col > 6) {
+                        obj.object.startColorInOut(new Color(255, 0, 0));
+                    }
+                  }
             } else {
                 los.flip();
             }
