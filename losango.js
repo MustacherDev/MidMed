@@ -308,6 +308,79 @@ class ColorActor{
   }
 }
 
+class OrbitActor{
+  constructor(){
+    this.orbiting = false;
+    this.orbitingObj = null;
+    this.timer = new Alarm(0, 400);
+    this.center = new Vector(0,0);
+    this.phase = 0;
+    this.spd = 0;
+    this.radius = 0;
+    
+    this.orbitPos = new Vector(0, 0);
+  }
+
+  startOrbit(phase, spd, radius, duration, obj){
+    this.orbiting = true;
+    this.phase = phase;
+    this.spd = spd;
+    this.radius = radius;
+    this.center = new Vector(0, 0);
+
+    this.timer.timeInit = duration;
+    this.timer.stop();
+    this.timer.start();
+
+    
+    this.orbitPos.x = 0;
+    this.orbitPos.y = 0;
+
+    // MEIO REDUNDANTE EU ACHO
+    if(obj){
+      this.orbitingObj = obj;
+    } else {
+      this.orbitingObj = null;
+    }
+  }
+
+  update(dt, los){
+    this.timer.update(dt);
+    if(this.orbiting){
+
+      var prog = this.timer.percentage();
+      var prog2 = tweenIn(Math.abs(prog-0.5)*2);
+      var prog3 = tweenIn(Math.max(prog-0.8, 0)*5);
+
+      var extraRad = 20*this.radius* prog3;
+
+      var rad = prog2*this.radius*0.5 + this.radius*0.75 + extraRad;
+
+
+
+      var spd = this.spd + 3*this.spd* Math.pow(tweenIn(prog), 2);
+
+      this.phase += spd*dt;
+
+      if(this.orbitingObj){
+        this.center.x = this.orbitingObj.x;
+        this.center.y = this.orbitingObj.y;
+      }
+
+    
+
+
+
+      this.orbitPos.x = this.center.x + rad*Math.cos(this.phase);
+      this.orbitPos.y = this.center.y + rad*Math.sin(this.phase);
+
+      if(this.timer.finished){
+        this.orbiting = false;
+      }
+    }
+  }
+}
+
 class StateFlow{
   constructor(state, stateTime){
     this.state = state;
@@ -431,6 +504,7 @@ class Losango {
     this.flipActor = new FlipActor();
     this.tiltActor = new TiltActor();
     this.wobbleActor = new WobbleActor();
+    this.orbitActor = new OrbitActor();
 
     this.shrinked = false;
     this.shrinkAlarm = new Alarm(0, 100);
@@ -464,6 +538,8 @@ class Losango {
 
     this.frontColorActor = new ColorActor(this.frontColor);
     this.backColorActor = new ColorActor(this.backColor);
+
+
 
     this.linePerc = 0.1;
 
@@ -614,6 +690,10 @@ class Losango {
     this.frontColorActor.startPhase(this.frontColor,color, this.policeColorSwitchAlarm.time);
   }
 
+  startOrbit(phase, spd, radius, duration, obj){
+    this.orbitActor.startOrbit(phase, spd, radius, duration, obj);
+  }
+
   playNote(){
     if(this.playNoteCooldownAlarm.finished){
       musicMan.playNote(this.attachGridId);
@@ -639,41 +719,56 @@ class Losango {
 
       this.attachCooldownAlarm.update(dt);
 
-      if(Math.abs(targetPos.x - this.x) + Math.abs(targetPos.y - this.y) < 5){
 
-        if(this.attachCooldownAlarm.finished){
-          if(!this.inPlace){
-            this.hspd = 0;
-            this.vspd = 0;
+      if(this.orbitActor.orbiting){
+      
+        var ratio = 0.5;
+        var orbitHspd = ((this.x*(1-ratio) + this.orbitActor.orbitPos.x*ratio) - this.x)*0.02;
+        var orbitVspd = ((this.y*(1-ratio) + this.orbitActor.orbitPos.y*ratio) - this.y)*0.02;
 
-            var pos = new Vector(this.x, this.y);
-            var dist = targetPos.sub(pos).mag();
-            var dir = targetPos.sub(pos).unit();
-            if(dist < 1){
-              this.x = targetPos.x;
-              this.y = targetPos.y;
-              this.inPlace = true;
+        this.x += orbitHspd*dt;
+        this.y += orbitVspd*dt; 
+      } else {
 
-              this.lockParticles();
+        if(Math.abs(targetPos.x - this.x) + Math.abs(targetPos.y - this.y) < 5){
+
+          if(this.attachCooldownAlarm.finished){
+            if(!this.inPlace){
+              this.hspd = 0;
+              this.vspd = 0;
+
+              var pos = new Vector(this.x, this.y);
+              var dist = targetPos.sub(pos).mag();
+              var dir = targetPos.sub(pos).unit();
+              if(dist < 1){
+                this.x = targetPos.x;
+                this.y = targetPos.y;
+                this.inPlace = true;
+
+                this.lockParticles();
 
 
-            } else {
-              this.x += dir.x/10;
-              this.y += dir.y/10;
+              } else {
+                this.x += dir.x/10;
+                this.y += dir.y/10;
+              }
             }
           }
+        } else {
+          this.inPlace = false;
+          var pos = new Vector(this.x, this.y);
+          var dist = targetPos.sub(pos).mag();
+          var dir = targetPos.sub(pos).unit();
+
+          var spd = Math.max((dist*dist)/100000, 0.1);
+
+          this.hspd += dir.x*spd*dt;
+          this.vspd += dir.y*spd*dt;
         }
-      } else {
-        this.inPlace = false;
-        var pos = new Vector(this.x, this.y);
-        var dist = targetPos.sub(pos).mag();
-        var dir = targetPos.sub(pos).unit();
-
-        var spd = Math.max((dist*dist)/100000, 0.1);
-
-        this.hspd += dir.x*spd*dt;
-        this.vspd += dir.y*spd*dt;
       }
+
+
+      
     } else {
       if(!this.holder.holded){
 
@@ -686,6 +781,8 @@ class Losango {
 
           this.angle = (this.body.state.angular.pos)%(Math.PI*2);
         }
+
+  
       } else {
         if(this.body != null){
           this.body.state.pos.x = this.x;
@@ -699,6 +796,10 @@ class Losango {
 
 
     if(this.holder.holded){
+      this.depth -= 10;
+    }
+
+    if(this.orbitActor.orbiting){
       this.depth -= 10;
     }
 
@@ -876,6 +977,9 @@ class Losango {
 
     // WOBBLING
     this.wobbleActor.update(dt, this);
+
+    // ORBITING
+    this.orbitActor.update(dt, this);
 
     // POLICE COLOR
     this.policeColorDurationAlarm.update(dt);

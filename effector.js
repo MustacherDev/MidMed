@@ -526,51 +526,65 @@ class Effector {
             los.flip();
         } else if (los.id == NAME.SAMUEL) {
 
-            var directions = [
-                new Vector(1, 0),
-                new Vector(1, -1),
-                new Vector(0, -1),
-                new Vector(-1, -1),
-                new Vector(-1, 0),
-                new Vector(-1, 1),
-                new Vector(0, 1),
-                new Vector(1, 1),
-            ];
 
-            for (var i = 0; i < directions.length; i++) {
-                var pos = manager.gridInd2XY(los.getGridId());
-                pos.x += directions[i].x;
-                pos.y += directions[i].y;
+            var validIds = [NAME.JOAS, NAME.ANDRE, NAME.LUIS, NAME.MATHEUS, NAME.HENRIQUE, NAME.GABRIEL, NAME.BERNAD, NAME.FSANCHEZ, NAME.RAFAEL];
+            
+            if(!manager.altNames){
+                for(var i = 0; i < validIds.length;i++ ){
+                    var id = validIds[i];
 
-                if (manager.checkValidGridPos(pos.x, pos.y)) {
-                    var sideInd = manager.gridXY2Ind(pos.x, pos.y);
-                    var sideGridObj = manager.grid[GRID.MIDDLE][sideInd];
-                    if (sideGridObj.valid) {
-                        if (sideGridObj.object.type == OBJECT.LOSANGO) {
-                            var sideId = sideGridObj.object.id;
+                    if( manager.losangos[id].inOtherplane) continue;
+                    manager.losangos[id].startOrbit(i * (deg2rad(360)/9), 0.01, 250, 1000, los);
 
-                            var validIds = [NAME.JOAS, NAME.ANDRE, NAME.LUIS, NAME.MATHEUS, NAME.HENRIQUE, NAME.GABRIEL, NAME.BERNAD, NAME.FSANCHEZ, NAME.RAFAEL];
-                            var canSlap = false;
-                            for (var j = 0; j < validIds.length; j++) {
-                                if (sideId == validIds[j]) {
-                                    canSlap = true;
-                                    break;
+                }
+            } else {
+
+                var directions = [
+                    new Vector(1, 0),
+                    new Vector(1, -1),
+                    new Vector(0, -1),
+                    new Vector(-1, -1),
+                    new Vector(-1, 0),
+                    new Vector(-1, 1),
+                    new Vector(0, 1),
+                    new Vector(1, 1),
+                ];
+
+                for (var i = 0; i < directions.length; i++) {
+                    var pos = manager.gridInd2XY(los.getGridId());
+                    pos.x += directions[i].x;
+                    pos.y += directions[i].y;
+
+                    if (manager.checkValidGridPos(pos.x, pos.y)) {
+                        var sideInd = manager.gridXY2Ind(pos.x, pos.y);
+                        var sideGridObj = manager.grid[GRID.MIDDLE][sideInd];
+                        if (sideGridObj.valid) {
+                            if (sideGridObj.object.type == OBJECT.LOSANGO) {
+                                var sideId = sideGridObj.object.id;
+
+                                //var validIds = [NAME.JOAS, NAME.ANDRE, NAME.LUIS, NAME.MATHEUS, NAME.HENRIQUE, NAME.GABRIEL, NAME.BERNAD, NAME.FSANCHEZ, NAME.RAFAEL];
+                                var canSlap = false;
+                                for (var j = 0; j < validIds.length; j++) {
+                                    if (sideId == validIds[j]) {
+                                        canSlap = true;
+                                        break;
+                                    }
                                 }
-                            }
 
-                            if (canSlap) {
-                                sideGridObj.object.hspd += 10 * directions[i].x;
-                                sideGridObj.object.x += 10 * directions[i].x;
-                                sideGridObj.object.vspd += 10 * directions[i].y;
-                                sideGridObj.object.y += 10 * directions[i].y;
-                                manager.particles.push(particleSmack(sideGridObj.object.x, sideGridObj.object.y));
-                                playSound(SND.SLAP);
+                                if (canSlap) {
+                                    sideGridObj.object.hspd += 10 * directions[i].x;
+                                    sideGridObj.object.x += 10 * directions[i].x;
+                                    sideGridObj.object.vspd += 10 * directions[i].y;
+                                    sideGridObj.object.y += 10 * directions[i].y;
+                                    manager.particles.push(particleSmack(sideGridObj.object.x, sideGridObj.object.y));
+                                    playSound(SND.SLAP);
+                                }
                             }
                         }
                     }
                 }
+                los.flip();
             }
-            los.flip();
 
         } else if (los.id == NAME.DANILO) {
 
