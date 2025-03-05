@@ -407,9 +407,47 @@ class Effector {
                 los.flip();
             }
         } else if (los.id == NAME.MARLUS) {
-            los.tiltActor.freeMoveSpd += 0.02;
-            if (input.mouseState[0][1]) {
-                manager.clickParticle();
+            if(manager.altNames){
+                los.tiltActor.freeMoveSpd += 0.02;
+                if (input.mouseState[0][1]) {
+                    manager.clickParticle();
+                }
+            } else {
+                if(!manager.doingTestMode){
+                    //var maxWait = 0;
+                    for(var i = 0; i < manager.grid[GRID.MIDDLE].length; i++){
+                        if(manager.losangos.length <= i ) continue;
+                        if(manager.losangos[i].inOtherplane) continue;
+                        
+                        var obj = manager.grid[GRID.MIDDLE][i];
+
+                        if (!obj.valid) continue;
+                        if (obj.object.type != OBJECT.LOSANGO) continue;
+
+                        var col = i%10;
+                        var row = Math.floor(i/10);
+
+                        //var diff = distance((col - startCol), (row - startRow));
+
+                        obj.object.startTest();
+
+                        // var updatePacket = EventCreate.startTest(250 - i*2).wrap();
+                        // updatePacket.isFront = true;
+                        // updatePacket.waitTime = i*2;
+                        // obj.object.updateList.push(updatePacket);
+                        // var otherUpdatePacket = new UpdateLosango([]);
+                        // otherUpdatePacket.isFront = true;
+                        // otherUpdatePacket.waitTime = diff*2 + 50;
+                        // obj.object.updateList.push(otherUpdatePacket);
+
+                        //maxWait = i*2;
+                    }
+                    manager.doingTestStartCooldown.timeInit = 200;
+                    manager.doingTestStartCooldown.start();
+                    manager.doingTestMode = true;
+                }
+
+
             }
         } else if (los.id == NAME.CAIO) {
             if (los.useAltName) {

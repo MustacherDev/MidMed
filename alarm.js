@@ -114,7 +114,6 @@ function drawAlarm(ctx, alarm, x, y, height){
   var hei = height*0.95;
 
   ctx.fillStyle = alarm.paused ? "rgb(100, 100, 255)" : "rgb(255, 100, 100)";
-  ctx.fillText(zeroPad(alarm.timer, alarmTimeString.length) , x + borderWid, y + borderHei + hei/4 );
+  ctx.fillText(zeroPad(Math.floor(alarm.timer), alarmTimeString.length) , x + borderWid, y + borderHei + hei/4 );
   ctx.fillText(alarmTimeString , x + borderWid, y + borderHei + hei/2 + hei/4);
-
 }

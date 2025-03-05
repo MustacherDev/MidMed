@@ -129,6 +129,10 @@ class Manager {
     this.birthdayId = -1;
     this.musicMode = false;
 
+    this.doingTestMode = false;
+    this.doingTestStartCooldown = new Alarm(0, 1000, true); 
+    this.doingTestFinishCooldown = new Alarm(0, 1000, true);
+
     this.sunAmount = 0;
     this.bitCoinAmount = 0;
     this.bitCoinToMine = 5;
@@ -468,8 +472,39 @@ class Manager {
 
     }
 
-    this.pinSlideAlarm.update(dt);
 
+    // DOING TEST
+    if(this.doingTestMode){
+      this.doingTestStartCooldown.update(dt);
+      if(this.doingTestStartCooldown.finished){
+        playSound(SND.WHISTLE);
+        for(var los of this.losangos){
+          if(!los.active) continue;
+          if(los.inOtherplane) continue;
+          if(!los.attached) continue;
+
+          los.testPaper.flipActor.startFlip(1);
+          los.testFinishCooldown.start();
+        }
+        this.doingTestStartCooldown.stop();
+        this.doingTestFinishCooldown.start();
+      }
+
+      this.doingTestFinishCooldown.update(dt);
+      if(this.doingTestFinishCooldown.finished){
+        for(var los of this.losangos){
+          los.doingTest = false;
+          los.testPaper.active = false;
+          los.testFinishCooldown.stop();
+        }
+        this.doingTestFinishCooldown.stop();
+        this.doingTestMode = false;
+      }
+    }
+
+
+
+    this.pinSlideAlarm.update(dt);
     if(this.chessMode){
       if(this.chessState == 1){
         var perc = this.pinSlideAlarm.percentage();
@@ -664,6 +699,10 @@ class Manager {
 
     this.toolBar.draw(ctx);
 
+
+    if(this.doingTestMode){
+      drawAlarm(ctx, this.doingTestFinishCooldown, roomWidth/2, 0, 200);
+    }
 
 
     this.spotlight.draw(ctx);

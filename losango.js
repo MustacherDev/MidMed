@@ -20,6 +20,7 @@ const LEVENT = Object.freeze(new Enum(
   "ENDMINESWEEPER",
   "SCREENMODE",
   "IMAGESHOW",
+  "STARTTEST",
   "TOTAL"
 ));
 
@@ -49,7 +50,9 @@ class EventCreate{
     return new EventObject(LEVENT.IMAGESHOW, [imageId]);
   }
 
-
+  static startTest(startTime){
+    return new EventObject(LEVENT.STARTTEST, [startTime]);
+  }
 
 }
 
@@ -445,6 +448,134 @@ class StateFlow{
     }
   }
 }
+
+
+class TestPaper{
+  constructor(){
+    this.x = 0;
+    this.y = 0;
+    this.depth = -20;
+    this.angle = 0;
+
+    this.xScl = 0.3;
+    this.yScl = 0.3;
+
+    this.xSclMult = 1;
+    this.ySclMult = 1;
+
+    this.hspd = 0;
+    this.vspd = 0;
+
+    this.flipActor = new FlipActor();
+
+    this.targetPos = new Vector(0,0);
+
+    this.inPlace = false;
+
+    this.shaking = false;
+
+    this.shakeX = 0;
+    this.shakeY = 0;
+
+    this.active = false;
+  }
+
+  reset(){
+    this.active = true;
+    this.shaking = false;
+    this.flipActor = new FlipActor();
+    this.hspd = 0;
+    this.vspd = 0;
+    this.inPlace = false;
+  }
+
+  update(dt){
+    this.flipActor.update(dt);
+
+    this.xSclMult = 1;
+    this.ySclMult = 1;
+    this.xSclMult *= Math.cos(this.flipActor.phase);
+    //this.ySclMult *= Math.sin(this.flipActor.phase);
+
+    if(Math.abs(this.targetPos.x - this.x) + Math.abs(this.targetPos.y - this.y) < 5){
+      //if(this.attachCooldownAlarm.finished){
+        if(!this.inPlace){
+          this.hspd = 0;
+          this.vspd = 0;
+
+          var pos = new Vector(this.x, this.y);
+          var dist = this.targetPos.sub(pos).mag();
+          var dir = this.targetPos.sub(pos).unit();
+          if(dist < 1){
+            this.x = this.targetPos.x;
+            this.y = this.targetPos.y;
+            this.inPlace = true;
+
+            //this.lockParticles();
+
+
+          } else {
+            this.x += dir.x/10;
+            this.y += dir.y/10;
+          }
+        }
+      //}
+    } else {
+
+      if(this.y > this.targetPos.y){
+        var pos = new Vector(this.x, this.y);
+        var dist = this.targetPos.sub(pos).mag();
+        var dir = this.targetPos.sub(pos).unit();
+
+        var spd = Math.max((dist*dist)/100000, 0.1);
+
+        this.vspd += 0.1*dt;
+
+        this.hspd += dir.x*spd*dt;
+        this.vspd += dir.y*spd*dt;
+      } else {
+        this.vspd += 0.2*dt;
+      }
+    }
+
+    this.hspd = clamp(this.hspd, -20, 20);
+    this.vspd = clamp(this.vspd, -20, 20);
+
+    this.hspd *= Math.pow(0.98, dt);
+    this.vspd *= Math.pow(0.98, dt);
+
+    this.x += this.hspd*dt;
+    this.y += this.vspd*dt;
+
+    if(this.flipActor.flipped){
+      this.shaking = true;
+    }
+
+    if(this.shaking){
+      this.shakeX = randRange(-2, 2);
+      this.shakeY = randRange(-2, 2);
+    }
+  }
+
+  draw(ctx){
+
+    var xSclAnim = this.xScl*this.xSclMult;
+    var ySclAnim = this.yScl*this.ySclMult;
+    var angAnim = this.angle;
+
+    sprites[SPR.TESTPAPER].drawExtRelative(this.x+this.shakeX, this.y + this.shakeY, this.flipActor.isFront ? 1:0, xSclAnim, ySclAnim, angAnim, 0.5,0.5);
+  }
+
+  pushDrawList() {
+    if(!this.active) return;
+    addList(new DrawRequest(this, this.depth, 0), OBJECT.DRAW);
+  }
+
+  drawRequest(ctx, parameter) {
+    this.draw(ctx);
+  }
+
+}
  
 
 class Losango {
@@ -505,6 +636,11 @@ class Losango {
     this.tiltActor = new TiltActor();
     this.wobbleActor = new WobbleActor();
     this.orbitActor = new OrbitActor();
+
+    this.testPaper = new TestPaper();
+    this.testStartCooldown = new Alarm(0, 1000, true);
+    this.testFinishCooldown = new Alarm(0, 1000, true);
+    this.doingTest = false;
 
     this.shrinked = false;
     this.shrinkAlarm = new Alarm(0, 100);
@@ -692,6 +828,32 @@ class Losango {
 
   startOrbit(phase, spd, radius, duration, obj){
     this.orbitActor.startOrbit(phase, spd, radius, duration, obj);
+  }
+
+  startTest(cooldown){
+    this.testPaper.reset();
+
+    this.testPaper.x = this.x+35;
+    this.testPaper.y = -400;
+
+    this.testPaper.targetPos = new Vector(this.x+35, this.y+30);
+
+    // this.testStartCooldown.timeInit = cooldown;
+    // this.testStartCooldown.stop();
+    // this.testStartCooldown.start();
+
+    this.testFinishCooldown.timeInit = randInt(300, 800);
+    if(this.id == NAME.MARLUS){
+      this.testFinishCooldown.timeInit = 150;
+    }
+
+    if(this.id == NAME.FSANCHEZ){
+      this.testFinishCooldown.timeInit = 950;
+    }
+
+    this.testFinishCooldown.stop();
+
+    this.doingTest = true;
   }
 
   playNote(){
@@ -981,6 +1143,31 @@ class Losango {
     // ORBITING
     this.orbitActor.update(dt, this);
 
+    // TEST PAPER
+    if(this.doingTest){
+      this.testPaper.update(dt);
+      this.testPaper.pushDrawList();
+      //this.testStartCooldown.update(dt);
+      this.testFinishCooldown.update(dt);
+
+      // if(this.testStartCooldown.finished){
+      //   this.testStartCooldown.stop();
+      //   this.testPaper.flipActor.startFlip(1);
+      //   this.testFinishCooldown.start();
+      //   if(this.id == NAME.MARLUS){
+      //     playSound(SND.WHISTLE);
+      //   }
+      // }
+
+      if(this.testFinishCooldown.finished){
+        this.testPaper.active = false;
+        manager.addParticles(createParticlesInRect(particleSun, 5, this.x - manager.losWid / 2, this.y - manager.losHei / 2, manager.losWid, manager.losHei));
+        this.testFinishCooldown.stop();
+        this.doingTest = false;
+        playSound(SND.POP);
+      }
+    }
+
     // POLICE COLOR
     this.policeColorDurationAlarm.update(dt);
     if(!this.policeColorDurationAlarm.finished){
@@ -1014,6 +1201,7 @@ class Losango {
       this.frontColorActor.startPhase(this.frontColor, this.colorInOut, 50);
       this.colorInOutAlarm.stop();
     }
+
 
     // COLOR CHANGING
     this.frontColorActor.update(dt, this);
@@ -1236,6 +1424,10 @@ class Losango {
         this.imageShow = params[0];
         this.resolvingImage = false;
         break;
+
+      case LEVENT.STARTTEST:
+        this.startTest(params[0]);
+        break;
     }
   }
 
@@ -1315,6 +1507,8 @@ class Losango {
 
 
   draw(ctx){
+
+
 
     if(this.inOtherplane) return;
 
